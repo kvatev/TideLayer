@@ -76,13 +76,13 @@ export function Header({ onMenuOpen }: HeaderProps) {
             <img
               src="/images/logo/logo.webp"
               alt={brandConfig.name}
-              className="hidden sm:block h-9 md:h-10 w-auto object-contain"
+              className="hidden sm:block h-10 md:h-12 w-auto object-contain"
             />
             {/* Mobile: Logo icon only (само логото) */}
             <img
               src="/images/logo/icon.webp"
               alt={brandConfig.name}
-              className="sm:hidden h-8 w-auto object-contain"
+              className="sm:hidden h-10 w-auto object-contain"
             />
           </Link>
 

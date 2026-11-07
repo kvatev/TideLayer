@@ -82,7 +82,7 @@ export function MobileMenu({ isOpen, onClose }: { isOpen: boolean; onClose: () =
             <img
               src="/images/logo/logo.webp"
               alt={brandConfig.name}
-              className="h-8 w-auto object-contain"
+              className="h-9 w-auto object-contain"
             />
           </Link>
           <button

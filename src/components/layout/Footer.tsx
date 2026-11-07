@@ -55,7 +55,7 @@ export function Footer() {
               <img
                 src="/images/logo/logo.webp"
                 alt={brandConfig.name}
-                className="h-9 md:h-10 w-auto object-contain"
+                className="h-10 md:h-12 w-auto object-contain"
               />
             </Link>
             <p className="text-slate-600 text-sm leading-relaxed max-w-xs mb-6">

@@ -1,5 +1,5 @@
 export const brandConfig = {
-  name: 'TideLayer Technologies',
+  name: 'TideLayer',
   tagline: 'Web. Systems. Support.',
   shortName: 'TideLayer',
   
@@ -24,7 +24,7 @@ export const brandConfig = {
 
   // SEO defaults
   seo: {
-    defaultTitle: 'TideLayer Technologies | Web. Systems. Support.',
+    defaultTitle: 'TideLayer',
     defaultDescription: 'Технологични решения за бизнес и образование. Уеб разработка, софтуер за училища, ИТ инфраструктура и хардуерен сервиз.',
     defaultKeywords: [
       'уеб разработка',
@@ -38,7 +38,7 @@ export const brandConfig = {
       'Wi-Fi инсталация'
     ],
     ogImage: '/images/logo/logo.webp',
-    siteName: 'TideLayer Technologies',
+    siteName: 'TideLayer',
     locale: 'bg_BG',
     url: 'https://tidelayer.com'
   },

@@ -40,7 +40,7 @@ export function WhyChooseUs() {
       <div className="container">
         <div className="text-center max-w-2xl mx-auto mb-12 animate-fade-in">
           <h2 id="why-title" className="text-4xl md:text-5xl font-heading font-bold text-navy-900 mb-4">
-            Защо TideLayer Technologies
+            Защо TideLayer
           </h2>
           <p className="text-lg text-slate-600">
             Избирайте ни не защото сме най-големи, а защото сме най-добро подходящи за дългосрочен технологичен партньор.

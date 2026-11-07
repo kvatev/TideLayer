@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { cn } from '../../utils/helpers';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -122,7 +121,7 @@ export function WebApplications() {
               'AWS / Vercel',
               'GraphQL / REST',
               'Redis / BullMQ'
-            ].map((tech, i) => (
+            ].map((tech) => (
               <Badge key={tech} variant="secondary" size="md" className="px-4 py-2 text-sm">
                 {tech}
               </Badge>

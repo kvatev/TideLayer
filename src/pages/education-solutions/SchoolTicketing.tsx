@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { cn } from '../../utils/helpers';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';

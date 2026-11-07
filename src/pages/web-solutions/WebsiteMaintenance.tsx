@@ -99,7 +99,7 @@ export function WebsiteMaintenance() {
                 features: ['Всичко в Стандартен', 'Развитие на функционалност', 'Настанови посещения', '24/7 аварийна линия', 'Стратегически консултации'],
                 cta: 'Изберете премиум'
               }
-            ].map((plan, index) => (
+            ].map((plan) => (
               <Card key={plan.name} variant={plan.popular ? 'elevated' : 'outlined'} padding="lg" hover className={cn('relative flex flex-col', plan.popular && 'border-blue-500 shadow-lg')}>
                 {plan.popular && (
                   <Badge variant="primary" className="absolute -top-3 left-1/2 -translate-x-1/2">

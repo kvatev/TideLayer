@@ -33,7 +33,7 @@ export function Divisions() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {brandConfig.divisions.map((division, index) => (
+          {brandConfig.divisions.map((division) => (
             <Link
               key={division.id}
               to={division.href}

@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { cn } from '../../utils/helpers';
 import { Icon } from '../ui/Icon';
 import { Card } from '../ui/Card';
 import { networksItServices } from '../../data';
@@ -18,7 +17,7 @@ export function BusinessIT() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {networksItServices.map((service, index) => (
+          {networksItServices.map((service) => (
             <Link
               key={service.id}
               to={`/networks-it/${service.id}`}

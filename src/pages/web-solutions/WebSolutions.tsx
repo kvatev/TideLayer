@@ -46,7 +46,7 @@ export function WebSolutions() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {webSolutionsServices.map((service, index) => (
+            {webSolutionsServices.map((service) => (
               <Link key={service.id} to={`/web-solutions/${service.id}`} className="group">
                 <Card variant="elevated" padding="lg" hover className="h-full flex flex-col">
                   <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-50 text-blue-600 mb-5 group-hover:bg-blue-100 transition-colors">

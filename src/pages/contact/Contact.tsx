@@ -70,7 +70,7 @@ export function Contact() {
     if (errors[name]) setErrors(prev => ({ ...prev, [name]: '' }));
   };
 
-  const { name, contact: companyInfo } = brandConfig;
+  const { contact: companyInfo } = brandConfig;
 
   return (
     <div>

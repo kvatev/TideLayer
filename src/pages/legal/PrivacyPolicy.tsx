@@ -4,7 +4,6 @@ import { brandConfig } from '../../config/brand';
 export function PrivacyPolicy() {
   const { name, contact } = brandConfig;
   const email = contact.email;
-  const currentYear = new Date().getFullYear();
 
   return (
     <div>

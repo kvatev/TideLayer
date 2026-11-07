@@ -1,5 +1,4 @@
 import { Link } from 'react-router-dom';
-import { cn } from '../../utils/helpers';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
@@ -47,7 +46,7 @@ export function EducationSolutions() {
           </div>
 
           <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-            {educationProducts.map((product, index) => (
+            {educationProducts.map((product) => (
               <Link key={product.id} to={product.cta.href.replace('/contact?product=', '/education-solutions/')} className="group">
                 <Card variant="elevated" padding="lg" hover className="h-full flex flex-col">
                   <div className="relative aspect-video bg-slate-100 rounded-xl mb-5 overflow-hidden group-hover:opacity-90 transition-opacity">

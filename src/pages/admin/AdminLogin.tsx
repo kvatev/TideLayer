@@ -113,3 +113,4 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     </div>
   );
 }
+

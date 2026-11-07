@@ -12,3 +12,4 @@ export function Admin() {
 
   return <AdminDashboard onLogout={() => setAuthenticated(false)} />;
 }
+

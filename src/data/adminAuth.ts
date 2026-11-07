@@ -40,3 +40,4 @@ export const adminAuth = {
     return this.getSession() !== null;
   },
 };
+

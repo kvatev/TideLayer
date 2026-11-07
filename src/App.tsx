@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
 import { Home } from './pages/home/Home';
+import { Admin } from './pages/admin/Admin';
 
 // Import page components
 import { WebSolutions } from './pages/web-solutions/WebSolutions';
@@ -29,6 +30,10 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* Admin panel — standalone layout (no header/footer) */}
+        <Route path="admin" element={<Admin />} />
+
+        {/* Public site */}
         <Route element={<MainLayout />}>
           <Route path="/" element={<Home />} />
           

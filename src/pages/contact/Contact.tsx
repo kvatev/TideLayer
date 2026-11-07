@@ -8,6 +8,7 @@ import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
 import { inquiryTypes } from '../../data';
 import { brandConfig } from '../../config/brand';
+import { addInquiry } from '../../data/inquiries';
 
 export function Contact() {
   const [formData, setFormData] = useState({
@@ -44,9 +45,17 @@ export function Contact() {
     
     // Simulate API call
     await new Promise(resolve => setTimeout(resolve, 1500));
-    
-    // In production, this would be an actual API call to Supabase/Formspree/etc.
-    console.log('Form submitted:', formData);
+
+    // Save inquiry to store
+    addInquiry({
+      inquiryType: formData.inquiryType,
+      productPreselect: formData.productPreselect,
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      company: formData.company,
+      message: formData.message,
+    });
     
     setSubmitStatus('success');
     setFormData({

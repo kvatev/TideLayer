@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { cn } from '../../utils/helpers';
 import { Icon } from '../ui/Icon';
@@ -20,6 +20,32 @@ export function Header({ onMenuOpen }: HeaderProps) {
   const [scrolled, setScrolled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const location = useLocation();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const handleMouseEnter = (key: string) => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+      timeoutRef.current = null;
+    }
+    setDropdownOpen(key);
+  };
+
+  const handleMouseLeave = () => {
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+    timeoutRef.current = setTimeout(() => {
+      setDropdownOpen(null);
+    }, 150);
+  };
+
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -99,8 +125,8 @@ export function Header({ onMenuOpen }: HeaderProps) {
                   <div
                     key={item.href}
                     className="relative"
-                    onMouseEnter={() => setDropdownOpen(item.href)}
-                    onMouseLeave={() => setDropdownOpen(null)}
+                    onMouseEnter={() => handleMouseEnter(item.href)}
+                    onMouseLeave={handleMouseLeave}
                   >
                     <button
                       className={cn(
@@ -125,16 +151,19 @@ export function Header({ onMenuOpen }: HeaderProps) {
                     </button>
 
                     {dropdownOpen === item.href && (
-                      <div className="absolute left-0 top-full mt-2 w-56 origin-top-left animate-scale-in rounded-xl bg-white border border-slate-200 shadow-lg py-2 z-50">
-                        {dropdownItems.map((subItem) => (
-                          <Link
-                            key={subItem.href}
-                            to={subItem.href}
-                            className="block px-4 py-2.5 text-sm text-slate-600 hover:text-navy-900 hover:bg-slate-50 transition-colors"
-                          >
-                            {subItem.label}
-                          </Link>
-                        ))}
+                      <div className="absolute left-0 top-full pt-1.5 w-56 z-50">
+                        <div className="origin-top-left animate-scale-in rounded-xl bg-white border border-slate-200 shadow-lg py-2">
+                          {dropdownItems.map((subItem) => (
+                            <Link
+                              key={subItem.href}
+                              to={subItem.href}
+                              onClick={() => setDropdownOpen(null)}
+                              className="block px-4 py-2.5 text-sm text-slate-600 hover:text-navy-900 hover:bg-slate-50 transition-colors"
+                            >
+                              {subItem.label}
+                            </Link>
+                          ))}
+                        </div>
                       </div>
                     )}
                   </div>

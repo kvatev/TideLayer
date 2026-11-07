@@ -435,7 +435,7 @@ export const demoProjects: Project[] = [
     category: 'Уеб решения',
     description: 'Онлайн магазин за поздравителни картички и подаръци с пълна електронна търговия, управление на поръчки и онлайн плащания.',
     tags: ['E-commerce', 'WordPress', 'WooCommerce', 'SEO'],
-    image: `https://api.screenshotone.com/take?url=https://www.poshtichka.eu&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    image: '/images/projects/poshtichka.webp',
     url: 'https://www.poshtichka.eu',
     isDemo: false
   },
@@ -445,7 +445,7 @@ export const demoProjects: Project[] = [
     category: 'Уеб решения',
     description: 'Уебсайт за образователна платформа, представяща курсове по изкуство, галерия и информация за преподаватели.',
     tags: ['Уебсайт', 'CMS', 'Образование', 'Дизайн'],
-    image: `https://api.screenshotone.com/take?url=https://www.umenie.net&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    image: '/images/projects/umenie.webp',
     url: 'https://www.umenie.net',
     isDemo: false
   },
@@ -455,7 +455,7 @@ export const demoProjects: Project[] = [
     category: 'Уеб решения',
     description: 'Елегантен уебсайт за сватбена агенция с портфолио от организирани сватби, услуги и форма за запитване.',
     tags: ['Уебсайт', 'CMS', 'Сватби', 'Дизайн'],
-    image: `https://api.screenshotone.com/take?url=https://www.svatbenkod.com&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    image: '/images/projects/svatbenkod.webp',
     url: 'https://www.svatbenkod.com',
     isDemo: false
   },
@@ -465,7 +465,7 @@ export const demoProjects: Project[] = [
     category: 'Уеб решения',
     description: 'Корпоративен уебсайт за производител на стъклени изделия с продуктово портфолио, галерия и информация за услугите.',
     tags: ['React', 'Vercel', 'Корпоративен', 'Дизайн'],
-    image: `https://api.screenshotone.com/take?url=https://galliaglass.vercel.app&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    image: '/images/projects/galliaglass.webp',
     url: 'https://galliaglass.vercel.app',
     isDemo: false
   },
@@ -475,7 +475,7 @@ export const demoProjects: Project[] = [
     category: 'Уеб решения',
     description: 'Портфолио сайт за графичен дизайнер с представяне на проекти, услуги и форма за контакт.',
     tags: ['React', 'Vercel', 'Портфолио', 'Дизайн'],
-    image: `https://api.screenshotone.com/take?url=https://petkanov-grafik.vercel.app&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    image: '/images/projects/petkanov-grafik.webp',
     url: 'https://petkanov-grafik.vercel.app',
     isDemo: false
   },
@@ -485,7 +485,7 @@ export const demoProjects: Project[] = [
     category: 'Уеб приложения',
     description: 'Уеб приложение за онлайн тестове и оценяване в учебна среда. Позволява на учители да създават тестове и на ученици да ги решават.',
     tags: ['React', 'Vercel', 'Образование', 'Уеб приложение'],
-    image: `https://api.screenshotone.com/take?url=https://class-test-hub.vercel.app&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    image: '/images/projects/class-test-hub.webp',
     url: 'https://class-test-hub.vercel.app',
     isDemo: false
   }

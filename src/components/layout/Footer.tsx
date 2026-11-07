@@ -52,9 +52,12 @@ export function Footer() {
               className="flex items-center gap-2 text-navy-900 font-heading font-bold text-xl md:text-2xl mb-4"
               aria-label={`${brandConfig.name} - Начало`}
             >
-              <span className="relative flex h-9 w-9 md:h-10 md:w-10 items-center justify-center rounded-lg bg-navy-900 shrink-0">
-                <Icon name="Layers" size={22} className="text-white" />
-              </span>
+              <img
+                src="/images/logo/icon.webp"
+                alt=""
+                className="h-9 w-auto md:h-10 shrink-0"
+                aria-hidden="true"
+              />
               <span>{brandConfig.name}</span>
             </Link>
             <p className="text-slate-600 text-sm leading-relaxed max-w-xs mb-6">

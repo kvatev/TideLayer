@@ -2,8 +2,9 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../ui/Icon';
 import { brandConfig } from '../../config/brand';
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 export function Footer() {
-  const currentYear = new Date().getFullYear();
 
   const footerNav = {
     'Уеб решения': [
@@ -120,7 +121,7 @@ export function Footer() {
 
         <div className="mt-12 pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-400 text-center md:text-left">
-            © {currentYear} {brandConfig.name}. Всички права запазени.
+            © {CURRENT_YEAR} {brandConfig.name}. Всички права запазени.
           </p>
           <nav className="flex gap-6 text-xs" aria-label="Правни">
             <Link to="/privacy-policy" className="text-slate-400 hover:text-navy-900 transition-colors">

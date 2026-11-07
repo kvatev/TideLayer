@@ -6,8 +6,8 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Badge } from '../../components/ui/Badge';
-import { brandConfig } from '../../config/brand';
 import { inquiryTypes } from '../../data';
+import { brandConfig } from '../../config/brand';
 
 export function Contact() {
   const [formData, setFormData] = useState({

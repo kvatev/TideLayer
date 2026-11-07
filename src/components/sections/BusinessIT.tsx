@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Icon } from '../ui/Icon';
 import { Card } from '../ui/Card';
-import { networksItServices } from '../../data';
 
 export function BusinessIT() {
   return (
@@ -16,38 +15,9 @@ export function BusinessIT() {
           </p>
         </div>
 
-        <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {networksItServices.map((service) => (
-            <Link
-              key={service.id}
-              to={`/networks-it/${service.id}`}
-              className="group"
-            >
-              <Card variant="elevated" padding="lg" hover className="h-full flex flex-col text-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-navy-100 text-navy-600 mx-auto mb-5 group-hover:bg-navy-200 transition-colors">
-                  <Icon name={service.icon} size={24} />
-                </div>
-                <h3 className="text-xl font-heading font-bold text-navy-900 mb-3 group-hover:text-blue-600 transition-colors">
-                  {service.title}
-                </h3>
-                <p className="text-slate-600 mb-6 flex-1 leading-relaxed">
-                  {service.description}
-                </p>
-                <div className="flex items-center justify-center gap-1.5 text-sm font-medium text-navy-600 group-hover:gap-2.5 transition-all">
-                  <span>Научете повече</span>
-                  <Icon name="ArrowRight" size={16} />
-                </div>
-              </Card>
-            </Link>
-          ))}
-        </div>
-
         {/* Monthly support highlight */}
         <div className="animate-fade-in">
-          <Link
-            to="/networks-it/monthly-support"
-            className="group"
-          >
+          <Link to="/networks-it/monthly-support" className="group">
             <Card variant="elevated" padding="xl" className="bg-gradient-to-br from-navy-900 via-navy-800 to-navy-900 text-white">
               <div className="grid md:grid-cols-3 gap-8 items-center">
                 <div className="md:col-span-2">

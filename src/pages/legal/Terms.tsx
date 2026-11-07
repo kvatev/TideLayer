@@ -1,6 +1,8 @@
 import { Link } from 'react-router-dom';
 import { brandConfig } from '../../config/brand';
 
+const LAST_UPDATED = new Date().toLocaleDateString('bg-BG', { year: 'numeric', month: 'long', day: 'numeric' });
+
 export function Terms() {
   const { name, contact } = brandConfig;
   const website = brandConfig.seo.url;
@@ -15,7 +17,7 @@ export function Terms() {
               Общи условия
             </h1>
             <p className="text-lg text-slate-300 mb-8 max-w-2xl leading-relaxed">
-              Последна актуализация: {new Date().toLocaleDateString('bg-BG', { year: 'numeric', month: 'long', day: 'numeric' })}
+              Последна актуализация: {LAST_UPDATED}
             </p>
           </div>
         </div>

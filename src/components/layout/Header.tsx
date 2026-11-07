@@ -53,9 +53,10 @@ export function Header({ onMenuOpen }: HeaderProps) {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
+  // Close dropdown when route changes
   useEffect(() => {
     setDropdownOpen(null);
-  }, [location.pathname]);
+  }, [location.pathname]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Close dropdown on outside click
   useEffect(() => {

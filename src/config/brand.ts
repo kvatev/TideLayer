@@ -37,7 +37,7 @@ export const brandConfig = {
       'сървъри',
       'Wi-Fi инсталация'
     ],
-    ogImage: '/images/og-default.jpg',
+    ogImage: '/images/logo/logo.webp',
     siteName: 'TideLayer Technologies',
     locale: 'bg_BG',
     url: 'https://tidelayer.com'

@@ -1,8 +1,6 @@
 import { Link } from 'react-router-dom';
-import { cn } from '../../utils/helpers';
 import { Icon } from '../ui/Icon';
 import { Card } from '../ui/Card';
-import { Button } from '../ui/Button';
 import { Badge } from '../ui/Badge';
 import { educationProducts, educationItSupportService } from '../../data';
 
@@ -20,7 +18,7 @@ export function EducationShowcase() {
         </div>
 
         <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12">
-          {educationProducts.map((product, index) => (
+          {educationProducts.map((product) => (
             <Link
               key={product.id}
               to={product.cta.href.replace('/contact?product=', '/education-solutions/')}

@@ -1,16 +1,24 @@
-import { Link } from 'react-router-dom';
-import { cn } from '../../utils/helpers';
+import { useState } from 'react';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
+import { Link } from 'react-router-dom';
 import { demoProjects } from '../../data';
 
 export function Portfolio() {
-  // Filter out UI mockups for main portfolio, or show all
-  const projects = demoProjects;
+  const [imgErrors, setImgErrors] = useState<Record<string, boolean>>({});
 
-  const categories = ['Всички', 'Уеб решения', 'Уеб приложения', 'Мрежи и ИТ', 'Училищни решения'];
+  const handleImgError = (id: string) => {
+    setImgErrors((prev) => ({ ...prev, [id]: true }));
+  };
+
+  const categories = ['Всички', 'Уеб решения', 'Уеб приложения'];
+  const [activeCategory, setActiveCategory] = useState('Всички');
+
+  const filtered = activeCategory === 'Всички'
+    ? demoProjects
+    : demoProjects.filter((p) => p.category === activeCategory);
 
   return (
     <div>
@@ -22,31 +30,32 @@ export function Portfolio() {
               Портфолио
             </Badge>
             <h1 id="portfolio-title" className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
-              Избрани проекти и концепции
+              Реализирани проекти
             </h1>
             <p className="text-lg text-slate-300 mb-8 max-w-2xl leading-relaxed">
-              Примери от нашата работа в уеб разработка, уеб приложения, мрежова инфраструктура и училищни софтуерни продукти.
-              <strong className="text-amber-300"> Бележка: Някои проекти са демонстрационни/концептуални и са ясно маркирани като такива.</strong>
+              Уебсайтове и уеб приложения, създадени от нас — реални проекти, работещи в момента онлайн.
             </p>
           </div>
         </div>
       </section>
 
-      {/* Category Filter */}
-      <section className="section bg-white" aria-labelledby="portfolio-filter">
+      {/* Filter + Grid */}
+      <section className="section bg-white" aria-label="Портфолио проекти">
         <div className="container">
+          {/* Category Filter */}
           <div className="flex flex-wrap gap-3 justify-center mb-12 animate-fade-in" role="tablist">
-            {categories.map((cat, index) => (
+            {categories.map((cat) => (
               <button
                 key={cat}
                 role="tab"
-                aria-selected={index === 0}
-                className={cn(
-                  'px-5 py-2.5 rounded-full text-sm font-medium transition-all',
-                  index === 0
+                aria-selected={activeCategory === cat}
+                onClick={() => setActiveCategory(cat)}
+                className={
+                  'px-5 py-2.5 rounded-full text-sm font-medium transition-all ' +
+                  (activeCategory === cat
                     ? 'bg-navy-900 text-white shadow-lg'
-                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-                )}
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200')
+                }
               >
                 {cat}
               </button>
@@ -54,26 +63,42 @@ export function Portfolio() {
           </div>
 
           {/* Projects Grid */}
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {projects.map((project, index) => (
-              <Card key={project.id} variant="elevated" padding="none" hover className="animate-slide-up overflow-hidden" style={{ animationDelay: `${index * 100}ms` }}>
-                {/* Project Image Placeholder */}
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filtered.map((project, index) => (
+              <Card
+                key={project.id}
+                variant="elevated"
+                padding="none"
+                hover
+                className="animate-slide-up overflow-hidden flex flex-col"
+                style={{ animationDelay: `${index * 80}ms` }}
+              >
+                {/* Screenshot / Preview */}
                 <div className="relative aspect-video bg-slate-100 overflow-hidden">
-                  <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                    <Icon name="Image" size={48} />
-                  </div>
-                  {project.isDemo && (
-                    <Badge variant="primary" size="sm" className="absolute top-4 left-4">
-                      {project.demoLabel}
-                    </Badge>
+                  {!imgErrors[project.id] && project.image ? (
+                    <img
+                      src={project.image}
+                      alt={`Преглед на ${project.title}`}
+                      className="w-full h-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+                      onError={() => handleImgError(project.id)}
+                      loading="lazy"
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-slate-400">
+                      <Icon name="Globe" size={40} />
+                      <span className="text-xs">{project.url ?? ''}</span>
+                    </div>
                   )}
-                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4 text-white">
+                  {/* Category overlay */}
+                  <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent px-4 py-3">
                     <span className="text-xs font-medium text-slate-300">{project.category}</span>
                   </div>
                 </div>
 
-                <div className="p-6">
-                  <div className="flex flex-wrap gap-2 mb-3">
+                {/* Card body */}
+                <div className="p-6 flex flex-col flex-1">
+                  {/* Tags */}
+                  <div className="flex flex-wrap gap-1.5 mb-3">
                     {project.tags.slice(0, 4).map((tag) => (
                       <Badge key={tag} variant="outline" size="sm">{tag}</Badge>
                     ))}
@@ -82,27 +107,33 @@ export function Portfolio() {
                     )}
                   </div>
 
-                  <h3 className="text-xl font-heading font-bold text-navy-900 mb-3 leading-snug">
+                  <h3 className="text-xl font-heading font-bold text-navy-900 mb-2 leading-snug">
                     {project.title}
                   </h3>
 
-                  <p className="text-slate-600 mb-4 leading-relaxed line-clamp-3">
+                  <p className="text-slate-600 mb-5 leading-relaxed line-clamp-3 flex-1 text-sm">
                     {project.description}
                   </p>
 
-                  <Button variant="outline" asChild className="w-full">
-                    <Link to={`/portfolio/${project.id}`}>Вижте подробности</Link>
-                  </Button>
+                  {/* Actions */}
+                  <div className="flex gap-3 mt-auto">
+                    {project.url && (
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        asChild
+                        className="flex-1 flex items-center justify-center gap-2"
+                      >
+                        <a href={project.url} target="_blank" rel="noopener noreferrer">
+                          <Icon name="ExternalLink" size={15} />
+                          Отвори сайта
+                        </a>
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </Card>
             ))}
-          </div>
-
-          {/* No results message (for future filtering) */}
-          <div className="hidden text-center py-12" id="no-results">
-            <Icon name="SearchX" size={48} className="text-slate-300 mx-auto mb-4" />
-            <h3 className="text-xl font-heading font-bold text-navy-900 mb-2">Няма намерени проекти</h3>
-            <p className="text-slate-600">Опитайте с друга категория.</p>
           </div>
         </div>
       </section>

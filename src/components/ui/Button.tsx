@@ -1,29 +1,54 @@
-import { forwardRef, type ButtonHTMLAttributes, type AnchorHTMLAttributes } from 'react';
+import {
+  forwardRef,
+  cloneElement,
+  isValidElement,
+  type ButtonHTMLAttributes,
+  type ReactElement,
+} from 'react';
+import { Link, type LinkProps } from 'react-router-dom';
 import { cn } from '../../utils/helpers';
 
+type Variant = 'primary' | 'secondary' | 'outline' | 'ghost';
+type Size = 'sm' | 'md' | 'lg';
+
 export interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+  variant?: Variant;
+  size?: Size;
   isLoading?: boolean;
+  /** When true, renders the first child element as the root (Slot pattern) */
   asChild?: boolean;
 }
 
-export interface LinkButtonProps extends AnchorHTMLAttributes<HTMLAnchorElement> {
-  variant?: 'primary' | 'secondary' | 'outline' | 'ghost';
-  size?: 'sm' | 'md' | 'lg';
+export interface LinkButtonProps {
+  variant?: Variant;
+  size?: Size;
+  href?: string;
   to?: string;
+  className?: string;
+  children?: React.ReactNode;
+  target?: string;
+  rel?: string;
+  onClick?: () => void;
+}
+
+function buttonClasses(variant: Variant = 'primary', size: Size = 'md', extra?: string) {
+  return cn('btn', `btn-${variant}`, size !== 'md' ? `btn-${size}` : '', extra);
 }
 
 export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
-  ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, ...props }, ref) => {
-    const baseClasses = 'btn';
-    const variantClasses = `btn-${variant}`;
-    const sizeClasses = size !== 'md' ? `btn-${size}` : '';
+  ({ className, variant = 'primary', size = 'md', isLoading, children, disabled, asChild, ...props }, ref) => {
+    const classes = buttonClasses(variant, size, className);
+
+    if (asChild && isValidElement(children)) {
+      return cloneElement(children as ReactElement<{ className?: string }>, {
+        className: cn(classes, (children as ReactElement<{ className?: string }>).props.className),
+      });
+    }
 
     return (
       <button
         ref={ref}
-        className={cn(baseClasses, variantClasses, sizeClasses, className)}
+        className={classes}
         disabled={disabled || isLoading}
         {...props}
       >
@@ -58,18 +83,21 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
 
 Button.displayName = 'Button';
 
+/** A router-aware link styled as a button */
 export const LinkButton = forwardRef<HTMLAnchorElement, LinkButtonProps>(
-  ({ className, variant = 'primary', size = 'md', children, ...props }, ref) => {
-    const baseClasses = 'btn';
-    const variantClasses = `btn-${variant}`;
-    const sizeClasses = size !== 'md' ? `btn-${size}` : '';
+  ({ className, variant = 'primary', size = 'md', children, to, href, ...props }, ref) => {
+    const classes = buttonClasses(variant, size, className);
+
+    if (to) {
+      return (
+        <Link to={to} className={classes} {...(props as Omit<LinkProps, 'to'>)}>
+          {children}
+        </Link>
+      );
+    }
 
     return (
-      <a
-        ref={ref}
-        className={cn(baseClasses, variantClasses, sizeClasses, className)}
-        {...props}
-      >
+      <a ref={ref} href={href} className={classes} {...props}>
         {children}
       </a>
     );

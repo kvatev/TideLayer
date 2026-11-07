@@ -5,8 +5,6 @@ import { Card } from '../ui/Card';
 import { brandConfig } from '../../config/brand';
 
 export function Divisions() {
-  const featuredDivisions = brandConfig.divisions.filter(d => d.featured);
-  const otherDivisions = brandConfig.divisions.filter(d => !d.featured);
 
   const colorClasses = {
     blue: 'bg-blue-50 text-blue-600 hover:bg-blue-100',

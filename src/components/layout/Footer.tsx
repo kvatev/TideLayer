@@ -49,22 +49,17 @@ export function Footer() {
           <div className="lg:col-span-2">
             <Link
               to="/"
-              className="flex items-center gap-2 text-navy-900 font-heading font-bold text-xl md:text-2xl mb-4"
+              className="inline-block mb-4 focus-visible:outline-none"
               aria-label={`${brandConfig.name} - Начало`}
             >
               <img
-                src="/images/logo/icon.webp"
-                alt=""
-                className="h-9 w-auto md:h-10 shrink-0"
-                aria-hidden="true"
+                src="/images/logo/logo.webp"
+                alt={brandConfig.name}
+                className="h-9 md:h-10 w-auto object-contain"
               />
-              <span>{brandConfig.name}</span>
             </Link>
             <p className="text-slate-600 text-sm leading-relaxed max-w-xs mb-6">
               Технологични решения за бизнес и образование. Уеб разработка, специализиран софтуер за училища, ИТ инфраструктура и хардуерен сервиз.
-            </p>
-            <p className="mt-4 text-xs text-slate-400">
-              © {currentYear} {brandConfig.name}. Всички права запазени.
             </p>
           </div>
 
@@ -125,7 +120,7 @@ export function Footer() {
 
         <div className="mt-12 pt-8 border-t border-slate-200 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-400 text-center md:text-left">
-            Всички права запазени.
+            © {currentYear} {brandConfig.name}. Всички права запазени.
           </p>
           <nav className="flex gap-6 text-xs" aria-label="Правни">
             <Link to="/privacy-policy" className="text-slate-400 hover:text-navy-900 transition-colors">

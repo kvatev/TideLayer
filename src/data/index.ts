@@ -427,87 +427,67 @@ export const hardwareServices: Service = {
   }
 };
 
-// Demo Projects
+// Real Portfolio Projects
 export const demoProjects: Project[] = [
   {
-    id: 'construction-website',
-    title: 'Корпоративен уебсайт за строителна компания',
+    id: 'poshtichka',
+    title: 'Пощичка — онлайн магазин за картички',
     category: 'Уеб решения',
-    description: 'Модерен корпоративен уебсайт с многоезична поддръжка, блог модул, портфолио с проекти и интеграция с CRM за управление на запитвания.',
-    tags: ['React', 'Next.js', 'CMS', 'SEO', 'TypeScript'],
-    image: '/images/projects/construction-website.jpg',
-    isDemo: true,
-    demoLabel: 'Демонстрационен проект'
+    description: 'Онлайн магазин за поздравителни картички и подаръци с пълна електронна търговия, управление на поръчки и онлайн плащания.',
+    tags: ['E-commerce', 'WordPress', 'WooCommerce', 'SEO'],
+    image: `https://api.screenshotone.com/take?url=https://www.poshtichka.eu&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    url: 'https://www.poshtichka.eu',
+    isDemo: false
   },
   {
-    id: 'property-rental',
-    title: 'Платформа за изнаемване на имоти',
-    category: 'Уеб приложения',
-    description: 'Пълнофункционална платформа за наем на имоти с интерактивна карта, онлайн плащания, календар за заетост, потребителски профили и админ панел.',
-    tags: ['Next.js', 'PostgreSQL', 'Payments', 'Maps', 'Prisma'],
-    image: '/images/projects/property-rental.jpg',
-    isDemo: true,
-    demoLabel: 'Демонстрационен проект'
-  },
-  {
-    id: 'hotel-network',
-    title: 'Мрежова инфраструктура за хотел',
-    category: 'Мрежи и ИТ',
-    description: 'Проектиране и внедряване на сигурна мрежова инфраструктура за гостinska верига: VLAN за гости/персонал/управление, Wi-Fi 6 покритие, VPN за централно управление.',
-    tags: ['VLAN', 'Wi-Fi 6', 'VPN', 'Monitoring', 'Ubiquiti'],
-    image: '/images/projects/hotel-network.jpg',
-    isDemo: true,
-    demoLabel: 'Демонстрационен проект'
-  },
-  {
-    id: 'autoservice-app',
-    title: 'Уеб приложение за автосервиз',
-    category: 'Уеб приложения',
-    description: 'Система за прием на ремонти, складово управление, клиентски профили, SMS известия, автоматично фактуриране и интеграция с касови апарати.',
-    tags: ['React', 'Node.js', 'PostgreSQL', 'SMS', 'TypeScript'],
-    image: '/images/projects/autoservice-app.jpg',
-    isDemo: true,
-    demoLabel: 'Демонстрационен проект'
-  },
-  {
-    id: 'coworking-infrastructure',
-    title: 'ИТ инфраструктура за коворкинг',
-    category: 'Мрежи и ИТ',
-    description: 'Пълна мрежова инфраструктура с интеграция към система за резервации и контрол на достъп: VLAN за членове/гости, RADIUS автентикация, booking система.',
-    tags: ['Ubiquiti', 'VLAN', 'RADIUS', 'Booking', 'Access Control'],
-    image: '/images/projects/coworking-infrastructure.jpg',
-    isDemo: true,
-    demoLabel: 'Демонстрационен проект'
-  },
-  {
-    id: 'ecommerce-local',
-    title: 'E-commerce за местен производител',
+    id: 'umenie',
+    title: 'Умение — платформа за изкуство и образование',
     category: 'Уеб решения',
-    description: 'Онлайн магазин с интегрирани плащания, управление на поръчки, синхронизация с ERP, PIM за продукти и автоматизирани маркетинг инструменти.',
-    tags: ['Next.js', 'Stripe', 'ERP sync', 'PIM', 'Email Marketing'],
-    image: '/images/projects/ecommerce-local.jpg',
-    isDemo: true,
-    demoLabel: 'Демонстрационен проект'
+    description: 'Уебсайт за образователна платформа, представяща курсове по изкуство, галерия и информация за преподаватели.',
+    tags: ['Уебсайт', 'CMS', 'Образование', 'Дизайн'],
+    image: `https://api.screenshotone.com/take?url=https://www.umenie.net&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    url: 'https://www.umenie.net',
+    isDemo: false
   },
   {
-    id: 'duty-scheduler-mockup',
-    title: 'Интерфейс: График на дежурства',
-    category: 'Училищни решения',
-    description: 'Демонстрация на потребителския интерфейс на продукта за управление на учителски дежурства с неделен изглед, драг-енд-дроп и експорт.',
-    tags: ['React', 'TypeScript', 'Tailwind', 'Product Design'],
-    image: '/images/projects/duty-scheduler-mockup.jpg',
-    isDemo: true,
-    demoLabel: 'UI концепция'
+    id: 'svatbenkod',
+    title: 'Сватбен код — сватбена агенция',
+    category: 'Уеб решения',
+    description: 'Елегантен уебсайт за сватбена агенция с портфолио от организирани сватби, услуги и форма за запитване.',
+    tags: ['Уебсайт', 'CMS', 'Сватби', 'Дизайн'],
+    image: `https://api.screenshotone.com/take?url=https://www.svatbenkod.com&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    url: 'https://www.svatbenkod.com',
+    isDemo: false
   },
   {
-    id: 'ticketing-mockup',
-    title: 'Интерфейс: Система за заявки',
-    category: 'Училищни решения',
-    description: 'Концепция на дашборда за учителска тикетинг система с филтри, приоритети, SLA таймери и база знания.',
-    tags: ['React', 'TypeScript', 'Tailwind', 'Product Design'],
-    image: '/images/projects/ticketing-mockup.jpg',
-    isDemo: true,
-    demoLabel: 'UI концепция'
+    id: 'galliaglass',
+    title: 'Gallia Glass — стъклени изделия',
+    category: 'Уеб решения',
+    description: 'Корпоративен уебсайт за производител на стъклени изделия с продуктово портфолио, галерия и информация за услугите.',
+    tags: ['React', 'Vercel', 'Корпоративен', 'Дизайн'],
+    image: `https://api.screenshotone.com/take?url=https://galliaglass.vercel.app&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    url: 'https://galliaglass.vercel.app',
+    isDemo: false
+  },
+  {
+    id: 'petkanov-grafik',
+    title: 'Петканов График — графичен дизайн',
+    category: 'Уеб решения',
+    description: 'Портфолио сайт за графичен дизайнер с представяне на проекти, услуги и форма за контакт.',
+    tags: ['React', 'Vercel', 'Портфолио', 'Дизайн'],
+    image: `https://api.screenshotone.com/take?url=https://petkanov-grafik.vercel.app&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    url: 'https://petkanov-grafik.vercel.app',
+    isDemo: false
+  },
+  {
+    id: 'class-test-hub',
+    title: 'Class Test Hub — образователна платформа',
+    category: 'Уеб приложения',
+    description: 'Уеб приложение за онлайн тестове и оценяване в учебна среда. Позволява на учители да създават тестове и на ученици да ги решават.',
+    tags: ['React', 'Vercel', 'Образование', 'Уеб приложение'],
+    image: `https://api.screenshotone.com/take?url=https://class-test-hub.vercel.app&viewport_width=1280&viewport_height=800&format=webp&cache=true`,
+    url: 'https://class-test-hub.vercel.app',
+    isDemo: false
   }
 ];
 

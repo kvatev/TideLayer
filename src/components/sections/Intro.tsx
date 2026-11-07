@@ -1,7 +1,3 @@
-import { cn } from '../../utils/helpers';
-import { Icon } from '../ui/Icon';
-import { brandConfig } from '../../config/brand';
-
 export function Intro() {
   return (
     <section className="section bg-white" aria-labelledby="intro-title">

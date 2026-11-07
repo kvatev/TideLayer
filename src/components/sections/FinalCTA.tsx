@@ -1,6 +1,4 @@
 import { Link } from 'react-router-dom';
-import { cn } from '../../utils/helpers';
-import { Icon } from '../ui/Icon';
 import { Button } from '../ui/Button';
 
 export function FinalCTA() {

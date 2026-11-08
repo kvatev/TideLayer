@@ -21,17 +21,17 @@ export function WebsiteMaintenance() {
             <Badge variant="primary" size="md" className="mb-4">
               01. Уеб решения / Поддръжка
             </Badge>
-            <h1 id="wm-title" className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
+            <h1 id="wm-title" className="text-2xl min-[375px]:text-3xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
               {service.title}
             </h1>
-            <p className="text-lg text-slate-300 mb-8 max-w-2xl leading-relaxed">
+            <p className="text-base sm:text-lg text-slate-300 mb-8 max-w-2xl leading-relaxed">
               {service.description}
             </p>
-            <div className="flex flex-wrap gap-4">
-              <Button size="lg" asChild>
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+              <Button size="lg" asChild className="w-full sm:w-auto">
                 <Link to="/contact?service=website-maintenance">Получете оферта</Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="border-white/30 text-white hover:bg-white/10">
+              <Button size="lg" variant="outline" asChild className="border-white/30 text-white hover:bg-white/10 w-full sm:w-auto">
                 <Link to="/web-solutions">Назад към услугите</Link>
               </Button>
             </div>
@@ -42,23 +42,23 @@ export function WebsiteMaintenance() {
       {/* What's included */}
       <section className="section bg-white" aria-labelledby="wm-included">
         <div className="container">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="animate-fade-in">
-              <h2 id="wm-included" className="text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div className="animate-fade-in min-w-0">
+              <h2 id="wm-included" className="text-2xl min-[375px]:text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">
                 Какво включва поддръжката
               </h2>
               <ul className="space-y-4">
                 {service.features.map((feature, i) => (
-                  <li key={i} className="flex items-start gap-4">
+                  <li key={i} className="flex items-start gap-3 sm:gap-4">
                     <div className="flex-shrink-0 mt-1 w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center">
                       <Icon name="Check" size={16} className="text-blue-600" />
                     </div>
-                    <p className="text-slate-600 leading-relaxed">{feature}</p>
+                    <p className="text-slate-600 leading-relaxed mb-0">{feature}</p>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg min-w-0">
               <img
                 src="/images/sections/it-support.webp"
                 alt="Техническа поддръжка и мониторинг на уебсайтове"
@@ -74,11 +74,11 @@ export function WebsiteMaintenance() {
       {/* Plans hint */}
       <section className="section bg-slate-50" aria-labelledby="wm-plans">
         <div className="container">
-          <div className="text-center max-w-2xl mx-auto mb-12 animate-fade-in">
-            <h2 id="wm-plans" className="text-4xl md:text-5xl font-heading font-bold text-navy-900 mb-4">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12 animate-fade-in">
+            <h2 id="wm-plans" className="text-2xl min-[375px]:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-navy-900 mb-4">
               Гъвкави планове за поддръжка
             </h2>
-            <p className="text-lg text-slate-600">
+            <p className="text-base sm:text-lg text-slate-600">
               Изберете нивото на поддръжка, което най-добре отговаря на нуждите на вашия бизнес.
             </p>
           </div>
@@ -88,7 +88,7 @@ export function WebsiteMaintenance() {
               {
                 name: 'Базов',
                 price: 'от 150 лв/мес',
-                features: ['Мониторинг uptime', 'Сигурностни актуализации', 'Месечен отчет', 'Имейл поддръжка'],
+                features: ['Мониторинг uptime', 'Обновявания за сигурност', 'Месечен отчет', 'Имейл поддръжка'],
                 cta: 'Изберете базов'
               },
               {
@@ -101,23 +101,23 @@ export function WebsiteMaintenance() {
               {
                 name: 'Премиум',
                 price: 'от 600 лв/мес',
-                features: ['Всичко в Стандартен', 'Развитие на функционалност', 'Настанови посещения', '24/7 аварийна линия', 'Стратегически консултации'],
+                features: ['Всичко в Стандартен', 'Развитие на функционалност', 'Посещения на място', '24/7 аварийна линия', 'Стратегически консултации'],
                 cta: 'Изберете премиум'
               }
             ].map((plan) => (
-              <Card key={plan.name} variant={plan.popular ? 'elevated' : 'outlined'} padding="lg" hover className={cn('relative flex flex-col', plan.popular && 'border-blue-500 shadow-lg')}>
+              <Card key={plan.name} variant={plan.popular ? 'elevated' : 'outlined'} padding="lg" hover className={cn('relative flex flex-col mt-2 md:mt-0', plan.popular && 'border-blue-500 shadow-lg')}>
                 {plan.popular && (
-                  <Badge variant="primary" className="absolute -top-3 left-1/2 -translate-x-1/2">
+                  <Badge variant="primary" className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
                     Най-популярен
                   </Badge>
                 )}
                 <h3 className="text-xl font-heading font-bold text-navy-900 mb-2">{plan.name}</h3>
-                <p className="text-3xl font-bold font-heading text-blue-600 mb-6">{plan.price}</p>
+                <p className="text-2xl sm:text-3xl font-bold font-heading text-blue-600 mb-6">{plan.price}</p>
                 <ul className="space-y-3 mb-6 flex-1">
                   {plan.features.map((feature, i) => (
-                    <li key={i} className="flex items-center gap-2 text-sm text-slate-600">
-                      <Icon name="Check" size={14} className="text-green-500 shrink-0" />
-                      {feature}
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                      <Icon name="Check" size={14} className="text-green-500 shrink-0 mt-1" />
+                      <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
@@ -133,8 +133,8 @@ export function WebsiteMaintenance() {
       {/* Benefits */}
       <section className="section bg-white" aria-labelledby="wm-benefits">
         <div className="container">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg min-w-0">
               <img
                 src="/images/sections/office.webp"
                 alt="Екип за развитие и поддръжка на уеб проекти"
@@ -143,17 +143,17 @@ export function WebsiteMaintenance() {
                 decoding="async"
               />
             </div>
-            <div className="animate-fade-in">
-              <h2 id="wm-benefits" className="text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">
+            <div className="animate-fade-in min-w-0">
+              <h2 id="wm-benefits" className="text-2xl min-[375px]:text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">
                 Защо да ни възложите поддръжката
               </h2>
               <ul className="space-y-4">
                 {service.benefits.map((benefit, i) => (
-                  <li key={i} className="flex items-start gap-4">
+                  <li key={i} className="flex items-start gap-3 sm:gap-4">
                     <div className="flex-shrink-0 mt-1 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
                       <Icon name="Check" size={16} className="text-green-600" />
                     </div>
-                    <p className="text-slate-600 leading-relaxed">{benefit}</p>
+                    <p className="text-slate-600 leading-relaxed mb-0">{benefit}</p>
                   </li>
                 ))}
               </ul>
@@ -166,10 +166,10 @@ export function WebsiteMaintenance() {
       <section className="section bg-navy-900 text-white" aria-labelledby="wm-cta">
         <div className="container">
           <div className="max-w-2xl mx-auto text-center animate-fade-in">
-            <h2 id="wm-cta" className="text-4xl md:text-5xl font-heading font-bold mb-4">
-              Имате ли нужда от надежна поддръжка?
+            <h2 id="wm-cta" className="text-2xl min-[375px]:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-white mb-4">
+              Имате ли нужда от надеждна поддръжка?
             </h2>
-            <p className="text-slate-300 mb-8">
+            <p className="text-slate-300 mb-8 text-sm sm:text-base">
               Предлагаме гъвкави планове според нуждите на вашия бизнес. Няма дългосрочни договори — само резултати.
             </p>
             <Button size="lg" variant="primary" asChild className="w-full sm:w-auto">

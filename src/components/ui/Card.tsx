@@ -12,15 +12,15 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     const variantClasses = {
       default: 'card',
       elevated: 'card-elevated',
-      outlined: 'border border-slate-200 bg-white'
+      outlined: 'border border-slate-200 bg-white rounded-xl'
     };
 
     const paddingClasses = {
-      none: '',
-      sm: 'p-4',
-      md: 'p-6',
-      lg: 'p-8',
-      xl: 'p-10'
+      none: 'p-0',
+      sm: 'p-3.5 sm:p-4',
+      md: 'p-4 sm:p-6',
+      lg: 'p-5 sm:p-8',
+      xl: 'p-5 sm:p-8 md:p-10'
     };
 
     const hoverClasses = hover ? 'hover:shadow-lg hover:border-slate-300 transition-all duration-300' : '';
@@ -28,7 +28,7 @@ const Card = forwardRef<HTMLDivElement, CardProps>(
     return (
       <div
         ref={ref}
-        className={cn(variantClasses[variant], paddingClasses[padding], hoverClasses, className)}
+        className={cn('min-w-0', variantClasses[variant], paddingClasses[padding], hoverClasses, className)}
         {...props}
       >
         {children}

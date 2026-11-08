@@ -1,6 +1,9 @@
 import { useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
 import { adminAuth } from '../../data/adminAuth';
 import { brandConfig } from '../../config/brand';
+
+const CURRENT_YEAR = new Date().getFullYear();
 
 interface AdminLoginProps {
   onLogin: () => void;
@@ -18,7 +21,7 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
     setLoading(true);
 
     // Small delay to feel like a real auth request
-    await new Promise((r) => setTimeout(r, 600));
+    await new Promise((r) => setTimeout(r, 400));
 
     const ok = adminAuth.login(username.trim(), password);
     if (ok) {
@@ -31,22 +34,28 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-navy-950 via-navy-900 to-navy-800 flex items-center justify-center p-4">
-      <div className="w-full max-w-sm">
-        {/* Logo */}
-        <div className="text-center mb-8">
-          <img
-            src="/images/logo/logo.webp"
-            alt={brandConfig.name}
-            className="h-12 w-auto mx-auto mb-4 object-contain"
-          />
+      <div className="w-full max-w-sm min-w-0">
+        {/* Logo & Heading */}
+        <div className="text-center mb-7">
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center bg-white px-5 py-2.5 rounded-2xl shadow-lg mb-5 hover:scale-[1.02] transition-transform"
+            aria-label={`${brandConfig.name} - Към сайта`}
+          >
+            <img
+              src="/images/logo/logo.webp"
+              alt={brandConfig.name}
+              className="h-9 w-auto object-contain"
+            />
+          </Link>
           <h1 className="text-white text-2xl font-heading font-bold">Администрация</h1>
-          <p className="text-slate-400 text-sm mt-1">Влезте в системата за управление</p>
+          <p className="text-slate-300 text-sm mt-1 mb-0">Влезте в системата за управление</p>
         </div>
 
         {/* Card */}
-        <div className="bg-white rounded-2xl shadow-2xl p-8">
+        <div className="bg-white rounded-2xl shadow-2xl p-6 sm:p-8">
           <form onSubmit={handleSubmit} noValidate>
-            <div className="mb-5">
+            <div className="mb-4">
               <label htmlFor="admin-username" className="block text-sm font-medium text-slate-700 mb-1.5">
                 Потребителско име
               </label>
@@ -80,11 +89,14 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
             </div>
 
             {error && (
-              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2">
+              <div
+                role="alert"
+                className="mb-4 p-3 bg-red-50 border border-red-200 rounded-xl text-red-700 text-sm flex items-center gap-2"
+              >
                 <svg className="w-4 h-4 shrink-0" fill="currentColor" viewBox="0 0 20 20">
                   <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
                 </svg>
-                {error}
+                <span>{error}</span>
               </div>
             )}
 
@@ -106,11 +118,18 @@ export function AdminLogin({ onLogin }: AdminLoginProps) {
           </form>
         </div>
 
-        <p className="text-center text-slate-500 text-xs mt-6">
-          © {new Date().getFullYear()} {brandConfig.name} · Администраторски панел
-        </p>
+        <div className="mt-5 text-center space-y-2">
+          <Link
+            to="/"
+            className="inline-flex items-center gap-1.5 text-sm text-slate-300 hover:text-white transition-colors"
+          >
+            ← Обратно към сайта
+          </Link>
+          <p className="text-slate-400 text-xs mb-0">
+            © {CURRENT_YEAR} {brandConfig.name} · Администраторски панел
+          </p>
+        </div>
       </div>
     </div>
   );
 }
-

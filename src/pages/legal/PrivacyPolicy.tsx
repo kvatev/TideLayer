@@ -1,12 +1,14 @@
 import { Link } from 'react-router-dom';
 import { brandConfig } from '../../config/brand';
+import { useSiteControl } from '../../data/siteControl';
 import { PageHero } from '../../components/ui/PageHero';
 
 const LAST_UPDATED = new Date().toLocaleDateString('bg-BG', { year: 'numeric', month: 'long', day: 'numeric' });
 
 export function PrivacyPolicy() {
-  const { name, contact } = brandConfig;
-  const email = contact.email;
+  const { name } = brandConfig;
+  const { contactInfo } = useSiteControl();
+  const email = contactInfo.email;
 
   return (
     <div>
@@ -14,10 +16,10 @@ export function PrivacyPolicy() {
       <PageHero theme="legal" ariaLabelledby="privacy-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
-            <h1 id="privacy-title" className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
+            <h1 id="privacy-title" className="text-2xl min-[375px]:text-3xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
               Политика за поверителност
             </h1>
-            <p className="text-lg text-slate-300 mb-8 max-w-2xl leading-relaxed">
+            <p className="text-base sm:text-lg text-slate-300 mb-4 max-w-2xl leading-relaxed">
               Последна актуализация: {LAST_UPDATED}
             </p>
           </div>
@@ -25,11 +27,11 @@ export function PrivacyPolicy() {
       </PageHero>
 
       {/* Content */}
-      <section className="section bg-white" aria-labelledby="privacy-content">
+      <section className="section bg-white" aria-label="Съдържание на политиката за поверителност">
         <div className="container">
           <div className="grid lg:grid-cols-[240px_1fr] gap-8">
             {/* Table of Contents */}
-            <nav className="lg:sticky lg:top-24 lg:self-start animate-fade-in" aria-label="Table of contents">
+            <nav className="lg:sticky lg:top-24 lg:self-start animate-fade-in min-w-0" aria-label="Съдържание">
               <h2 className="text-sm font-semibold text-navy-900 uppercase tracking-wider mb-4">Съдържание</h2>
               <ul className="space-y-2 text-sm">
                 <li><a href="#intro" className="text-slate-600 hover:text-blue-600 transition-colors block py-1">1. Въведение</a></li>
@@ -48,164 +50,164 @@ export function PrivacyPolicy() {
             </nav>
 
             {/* Main Content */}
-            <div className="max-w-3xl animate-slide-up" style={{ animationDelay: '100ms' }}>
-              <section id="intro" className="mb-12 pb-8 border-b border-slate-100">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">1. Въведение</h2>
+            <div className="max-w-3xl min-w-0 break-words animate-slide-up" style={{ animationDelay: '100ms' }}>
+              <section id="intro" className="mb-10 pb-8 border-b border-slate-100">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">1. Въведение</h2>
                 <div className="text-slate-600 leading-relaxed space-y-4">
                   <p>Настоящата Политика за поверителност описва как {name} („ние“, „нас“, „наши“) събира, използва, разкрива и защитава личните ви данни, когато посещавате нашия уебсайт или използвате нашите услуги.</p>
-                  <p>Ние уважаваме правото ви на поверителност и се ангажираме да защитаваме личните ви данни в съответствие с прилаганото законодателство, включително Регламент (ЕС) 2016/679 (ГДПР) и българското законодателство за защита на личните данни.</p>
+                  <p>Ние уважаваме правото ви на поверителност и се ангажираме да защитаваме личните ви данни в съответствие с приложимото законодателство, включително Регламент (ЕС) 2016/679 (GDPR) и българското законодателство за защита на личните данни.</p>
                 </div>
               </section>
 
-              <section id="controller" className="mb-12 pb-8 border-b border-slate-100">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">2. Администратор на личните данни</h2>
+              <section id="controller" className="mb-10 pb-8 border-b border-slate-100">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">2. Администратор на личните данни</h2>
                 <div className="text-slate-600 leading-relaxed space-y-4">
                   <p>Администратор на личните данни е:</p>
                   <div className="bg-slate-50 p-4 rounded-xl mb-4">
-                    <p className="font-medium text-navy-900">{name}</p>
-                    <p className="text-slate-600 text-sm">{contact.address.full}</p>
-                    <p className="text-slate-600 text-sm">Имейл: <a href={`mailto:${email}`} className="text-blue-600 hover:underline">{email}</a></p>
-                    <p className="text-slate-600 text-sm">Телефон: <a href={`tel:${contact.phone}`} className="text-blue-600 hover:underline">{contact.phone}</a></p>
+                    <p className="font-medium text-navy-900 mb-1">{name}</p>
+                    <p className="text-slate-600 text-sm mb-1">{contactInfo.addressFull}</p>
+                    <p className="text-slate-600 text-sm mb-1">Имейл: <a href={`mailto:${email}`} className="text-blue-600 hover:underline break-all">{email}</a></p>
+                    <p className="text-slate-600 text-sm mb-0">Телефон: <a href={`tel:${contactInfo.phone}`} className="text-blue-600 hover:underline">{contactInfo.phone}</a></p>
                   </div>
                 </div>
               </section>
 
-              <section id="data-collected" className="mb-12 pb-8 border-b border-slate-100">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">3. Какви лични данни събираме</h2>
+              <section id="data-collected" className="mb-10 pb-8 border-b border-slate-100">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">3. Какви лични данни събираме</h2>
                 <div className="text-slate-600 leading-relaxed space-y-4">
-                  <h4 className="font-semibold text-navy-900 mb-3">А. Данни, които вие ни предоставяте доброволно</h4>
+                  <h4 className="font-semibold text-navy-900 mb-3 text-base sm:text-lg">А. Данни, които вие ни предоставяте доброволно</h4>
                   <ul className="list-disc list-inside space-y-2 mb-6">
                     <li>Име и фамилия</li>
                     <li>Имейл адрес</li>
                     <li>Телефонен номер</li>
                     <li>Наименование на компания/организация</li>
-                    <li>Съобщение/подробности за запитването</li>
+                    <li>Съобщение и подробности за запитването</li>
                   </ul>
-                  <h4 className="font-semibold text-navy-900 mb-3">Б. Данни, събирани автоматично</h4>
+                  <h4 className="font-semibold text-navy-900 mb-3 text-base sm:text-lg">Б. Данни, събирани автоматично</h4>
                   <ul className="list-disc list-inside space-y-2 mb-6">
                     <li>IP адрес</li>
-                    <li>Тип и версия на браузър</li>
+                    <li>Тип и версия на браузъра</li>
                     <li>Операционна система</li>
                     <li>Референтна страница (referrer)</li>
                     <li>Време и дата на посещение</li>
                     <li>Страници, посетени на нашия сайт</li>
                   </ul>
-                  <h4 className="font-semibold text-navy-900 mb-3">В. Бисквитки (Cookies)</h4>
+                  <h4 className="font-semibold text-navy-900 mb-3 text-base sm:text-lg">В. Бисквитки (Cookies)</h4>
                   <p>Нашият уебсайт използва бисквитки за подобряване на потребителското изживяване и анализ на трафика. Вижте раздел 7 за подробности.</p>
                 </div>
               </section>
 
-              <section id="purpose" className="mb-12 pb-8 border-b border-slate-100">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">4. Цели и правна основа за обработка</h2>
+              <section id="purpose" className="mb-10 pb-8 border-b border-slate-100">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">4. Цели и правна основа за обработка</h2>
                 <div className="space-y-4 text-slate-600">
                   <div className="bg-slate-50 p-4 rounded-xl">
-                    <h5 className="font-semibold text-navy-900 mb-2">Отговор на запитвания и комуникация</h5>
-                    <p className="text-sm">Правна основа: Чл. 6, ал. 1, буква „б“ ГДПР (изпълнение на договор/преддоговорни мерки) и Чл. 6, ал. 1, буква „f“ ГДПР (законен интерес).</p>
+                    <h5 className="font-semibold text-navy-900 mb-2 text-base">Отговор на запитвания и комуникация</h5>
+                    <p className="text-sm mb-0">Правна основа: Чл. 6, ал. 1, буква „б“ GDPR (преддоговорни мерки/изпълнение на договор) и Чл. 6, ал. 1, буква „е“ GDPR (законен интерес).</p>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-xl">
-                    <h5 className="font-semibold text-navy-900 mb-2">Изпратване на оферти и комерсиални предложения</h5>
-                    <p className="text-sm">Правна основа: Чл. 6, ал. 1, буква „f“ ГДПР (законен интерес) или съгласие (Чл. 6, ал. 1, буква „a“ ГДПР), където се изисква.</p>
+                    <h5 className="font-semibold text-navy-900 mb-2 text-base">Изпращане на оферти и търговски предложения</h5>
+                    <p className="text-sm mb-0">Правна основа: Чл. 6, ал. 1, буква „е“ GDPR (законен интерес) или съгласие (Чл. 6, ал. 1, буква „а“ GDPR), където се изисква.</p>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-xl">
-                    <h5 className="font-semibold text-navy-900 mb-2">Анализ и подобряване на уебсайта</h5>
-                    <p className="text-sm">Правна основа: Чл. 6, ал. 1, буква „f“ ГДПР (законен интерес) или съгласие за аналитични бисквитки.</p>
+                    <h5 className="font-semibold text-navy-900 mb-2 text-base">Анализ и подобряване на уебсайта</h5>
+                    <p className="text-sm mb-0">Правна основа: Чл. 6, ал. 1, буква „е“ GDPR (законен интерес) или съгласие за аналитични бисквитки.</p>
                   </div>
                   <div className="bg-slate-50 p-4 rounded-xl">
-                    <h5 className="font-semibold text-navy-900 mb-2">Съответствие с правни задължения</h5>
-                    <p className="text-sm">Правна основа: Чл. 6, ал. 1, буква „c“ ГДПР (законово задължение).</p>
+                    <h5 className="font-semibold text-navy-900 mb-2 text-base">Съответствие с правни задължения</h5>
+                    <p className="text-sm mb-0">Правна основа: Чл. 6, ал. 1, буква „в“ GDPR (законово задължение).</p>
                   </div>
                 </div>
               </section>
 
-              <section id="sharing" className="mb-12 pb-8 border-b border-slate-100">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">5. Разкриване на данни към трети страни</h2>
+              <section id="sharing" className="mb-10 pb-8 border-b border-slate-100">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">5. Разкриване на данни към трети страни</h2>
                 <div className="text-slate-600 leading-relaxed space-y-4">
                   <p>Не продаваме личните ви данни. Може да споделим данни само в следните случаи:</p>
                   <ul className="list-disc list-inside space-y-2 mb-6">
-                    <li>С доставчици на услуги (процесори), които ни помагат да експлотираме уебсайта и да предоставяме услугите (хостинг, имейл, аналитика), заключени с договори за обработка на данни.</li>
-                    <li>Когато това е изисквано от закона или от компетентни органи.</li>
-                    <li>При реорганизация на компанията (сливане, придобиване), с предварително уведомяване.</li>
+                    <li>С доставчици на услуги (обработващи данни), които ни помагат да поддържаме уебсайта и да предоставяме услугите (хостинг, имейл, аналитика), обвързани с договори за защита на данните.</li>
+                    <li>Когато това се изисква от закона или от компетентни органи.</li>
+                    <li>При преструктуриране на компанията (сливане, придобиване), с предварително уведомяване.</li>
                   </ul>
                 </div>
               </section>
 
-              <section id="retention" className="mb-12 pb-8 border-b border-slate-100">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">6. Съхранение на данни</h2>
+              <section id="retention" className="mb-10 pb-8 border-b border-slate-100">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">6. Съхранение на данни</h2>
                 <div className="text-slate-600 leading-relaxed space-y-4">
-                  <p>Съхраняваме личните данни само колкото е необходимо за изпълнение на целите, за които са събрани, или колкото е изисквано от закона.</p>
+                  <p>Съхраняваме личните данни само толкова дълго, колкото е необходимо за изпълнение на целите, за които са събрани, или колкото се изисква от закона.</p>
                   <ul className="list-disc list-inside space-y-2 mb-6">
-                    <li>Данни от контактни форми: до 2 години след последният контакт, освен ако не се сключи договор.</li>
+                    <li>Данни от контактни форми: до 2 години след последния контакт, освен ако не се сключи договор.</li>
                     <li>Договорни и счетоводни данни: според законовите изисквания (обикновено 10 години).</li>
                     <li>Лог файлове и аналитични данни: до 12 месеца.</li>
                   </ul>
                 </div>
               </section>
 
-              <section id="cookies" className="mb-12 pb-8 border-b border-slate-100">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">7. Бисквитки и подобни технологии</h2>
+              <section id="cookies" className="mb-10 pb-8 border-b border-slate-100">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">7. Бисквитки и подобни технологии</h2>
                 <div className="text-slate-600 leading-relaxed space-y-4">
                   <p>Използваме следните категории бисквитки:</p>
                   <ul className="list-disc list-inside space-y-3 mb-6">
-                    <li><strong className="text-navy-900">Необходими:</strong> За работа на уебсайта (сесии, защита CSRF, съгласие за бисквитки). Не изискват съгласие.</li>
-                    <li><strong className="text-navy-900">Аналитични:</strong> За разбиране на трафика и поведението на потребителите (напр. Google Analytics). Изискват съгласие.</li>
-                    <li><strong className="text-navy-900">Маркетингови:</strong> За персонализирани реклами. Изискват съгласие.</li>
+                    <li><strong className="text-navy-900">Необходими:</strong> За работата на уебсайта (сесии, защита, локални настройки). Не изискват съгласие.</li>
+                    <li><strong className="text-navy-900">Аналитични:</strong> За разбиране на трафика и поведението на потребителите. Изискват съгласие.</li>
+                    <li><strong className="text-navy-900">Маркетингови:</strong> За персонализирани кампании. Изискват съгласие.</li>
                   </ul>
-                  <p>Можете да управлявате предпочитанията си за бисквитки чрез банера за съгласие или настройките на браузъра си.</p>
+                  <p>Можете да управлявате предпочитанията си за бисквитки чрез настройките на браузъра си.</p>
                 </div>
               </section>
 
-              <section id="rights" className="mb-12 pb-8 border-b border-slate-100">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">8. Вашите права</h2>
+              <section id="rights" className="mb-10 pb-8 border-b border-slate-100">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">8. Вашите права</h2>
                 <div className="text-slate-600 leading-relaxed space-y-4">
-                  <p>В съответствие с ГДПР, вие имате следните права:</p>
+                  <p>В съответствие с GDPR вие имате следните права:</p>
                   <ul className="list-disc list-inside space-y-2 mb-6">
                     <li>Право на достъп до данните си</li>
                     <li>Право на корекция на неточни данни</li>
-                    <li>Право на изтриване („право да бъдеш забравен“)</li>
+                    <li>Право на изтриване („право да бъдете забравени“)</li>
                     <li>Право на ограничаване на обработката</li>
-                    <li>Право на преносимост на данни</li>
-                    <li>Право да се възразите против обработката</li>
-                    <li>Право да теглите съгласието си (където обработката е базирана на съгласие)</li>
+                    <li>Право на преносимост на данните</li>
+                    <li>Право да възразите срещу обработката</li>
+                    <li>Право да оттеглите съгласието си (когато обработката е базирана на съгласие)</li>
                   </ul>
-                  <p>За упражняване на тези права, свържете се с нас на <a href={`mailto:${email}`} className="text-blue-600 hover:underline">{email}</a>.</p>
-                  <p>Имате право да подадете жалба към Комisia за защита на личните данни (КЗЛД) в България, ако счетите, че обработката нарушава закона.</p>
+                  <p>За упражняване на тези права се свържете с нас на <a href={`mailto:${email}`} className="text-blue-600 hover:underline break-all">{email}</a>.</p>
+                  <p>Имате право да подадете жалба до Комисията за защита на личните данни (КЗЛД) в България, ако сметнете, че обработката нарушава закона.</p>
                 </div>
               </section>
 
-              <section id="security" className="mb-12 pb-8 border-b border-slate-100">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">9. Сигурност на данните</h2>
+              <section id="security" className="mb-10 pb-8 border-b border-slate-100">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">9. Сигурност на данните</h2>
                 <div className="text-slate-600 leading-relaxed space-y-4">
-                  <p>Прилагаме подходящи технически и организационни мерки за защита на личните данни от неоторизиран достъп, промяна, разкриване или унищожение. Въпреки това, нито един интернет пренос или система за съхранение не е 100% сигурен.</p>
+                  <p>Прилагаме подходящи технически и организационни мерки за защита на личните данни от неоторизиран достъп, промяна, разкриване или унищожение. Въпреки това нито един интернет пренос или система за съхранение не е 100% защитена.</p>
                 </div>
               </section>
 
-              <section id="third-party" className="mb-12 pb-8 border-b border-slate-100">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">10. Връзки към уебсайтове на трети страни</h2>
+              <section id="third-party" className="mb-10 pb-8 border-b border-slate-100">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">10. Връзки към уебсайтове на трети страни</h2>
                 <div className="text-slate-600 leading-relaxed space-y-4">
-                  <p>Нашият уебсайт може да съдържа връзки към външни сайтове. Не отговаряме за политиките за поверителност или съдържанието на тези сайтове. Препоръчваме да прочетете техните политики за поверителност.</p>
+                  <p>Нашият уебсайт може да съдържа връзки към външни сайтове. Не носим отговорност за политиките за поверителност или съдържанието на тези сайтове. Препоръчваме да се запознаете с техните политики за поверителност.</p>
                 </div>
               </section>
 
-              <section id="changes" className="mb-12 pb-8 border-b border-slate-100">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">11. Промени в настоящата политика</h2>
+              <section id="changes" className="mb-10 pb-8 border-b border-slate-100">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">11. Промени в настоящата политика</h2>
                 <div className="text-slate-600 leading-relaxed space-y-4">
-                  <p>Може да актуализираме тази политика периодично. Всякакви промени ще бъдат публикувани на тази страница с актуализирана дата на влизане в сила. Препоръчваме да преглеждате тази страница редовно.</p>
+                  <p>Можем да актуализираме тази политика периодично. Всякакви промени ще бъдат публикувани на тази страница с актуализирана дата на влизане в сила. Препоръчваме да преглеждате тази страница редовно.</p>
                 </div>
               </section>
 
-              <section id="contact" className="mb-12 pb-8">
-                <h2 className="text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-6">12. Контакти за въпроси относно поверителност</h2>
+              <section id="contact" className="mb-10 pb-8">
+                <h2 className="text-xl sm:text-2xl md:text-3xl font-heading font-bold text-navy-900 mb-5">12. Контакти за въпроси относно поверителността</h2>
                 <div className="text-slate-600 leading-relaxed space-y-4">
                   <p>Ако имате въпроси или запитвания относно настоящата Политика за поверителност или обработката на вашите лични данни, моля, свържете се с нас:</p>
                   <div className="bg-slate-50 p-4 rounded-xl">
-                    <p className="font-medium text-navy-900">{name}</p>
-                    <p className="text-slate-600 text-sm">Имейл: <a href={`mailto:${email}`} className="text-blue-600 hover:underline">{email}</a></p>
-                    <p className="text-slate-600 text-sm">Адрес: {contact.address.full}</p>
+                    <p className="font-medium text-navy-900 mb-1">{name}</p>
+                    <p className="text-slate-600 text-sm mb-1">Имейл: <a href={`mailto:${email}`} className="text-blue-600 hover:underline break-all">{email}</a></p>
+                    <p className="text-slate-600 text-sm mb-0">Адрес: {contactInfo.addressFull}</p>
                   </div>
                 </div>
               </section>
 
-              <div className="mt-12 pt-8 border-t border-slate-200 bg-slate-50 rounded-xl p-6">
+              <div className="mt-10 pt-6 border-t border-slate-200 bg-slate-50 rounded-xl p-5 sm:p-6">
                 <h3 className="text-lg font-heading font-bold text-navy-900 mb-3">Бърза навигация</h3>
                 <div className="flex flex-wrap gap-3">
                   <Link to="/" className="px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors">

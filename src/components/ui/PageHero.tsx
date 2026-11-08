@@ -69,7 +69,7 @@ const themeConfig: Record<
     accentBorder: 'border-blue-400/30',
   },
   servers: {
-    image: '/images/sections/servers.webp',
+    image: '/images/sections/network.webp',
     icon: 'Server',
     badge: 'Сървъри & Критични данни',
     stats: [
@@ -159,11 +159,11 @@ export function PageHero({
       aria-labelledby={ariaLabelledby}
     >
       {/* 1. Thematic background photo with multi-layer gradient mask */}
-      <div className="absolute inset-0 pointer-events-none select-none" aria-hidden="true">
+      <div className="absolute inset-0 overflow-hidden pointer-events-none select-none" aria-hidden="true">
         <img
           src={cfg.image}
           alt=""
-          className="w-full h-full object-cover object-center opacity-25 md:opacity-35 scale-105"
+          className="w-full h-full object-cover object-center opacity-25 md:opacity-35"
           loading="eager"
           decoding="async"
         />
@@ -187,11 +187,11 @@ export function PageHero({
 
       {/* 2. Radial glow orbs */}
       <div
-        className={`absolute -top-28 -right-28 w-[480px] h-[480px] rounded-full blur-3xl ${cfg.glow1} pointer-events-none`}
+        className={`absolute -top-28 -right-28 w-[420px] h-[420px] rounded-full blur-3xl ${cfg.glow1} pointer-events-none`}
         aria-hidden="true"
       />
       <div
-        className={`absolute -bottom-24 -left-24 w-[360px] h-[360px] rounded-full blur-3xl ${cfg.glow2} pointer-events-none`}
+        className={`absolute -bottom-24 -left-24 w-[320px] h-[320px] rounded-full blur-3xl ${cfg.glow2} pointer-events-none`}
         aria-hidden="true"
       />
 
@@ -227,13 +227,13 @@ export function PageHero({
       {/* 5. Content + Thematic floating visual card on large screens */}
       <div className="relative z-10 container">
         <div className="grid lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-          <div className="lg:col-span-8 [&_.container]:px-0 [&_.container]:max-w-none">
+          <div className="min-w-0 lg:col-span-8 [&_.container]:px-0 [&_.container]:max-w-none">
             {children}
           </div>
 
           {/* Right side thematic glass card (desktop) */}
           {resolvedTheme !== 'legal' && (
-            <div className="hidden lg:block lg:col-span-4 animate-fade-in">
+            <div className="hidden lg:block lg:col-span-4 min-w-0 animate-fade-in">
               <div
                 className={`relative rounded-2xl border ${cfg.accentBorder} bg-navy-800/65 backdrop-blur-md p-6 shadow-2xl overflow-hidden`}
               >

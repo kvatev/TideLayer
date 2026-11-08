@@ -7,19 +7,23 @@ import { WhyChooseUs } from '../../components/sections/WhyChooseUs';
 import { Process } from '../../components/sections/Process';
 import { PortfolioPreview } from '../../components/sections/PortfolioPreview';
 import { FinalCTA } from '../../components/sections/FinalCTA';
+import { useSiteControl } from '../../data/siteControl';
 
 export function Home() {
+  const siteControl = useSiteControl();
+  const hidden = new Set(siteControl.hiddenSections);
+
   return (
     <>
       <Hero />
-      <Intro />
-      <Divisions />
-      <EducationShowcase />
-      <BusinessIT />
-      <WhyChooseUs />
-      <Process />
-      <PortfolioPreview />
-      <FinalCTA />
+      {!hidden.has('intro') && <Intro />}
+      {!hidden.has('divisions') && <Divisions />}
+      {!hidden.has('educationShowcase') && <EducationShowcase />}
+      {!hidden.has('businessIT') && <BusinessIT />}
+      {!hidden.has('whyChooseUs') && <WhyChooseUs />}
+      {!hidden.has('process') && <Process />}
+      {!hidden.has('portfolioPreview') && <PortfolioPreview />}
+      {!hidden.has('finalCTA') && <FinalCTA />}
     </>
   );
 }

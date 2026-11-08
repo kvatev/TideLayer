@@ -20,20 +20,20 @@ export function SchoolTicketing() {
             <Badge variant="primary" size="md" className="mb-4">
               02. Училищни решения / Училищна система за заявки
             </Badge>
-            <h1 id="st-title" className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
+            <h1 id="st-title" className="text-2xl min-[375px]:text-3xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
               {product.name}
             </h1>
-            <p className="text-xl text-slate-300 mb-6 max-w-2xl leading-relaxed font-medium">
+            <p className="text-lg sm:text-xl text-slate-300 mb-4 max-w-2xl leading-relaxed font-medium">
               {product.tagline}
             </p>
-            <p className="text-lg text-slate-300 mb-8 max-w-2xl leading-relaxed">
+            <p className="text-base sm:text-lg text-slate-300 mb-8 max-w-2xl leading-relaxed">
               {product.description}
             </p>
-            <div className="flex flex-wrap gap-4">
-              <Button size="lg" asChild>
+            <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
+              <Button size="lg" asChild className="w-full sm:w-auto">
                 <Link to="/contact?product=school-ticketing">Заяви демонстрация</Link>
               </Button>
-              <Button size="lg" variant="outline" asChild className="border-white/30 text-white hover:bg-white/10">
+              <Button size="lg" variant="outline" asChild className="border-white/30 text-white hover:bg-white/10 w-full sm:w-auto">
                 <Link to="/education-solutions">Назад към продуктите</Link>
               </Button>
             </div>
@@ -44,26 +44,26 @@ export function SchoolTicketing() {
       {/* Problem & Solution */}
       <section className="section bg-white" aria-labelledby="st-problem">
         <div className="container">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="animate-fade-in">
-              <h2 id="st-problem" className="text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
+            <div className="animate-fade-in min-w-0">
+              <h2 id="st-problem" className="text-2xl min-[375px]:text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">
                 Проблемът, който решаваме
               </h2>
-              <p className="text-slate-600 mb-8 leading-relaxed text-lg">
+              <p className="text-slate-600 mb-8 leading-relaxed text-base sm:text-lg">
                 {product.problem}
               </p>
               <ul className="space-y-4">
                 {product.benefits.map((benefit, i) => (
-                  <li key={i} className="flex items-start gap-4">
+                  <li key={i} className="flex items-start gap-3 sm:gap-4">
                     <div className="flex-shrink-0 mt-1 w-8 h-8 rounded-full bg-green-100 flex items-center justify-center">
                       <Icon name="Check" size={16} className="text-green-600" />
                     </div>
-                    <p className="text-slate-600 leading-relaxed">{benefit}</p>
+                    <p className="text-slate-600 leading-relaxed mb-0">{benefit}</p>
                   </li>
                 ))}
               </ul>
             </div>
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg min-w-0">
               <img
                 src="/images/sections/education.webp"
                 alt="Система за технически заявки в училище"
@@ -79,26 +79,26 @@ export function SchoolTicketing() {
       {/* How It Works */}
       <section className="section bg-slate-50" aria-labelledby="st-how">
         <div className="container">
-          <div className="text-center max-w-2xl mx-auto mb-12 animate-fade-in">
-            <h2 id="st-how" className="text-4xl md:text-5xl font-heading font-bold text-navy-900 mb-4">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12 animate-fade-in">
+            <h2 id="st-how" className="text-2xl min-[375px]:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-navy-900 mb-4">
               Как работи системата
             </h2>
-            <p className="text-lg text-slate-600">
+            <p className="text-base sm:text-lg text-slate-600">
               Интуитивен процес от подаване до затваряне на заявка.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-5 sm:gap-6">
             {product.howItWorks.map((step, index) => (
               <Card key={step} variant="elevated" padding="lg" className="text-center animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
                 <span className="flex-shrink-0 w-12 h-12 mx-auto mb-4 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center font-bold text-lg font-heading">
                   {String(index + 1).padStart(2, '0')}
                 </span>
-                <h3 className="text-lg font-heading font-bold text-navy-900 mb-2">
+                <h3 className="text-base sm:text-lg font-heading font-bold text-navy-900 mb-2">
                   {step}
                 </h3>
-                <p className="text-slate-600 text-sm">
-                  Детайли за стъпка {index + 1} ще бъдат добавени при финализиране.
+                <p className="text-slate-600 text-sm mb-0">
+                  Пълна проследимост с автоматични известия на всеки етап.
                 </p>
               </Card>
             ))}
@@ -109,23 +109,23 @@ export function SchoolTicketing() {
       {/* Features */}
       <section className="section bg-white" aria-labelledby="st-features">
         <div className="container">
-          <div className="text-center max-w-2xl mx-auto mb-12 animate-fade-in">
-            <h2 id="st-features" className="text-4xl md:text-5xl font-heading font-bold text-navy-900 mb-4">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12 animate-fade-in">
+            <h2 id="st-features" className="text-2xl min-[375px]:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-navy-900 mb-4">
               Ключови функционалности
             </h2>
-            <p className="text-lg text-slate-600">
+            <p className="text-base sm:text-lg text-slate-600">
               Всичко необходимо за ефективно управление на заявки в училището.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6">
             {product.features.map((feature, index) => (
               <Card key={feature} variant="elevated" padding="lg" hover className="animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
-                <h3 className="text-xl font-heading font-bold text-navy-900 mb-3">
+                <h3 className="text-lg sm:text-xl font-heading font-bold text-navy-900 mb-3">
                   {feature}
                 </h3>
-                <p className="text-slate-600 leading-relaxed">
-                  Детайли за {feature.toLowerCase()} ще бъдат добавени при финализиране на продукта.
+                <p className="text-slate-600 text-sm sm:text-base leading-relaxed mb-0">
+                  Оптимизирано за бърза работа от учители, администрация и техническия екип.
                 </p>
               </Card>
             ))}
@@ -136,23 +136,43 @@ export function SchoolTicketing() {
       {/* UI Preview */}
       <section className="section bg-slate-50" aria-labelledby="st-ui">
         <div className="container">
-          <div className="text-center max-w-2xl mx-auto mb-12 animate-fade-in">
-            <h2 id="st-ui" className="text-4xl md:text-5xl font-heading font-bold text-navy-900 mb-4">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12 animate-fade-in">
+            <h2 id="st-ui" className="text-2xl min-[375px]:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-navy-900 mb-4">
               Преглед на интерфейса
             </h2>
-            <p className="text-lg text-slate-600">
-              Концептуален дизайн на потребителския интерфейс.
+            <p className="text-base sm:text-lg text-slate-600">
+              {product.mockupDescription}
             </p>
           </div>
 
-          <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden max-w-5xl mx-auto animate-scale-in">
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-slate-400 gap-4 p-8 text-center">
-              <Icon name="LayoutDashboard" size={64} />
-              <div>
-                <h3 className="text-xl font-heading font-bold text-navy-900 mb-2">UI концепция</h3>
-                <p className="text-slate-600 max-w-md">
-                  {product.mockupDescription}
-                </p>
+          <div className="max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-xl border border-slate-200 bg-white animate-scale-in">
+            <div className="grid grid-cols-1 md:grid-cols-5 items-stretch">
+              <div className="min-w-0 md:col-span-3 relative min-h-[200px] sm:min-h-[260px]">
+                <img
+                  src="/images/sections/it-support.webp"
+                  alt="Училищна система за технически заявки — работен процес"
+                  className="w-full h-full object-cover"
+                  loading="lazy"
+                  decoding="async"
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-navy-950/60 via-transparent to-transparent" />
+                <span className="absolute bottom-3 left-3 right-3 sm:right-auto inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-navy-900 shadow-sm max-w-full">
+                  <Icon name="LayoutDashboard" size={14} className="text-blue-600 shrink-0" />
+                  <span className="truncate">UI концепция · Подавач и ИТ екип</span>
+                </span>
+              </div>
+              <div className="min-w-0 md:col-span-2 p-4 sm:p-6 flex flex-col justify-center gap-3 bg-slate-50/70">
+                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Примерен поток на заявка</p>
+                {[
+                  { room: 'Кабинет 204 · Проектор', status: 'В работа', tone: 'bg-blue-100 text-blue-700' },
+                  { room: 'Стая 108 · Принтер не печата', status: 'Нова', tone: 'bg-amber-100 text-amber-800' },
+                  { room: 'Физкултурен салон · Wi-Fi', status: 'Приключена', tone: 'bg-green-100 text-green-700' },
+                ].map((ticket) => (
+                  <div key={ticket.room} className="min-w-0 rounded-xl bg-white border border-slate-200 p-2.5 sm:p-3 flex items-center justify-between gap-2">
+                    <span className="min-w-0 flex-1 text-xs sm:text-sm font-medium text-navy-900 truncate">{ticket.room}</span>
+                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold ${ticket.tone}`}>{ticket.status}</span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -162,19 +182,19 @@ export function SchoolTicketing() {
       {/* Target Users */}
       <section className="section bg-white" aria-labelledby="st-users">
         <div className="container">
-          <div className="text-center max-w-2xl mx-auto mb-12 animate-fade-in">
-            <h2 id="st-users" className="text-4xl md:text-5xl font-heading font-bold text-navy-900 mb-4">
+          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12 animate-fade-in">
+            <h2 id="st-users" className="text-2xl min-[375px]:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-navy-900 mb-4">
               За кого е предназначена
             </h2>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-5xl mx-auto">
+          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6 max-w-5xl mx-auto">
             {product.targetUsers.map((user, index) => (
               <Card key={user} variant="outlined" padding="lg" className="text-center animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
                 <div className="flex-shrink-0 w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-50 flex items-center justify-center">
                   <Icon name="Users" size={32} className="text-blue-600" />
                 </div>
-                <h3 className="text-lg font-heading font-bold text-navy-900">
+                <h3 className="text-base sm:text-lg font-heading font-bold text-navy-900 mb-0">
                   {user}
                 </h3>
               </Card>
@@ -187,10 +207,10 @@ export function SchoolTicketing() {
       <section className="section bg-navy-900 text-white" aria-labelledby="st-cta">
         <div className="container">
           <div className="max-w-2xl mx-auto text-center animate-fade-in">
-            <h2 id="st-cta" className="text-4xl md:text-5xl font-heading font-bold mb-4">
+            <h2 id="st-cta" className="text-2xl min-[375px]:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-white mb-4">
               Желаете да видите системата в действие?
             </h2>
-            <p className="text-slate-300 mb-8">
+            <p className="text-slate-300 mb-8 text-sm sm:text-base">
               Запишете се за персонализирана демонстрация и ще ви покажем как системата може да подобри управлението на заявки във вашето училище.
             </p>
             <Button size="lg" variant="primary" asChild className="w-full sm:w-auto">

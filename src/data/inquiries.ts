@@ -1,4 +1,4 @@
-// Inquiry store with demo seed data so the admin panel looks populated
+// Inquiry store with localStorage persistence + demo seed data
 import type { InquiryType } from '../types';
 
 export type InquiryStatus = 'new' | 'read' | 'replied' | 'archived';
@@ -16,99 +16,183 @@ export type Inquiry = {
   status: InquiryStatus;
 };
 
-// Seed demo inquiries so the panel looks real from day one
-const SEED: Inquiry[] = [
-  {
-    id: 'demo-1',
-    inquiryType: 'website-development',
-    name: 'Георги Петров',
-    email: 'g.petrov@firma.bg',
-    phone: '+359 88 123 4567',
-    company: 'Петров ЕООД',
-    message: 'Здравейте, искам да направим корпоративен уебсайт за нашата фирма. Занимаваме се с дистрибуция на строителни материали и имаме нужда от каталог с продукти и форма за запитване.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 2).toISOString(),
-    status: 'new',
-  },
-  {
-    id: 'demo-2',
-    inquiryType: 'network-installation',
-    name: 'Марийка Иванова',
-    email: 'm.ivanova@school.bg',
-    phone: '+359 87 987 6543',
-    company: 'ОУ „Васил Левски"',
-    message: 'Нуждаем се от изграждане на структурирана кабелна мрежа в нова сграда. Имаме 3 етажа, 18 класни стаи, компютърен кабинет и административно крило.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 24).toISOString(),
-    status: 'read',
-  },
-  {
-    id: 'demo-3',
-    inquiryType: 'monthly-support',
-    name: 'Стоян Николов',
-    email: 'stoyan@techstart.bg',
-    company: 'TechStart Ltd.',
-    message: 'Търся абонаментна ИТ поддръжка за офис от 15 човека. Имаме сървър, NAS и около 20 работни станции. Интересува ме какви планове предлагате.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 48).toISOString(),
-    status: 'replied',
-  },
-  {
-    id: 'demo-4',
-    inquiryType: 'duty-scheduler',
-    name: 'Елена Стоянова',
-    email: 'elena.stoyanova@sou.edu.bg',
-    phone: '+359 89 456 7890',
-    company: 'СОУ „Климент Охридски"',
-    message: 'Директорът ни препоръча вашата система за дежурства. Училището ни има 48 учители и 3 смени. Искам демонстрация.',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 72).toISOString(),
-    status: 'new',
-  },
-  {
-    id: 'demo-5',
-    inquiryType: 'hardware-service',
-    name: 'Димитър Георгиев',
-    email: 'd.georgiev@mail.bg',
-    phone: '+359 88 321 0987',
-    message: 'Лаптопът ми не се включва след гръмотевична буря. Нужна ми е диагностика и евентуален ремонт. Кога мога да го донеса?',
-    createdAt: new Date(Date.now() - 1000 * 60 * 60 * 96).toISOString(),
-    status: 'archived',
-  },
-];
+const STORAGE_KEY = 'tl_inquiries_v1';
+const INIT_KEY = 'tl_inquiries_initialized_v1';
+export const INQUIRIES_EVENT = 'tl-inquiries-changed';
 
-const inquiries: Inquiry[] = [...SEED];
+function createSeed(): Inquiry[] {
+  const now = Date.now();
+  return [
+    {
+      id: 'demo-1',
+      inquiryType: 'website-development',
+      name: 'Георги Петров',
+      email: 'g.petrov@firma.bg',
+      phone: '+359 88 123 4567',
+      company: 'Петров ЕООД',
+      message: 'Здравейте, искам да направим корпоративен уебсайт за нашата фирма. Занимаваме се с дистрибуция на строителни материали и имаме нужда от каталог с продукти и форма за запитване.',
+      createdAt: new Date(now - 1000 * 60 * 60 * 2).toISOString(),
+      status: 'new',
+    },
+    {
+      id: 'demo-2',
+      inquiryType: 'network-installation',
+      name: 'Марийка Иванова',
+      email: 'm.ivanova@school.bg',
+      phone: '+359 87 987 6543',
+      company: 'ОУ „Васил Левски"',
+      message: 'Нуждаем се от изграждане на структурирана кабелна мрежа в нова сграда. Имаме 3 етажа, 18 класни стаи, компютърен кабинет и административно крило.',
+      createdAt: new Date(now - 1000 * 60 * 60 * 24).toISOString(),
+      status: 'read',
+    },
+    {
+      id: 'demo-3',
+      inquiryType: 'monthly-support',
+      name: 'Стоян Николов',
+      email: 'stoyan@techstart.bg',
+      company: 'TechStart Ltd.',
+      message: 'Търся абонаментна ИТ поддръжка за офис от 15 човека. Имаме сървър, NAS и около 20 работни станции. Интересува ме какви планове предлагате.',
+      createdAt: new Date(now - 1000 * 60 * 60 * 48).toISOString(),
+      status: 'replied',
+    },
+    {
+      id: 'demo-4',
+      inquiryType: 'duty-scheduler',
+      name: 'Елена Стоянова',
+      email: 'elena.stoyanova@sou.edu.bg',
+      phone: '+359 89 456 7890',
+      company: 'СОУ „Климент Охридски"',
+      message: 'Директорът ни препоръча вашата система за дежурства. Училището ни има 48 учители и 3 смени. Искам демонстрация.',
+      createdAt: new Date(now - 1000 * 60 * 60 * 72).toISOString(),
+      status: 'new',
+    },
+    {
+      id: 'demo-5',
+      inquiryType: 'hardware-service',
+      name: 'Димитър Георгиев',
+      email: 'd.georgiev@mail.bg',
+      phone: '+359 88 321 0987',
+      message: 'Лаптопът ми не се включва след гръмотевична буря. Нужна ми е диагностика и евентуален ремонт. Кога мога да го донеса?',
+      createdAt: new Date(now - 1000 * 60 * 60 * 96).toISOString(),
+      status: 'archived',
+    },
+  ];
+}
+
+function loadFromStorage(): Inquiry[] {
+  if (typeof window === 'undefined') return createSeed();
+  try {
+    const initialized = localStorage.getItem(INIT_KEY);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (initialized && raw !== null) {
+      const parsed = JSON.parse(raw);
+      if (Array.isArray(parsed)) return parsed;
+    }
+    const seed = createSeed();
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(seed));
+    localStorage.setItem(INIT_KEY, '1');
+    return seed;
+  } catch {
+    return createSeed();
+  }
+}
+
+function saveToStorage(list: Inquiry[]) {
+  if (typeof window === 'undefined') return;
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(list));
+    localStorage.setItem(INIT_KEY, '1');
+    window.dispatchEvent(new CustomEvent(INQUIRIES_EVENT));
+  } catch {
+    // ignore storage quota/privacy errors
+  }
+}
+
+let inquiries: Inquiry[] = loadFromStorage();
+
+function makeId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `inq-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+}
 
 export const inquiryStore = {
   add(inquiry: Omit<Inquiry, 'id' | 'createdAt' | 'status'>): Inquiry {
+    inquiries = loadFromStorage();
     const newInquiry: Inquiry = {
       ...inquiry,
-      id: crypto.randomUUID(),
+      id: makeId(),
       createdAt: new Date().toISOString(),
       status: 'new',
     };
-    inquiries.unshift(newInquiry);
+    inquiries = [newInquiry, ...inquiries];
+    saveToStorage(inquiries);
     return newInquiry;
   },
 
   getAll(): Inquiry[] {
+    inquiries = loadFromStorage();
     return [...inquiries].sort(
       (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
     );
   },
 
   getById(id: string): Inquiry | undefined {
+    inquiries = loadFromStorage();
     return inquiries.find((i) => i.id === id);
   },
 
   updateStatus(id: string, status: InquiryStatus): boolean {
+    inquiries = loadFromStorage();
     const idx = inquiries.findIndex((i) => i.id === id);
     if (idx === -1) return false;
     inquiries[idx] = { ...inquiries[idx], status };
+    saveToStorage(inquiries);
     return true;
   },
 
   delete(id: string): boolean {
-    const idx = inquiries.findIndex((i) => i.id === id);
-    if (idx === -1) return false;
-    inquiries.splice(idx, 1);
+    inquiries = loadFromStorage();
+    const next = inquiries.filter((i) => i.id !== id);
+    if (next.length === inquiries.length) return false;
+    inquiries = next;
+    saveToStorage(inquiries);
     return true;
+  },
+
+  deleteMany(ids: string[]): number {
+    if (ids.length === 0) return 0;
+    inquiries = loadFromStorage();
+    const idSet = new Set(ids);
+    const next = inquiries.filter((i) => !idSet.has(i.id));
+    const removed = inquiries.length - next.length;
+    inquiries = next;
+    saveToStorage(inquiries);
+    return removed;
+  },
+
+  deleteByStatus(status: InquiryStatus): number {
+    inquiries = loadFromStorage();
+    const next = inquiries.filter((i) => i.status !== status);
+    const removed = inquiries.length - next.length;
+    inquiries = next;
+    saveToStorage(inquiries);
+    return removed;
+  },
+
+  deleteAll(): number {
+    inquiries = loadFromStorage();
+    const removed = inquiries.length;
+    inquiries = [];
+    saveToStorage(inquiries);
+    return removed;
+  },
+
+  restoreDemo(): Inquiry[] {
+    inquiries = createSeed();
+    saveToStorage(inquiries);
+    return this.getAll();
   },
 
   getStats() {
@@ -129,5 +213,4 @@ export const addInquiry = (inquiry: Omit<Inquiry, 'id' | 'createdAt' | 'status'>
 
 export const getInquiries = () => inquiryStore.getAll();
 
-// Re-export type for external use
 export type { InquiryType };

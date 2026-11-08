@@ -28,7 +28,7 @@ export interface SiteControlState {
   };
 }
 
-const STORAGE_KEY = 'tl_site_control_v1';
+const STORAGE_KEY = 'tl_site_control_v2';
 export const SITE_CONTROL_EVENT = 'tl-site-control-changed';
 
 export const HOME_SECTION_LABELS: { key: HomeSectionKey; label: string; description: string }[] = [

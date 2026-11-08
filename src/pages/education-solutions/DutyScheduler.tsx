@@ -62,11 +62,11 @@ export function DutyScheduler() {
                 ))}
               </ul>
             </div>
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg min-w-0">
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg min-w-0 border border-slate-200">
               <img
-                src="/images/sections/education.webp"
-                alt="Автоматизиран график на дежурства за училища"
-                className="w-full h-full object-cover"
+                src="/images/projects/petkanov-grafik.webp"
+                alt="Автоматизиран график на дежурства за училища — СУ Константин Петканов"
+                className="w-full h-full object-cover object-top"
                 loading="lazy"
                 decoding="async"
               />

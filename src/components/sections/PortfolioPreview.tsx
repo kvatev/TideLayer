@@ -74,13 +74,6 @@ export function PortfolioPreview() {
                 <p className="text-slate-600 text-sm mb-4 flex-1 leading-relaxed">
                   {project.description}
                 </p>
-                <div className="flex flex-wrap gap-1.5 mb-4">
-                  {project.tags.slice(0, 4).map((tag) => (
-                    <span key={tag} className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded">
-                      {tag}
-                    </span>
-                  ))}
-                </div>
                 <div className="inline-flex items-center gap-1.5 text-blue-600 font-medium group-hover:gap-2 transition-all">
                   <span>Отвори сайта</span>
                   <Icon name="ExternalLink" size={14} />

@@ -66,20 +66,6 @@ export function Portfolio() {
 
       {/* Card body */}
       <div className="p-4 sm:p-6 flex flex-col flex-1 min-w-0">
-        {/* Tags */}
-        <div className="flex flex-wrap gap-1.5 mb-3">
-          {project.tags.slice(0, 4).map((tag) => (
-            <span key={tag} className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded font-medium">
-              {tag}
-            </span>
-          ))}
-          {project.tags.length > 4 && (
-            <span className="px-2 py-0.5 text-xs bg-slate-100 text-slate-500 rounded font-medium">
-              +{project.tags.length - 4}
-            </span>
-          )}
-        </div>
-
         <h3 className="text-lg sm:text-xl font-heading font-bold text-navy-900 mb-2 leading-snug">
           {project.title}
         </h3>

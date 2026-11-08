@@ -377,9 +377,9 @@ export const hardwareServices: Service = {
 export const demoProjects: Project[] = [
   {
     id: 'poshtichka',
-    title: 'Пощичка — онлайн магазин за картички',
+    title: 'Пощичка — вендинг машина за сватби и събития',
     category: 'Уеб решения',
-    description: 'Онлайн магазин за поздравителни картички и подаръци с пълна електронна търговия, управление на поръчки и онлайн плащания.',
+    description: 'Онлайн присъствие за интерактивна вендинг машина за поздравителни картички и подаръци на сватби и специални събития.',
     tags: ['E-commerce', 'WordPress', 'WooCommerce', 'SEO'],
     image: '/images/projects/poshtichka.webp',
     url: 'https://www.poshtichka.eu',
@@ -387,9 +387,9 @@ export const demoProjects: Project[] = [
   },
   {
     id: 'umenie',
-    title: 'Умение — платформа за изкуство и образование',
+    title: 'Умение — образователен клуб',
     category: 'Уеб решения',
-    description: 'Уебсайт за образователна платформа, представяща курсове по изкуство, галерия и информация за преподаватели.',
+    description: 'Уебсайт за образователен клуб в Бургас, представящ уроци, курсове, галерия и информация за преподавателите.',
     tags: ['Уебсайт', 'CMS', 'Образование', 'Дизайн'],
     image: '/images/projects/umenie.webp',
     url: 'https://www.umenie.net',
@@ -397,9 +397,9 @@ export const demoProjects: Project[] = [
   },
   {
     id: 'svatbenkod',
-    title: 'Сватбен код — сватбена агенция',
+    title: 'Сватбен код — дигитални сватбени спомени',
     category: 'Уеб решения',
-    description: 'Елегантен уебсайт за сватбена агенция с портфолио от организирани сватби, услуги и форма за запитване.',
+    description: 'Платформа за споделяне на снимки и видеа от гостите на сватбени тържества в реално време, събрани в красива дигитална галерия.',
     tags: ['Уебсайт', 'CMS', 'Сватби', 'Дизайн'],
     image: '/images/projects/svatbenkod.webp',
     url: 'https://www.svatbenkod.com',
@@ -407,9 +407,9 @@ export const demoProjects: Project[] = [
   },
   {
     id: 'galliaglass',
-    title: 'Gallia Glass — стъклени изделия',
+    title: 'Gallia Glass — ръчно рисувано стъкло',
     category: 'Уеб решения',
-    description: 'Корпоративен уебсайт за производител на стъклени изделия с продуктово портфолио, галерия и информация за услугите.',
+    description: 'Корпоративен уебсайт за производител на ръчно рисувани стъклени изделия с продуктово портфолио, галерия и поръчки.',
     tags: ['React', 'Vercel', 'Корпоративен', 'Дизайн'],
     image: '/images/projects/galliaglass.webp',
     url: 'https://galliaglass.vercel.app',
@@ -417,10 +417,10 @@ export const demoProjects: Project[] = [
   },
   {
     id: 'petkanov-grafik',
-    title: 'Петканов График — графичен дизайн',
-    category: 'Уеб решения',
-    description: 'Портфолио сайт за графичен дизайнер с представяне на проекти, услуги и форма за контакт.',
-    tags: ['React', 'Vercel', 'Портфолио', 'Дизайн'],
+    title: 'График за дежурства — СУ „Константин Петканов“',
+    category: 'Уеб приложения',
+    description: 'Уеб и PWA система за автоматизирано организиране, управление и разпределение на седмичния график за дежурства на учителите с пълен график и дежурни постове.',
+    tags: ['React', 'TypeScript', 'PWA', 'Образование'],
     image: '/images/projects/petkanov-grafik.webp',
     url: 'https://petkanov-grafik.vercel.app',
     isDemo: false
@@ -432,7 +432,7 @@ export const demoProjects: Project[] = [
     description: 'Уеб приложение за онлайн тестове и оценяване в учебна среда. Позволява на учители да създават тестове и на ученици да ги решават.',
     tags: ['React', 'Vercel', 'Образование', 'Уеб приложение'],
     image: '/images/projects/class-test-hub.webp',
-    url: 'https://class-test-hub.vercel.app',
+    url: 'https://pupil-quiz-master.lovable.app',
     isDemo: false
   }
 ];

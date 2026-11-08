@@ -64,10 +64,14 @@ export function WebsiteDevelopment() {
                 ))}
               </ul>
             </div>
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in">
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                <Icon name="Monitor" size={64} />
-              </div>
+            <div className="relative aspect-video rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+              <img
+                src="/images/sections/web-dev.webp"
+                alt="Уеб разработка — програмист при работа"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
           </div>
         </div>
@@ -104,10 +108,14 @@ export function WebsiteDevelopment() {
       <section className="section bg-white" aria-labelledby="wd-benefits">
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in">
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                <Icon name="TrendingUp" size={64} />
-              </div>
+            <div className="relative aspect-video rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+              <img
+                src="/images/sections/office.webp"
+                alt="Модерен офис — работна среда"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
             <div className="animate-fade-in">
               <h2 id="wd-benefits" className="text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">

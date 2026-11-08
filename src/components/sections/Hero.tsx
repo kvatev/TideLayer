@@ -68,45 +68,73 @@ export function Hero() {
             </div>
           </div>
 
-          {/* Cards grid — visible on md+ only */}
-          <div className="hidden md:grid grid-cols-2 gap-4 animate-fade-in delay-200">
-            {heroCards.map((card, i) => (
-              <div
-                key={card.title}
-                className="card-elevated p-5 animate-slide-up"
-                style={{ animationDelay: `${300 + i * 100}ms` }}
-              >
-                <div className="flex items-center gap-3 mb-4">
-                  <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${card.iconBg}`}>
-                    <Icon name={card.icon} size={20} />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-navy-900 text-sm">{card.title}</p>
-                    <p className="text-xs text-slate-500">{card.subtitle}</p>
-                  </div>
-                </div>
-                <div className="space-y-1.5 text-sm">
-                  {card.items.map((item) => (
-                    <div key={item} className="flex items-center gap-2 text-slate-500">
-                      <Icon name="Check" size={13} className="text-green-500 shrink-0" />
-                      {item}
+          {/* Right column — image + cards (desktop) */}
+          <div className="hidden md:flex flex-col gap-4 animate-fade-in delay-200">
+            {/* Hero photo */}
+            <div className="relative overflow-hidden rounded-2xl aspect-[16/7] shadow-xl">
+              <img
+                src="/images/sections/hero-team.webp"
+                alt="Екипът на TideLayer при работа в офиса"
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="sync"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-navy-900/30 to-transparent" />
+            </div>
+            {/* Service cards */}
+            <div className="grid grid-cols-2 gap-4">
+              {heroCards.map((card, i) => (
+                <div
+                  key={card.title}
+                  className="card-elevated p-5 animate-slide-up"
+                  style={{ animationDelay: `${300 + i * 100}ms` }}
+                >
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className={`flex h-10 w-10 items-center justify-center rounded-lg ${card.iconBg}`}>
+                      <Icon name={card.icon} size={20} />
                     </div>
-                  ))}
+                    <div>
+                      <p className="font-semibold text-navy-900 text-sm">{card.title}</p>
+                      <p className="text-xs text-slate-500">{card.subtitle}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5 text-sm">
+                    {card.items.map((item) => (
+                      <div key={item} className="flex items-center gap-2 text-slate-500">
+                        <Icon name="Check" size={13} className="text-green-500 shrink-0" />
+                        {item}
+                      </div>
+                    ))}
+                  </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
 
-          {/* Mobile: compact services list */}
-          <div className="md:hidden grid grid-cols-2 gap-3 animate-fade-in delay-300">
-            {heroCards.map((card) => (
-              <div key={card.title} className="card p-4 flex items-center gap-3">
-                <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${card.iconBg}`}>
-                  <Icon name={card.icon} size={18} />
+          {/* Mobile: hero image + compact service cards */}
+          <div className="md:hidden flex flex-col gap-4 animate-fade-in delay-300">
+            {/* Photo on mobile */}
+            <div className="relative overflow-hidden rounded-2xl aspect-video shadow-lg">
+              <img
+                src="/images/sections/hero-team.webp"
+                alt="Екипът на TideLayer при работа"
+                className="w-full h-full object-cover"
+                loading="eager"
+                decoding="sync"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-navy-900/20 to-transparent" />
+            </div>
+            {/* Service cards compact grid */}
+            <div className="grid grid-cols-2 gap-3">
+              {heroCards.map((card) => (
+                <div key={card.title} className="card p-4 flex items-center gap-3">
+                  <div className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${card.iconBg}`}>
+                    <Icon name={card.icon} size={18} />
+                  </div>
+                  <p className="font-semibold text-navy-900 text-sm leading-tight">{card.title}</p>
                 </div>
-                <p className="font-semibold text-navy-900 text-sm leading-tight">{card.title}</p>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </div>
       </div>

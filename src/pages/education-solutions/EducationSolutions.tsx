@@ -50,9 +50,13 @@ export function EducationSolutions() {
               <Link key={product.id} to={product.cta.href.replace('/contact?product=', '/education-solutions/')} className="group">
                 <Card variant="elevated" padding="lg" hover className="h-full flex flex-col">
                   <div className="relative aspect-video bg-slate-100 rounded-xl mb-5 overflow-hidden group-hover:opacity-90 transition-opacity">
-                    <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                      <Icon name="Monitor" size={48} />
-                    </div>
+                    <img
+                      src="/images/sections/education.webp"
+                      alt="Образователни технологии в класна стая"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                    />
                     <Badge variant="accent" className="absolute top-3 left-3">
                       Продукт
                     </Badge>

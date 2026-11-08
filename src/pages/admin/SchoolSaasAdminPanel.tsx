@@ -153,12 +153,65 @@ export function SchoolsAndLicensesTab({
     'inventory',
   ]);
 
+  // Edit User State & Form
+  const [editingUser, setEditingUser] = useState<SchoolBundle['users'][0] | null>(null);
+  const [editUserFullName, setEditUserFullName] = useState('');
+  const [editUserEmail, setEditUserEmail] = useState('');
+  const [editUserPassword, setEditUserPassword] = useState('');
+  const [editUserPin, setEditUserPin] = useState('');
+  const [editUserRole, setEditUserRole] = useState<SchoolUserRole>('staff');
+  const [editUserModules, setEditUserModules] = useState<SchoolModuleKey[]>([
+    'duty',
+    'tickets',
+    'inventory',
+  ]);
+  const [savingUser, setSavingUser] = useState(false);
+
   // Change password inline state
   const [changingPassUserId, setChangingPassUserId] = useState<string | null>(null);
   const [newPassValue, setNewPassValue] = useState('');
 
   const origin =
     typeof window !== 'undefined' ? window.location.origin : 'https://tide-layer.vercel.app';
+
+  const openEditUser = (u: SchoolBundle['users'][0]) => {
+    setEditingUser(u);
+    setEditUserFullName(u.full_name);
+    setEditUserEmail(u.email);
+    setEditUserPassword(u.password_hash);
+    setEditUserPin(u.pin_code || '');
+    setEditUserRole(u.role);
+    setEditUserModules(u.allowed_modules && u.allowed_modules.length > 0 ? u.allowed_modules : ALL_MODULE_KEYS);
+  };
+
+  const handleToggleEditUserModule = (modKey: SchoolModuleKey) => {
+    setEditUserModules((prev) =>
+      prev.includes(modKey) ? prev.filter((k) => k !== modKey) : [...prev, modKey]
+    );
+  };
+
+  const handleSaveUser = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingUser || !editUserFullName.trim() || !editUserEmail.trim() || !editUserPassword.trim()) return;
+    setSavingUser(true);
+    try {
+      await updateSchoolUser(editingUser.id, {
+        full_name: editUserFullName.trim(),
+        email: editUserEmail.trim(),
+        password_hash: editUserPassword.trim(),
+        pin_code: editUserPin.trim() || null,
+        role: editUserRole,
+        allowed_modules: editUserModules.length > 0 ? editUserModules : ALL_MODULE_KEYS,
+      });
+      setEditingUser(null);
+      await onRefresh();
+      showToast('Данните за потребителя бяха обновени.');
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Грешка при обновяване на потребител.');
+    } finally {
+      setSavingUser(false);
+    }
+  };
 
   const resetSchoolForm = () => {
     setSchoolName('');
@@ -1000,16 +1053,25 @@ export function SchoolsAndLicensesTab({
                                     </button>
                                   </div>
                                 ) : (
-                                  <button
-                                    type="button"
-                                    onClick={() => {
-                                      setChangingPassUserId(u.id);
-                                      setNewPassValue(u.password_hash);
-                                    }}
-                                    className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium cursor-pointer"
-                                  >
-                                    Смени парола
-                                  </button>
+                                  <>
+                                    <button
+                                      type="button"
+                                      onClick={() => openEditUser(u)}
+                                      className="px-2.5 py-1 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700 text-xs font-semibold cursor-pointer"
+                                    >
+                                      Редактирай
+                                    </button>
+                                    <button
+                                      type="button"
+                                      onClick={() => {
+                                        setChangingPassUserId(u.id);
+                                        setNewPassValue(u.password_hash);
+                                      }}
+                                      className="px-2.5 py-1 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium cursor-pointer"
+                                    >
+                                      Смени парола
+                                    </button>
+                                  </>
                                 )}
 
                                 <button
@@ -1050,6 +1112,147 @@ export function SchoolsAndLicensesTab({
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Edit School User Modal */}
+      {editingUser && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-navy-950/70 backdrop-blur-sm animate-fade-in">
+          <div className="bg-white rounded-2xl shadow-2xl border border-slate-200 max-w-lg w-full max-h-[90vh] overflow-y-auto p-5 sm:p-6 animate-scale-up">
+            <div className="flex items-center justify-between mb-4 pb-3 border-b border-slate-100">
+              <div>
+                <h3 className="text-lg font-heading font-bold text-navy-900">Редактиране на Потребител</h3>
+                <p className="text-xs text-slate-500 mb-0">Актуализирайте данни, права и роли</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setEditingUser(null)}
+                className="w-8 h-8 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center cursor-pointer transition-colors"
+              >
+                ✕
+              </button>
+            </div>
+
+            <form onSubmit={handleSaveUser} className="space-y-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Име и фамилия <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={editUserFullName}
+                  onChange={(e) => setEditUserFullName(e.target.value)}
+                  className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Имейл <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="email"
+                    required
+                    value={editUserEmail}
+                    onChange={(e) => setEditUserEmail(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Парола <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={editUserPassword}
+                    onChange={(e) => setEditUserPassword(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    PIN код (4-6 цифри, опция)
+                  </label>
+                  <input
+                    type="text"
+                    maxLength={6}
+                    value={editUserPin}
+                    onChange={(e) => setEditUserPin(e.target.value)}
+                    placeholder="Напр. 1234"
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 font-mono"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Роля
+                  </label>
+                  <select
+                    value={editUserRole}
+                    onChange={(e) => setEditUserRole(e.target.value as SchoolUserRole)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 bg-white"
+                  >
+                    <option value="staff">Персонал / Учител (staff)</option>
+                    <option value="tech_support">ИТ специалист / Поддръжка (tech_support)</option>
+                    <option value="school_admin">Училищен администратор (school_admin)</option>
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1.5">
+                  Разрешени модули за този потребител
+                </label>
+                <div className="flex flex-wrap gap-2">
+                  {ALL_MODULE_KEYS.map((k) => {
+                    const isChecked = editUserModules.includes(k);
+                    return (
+                      <label
+                        key={k}
+                        className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border text-xs font-medium cursor-pointer transition-colors ${
+                          isChecked
+                            ? 'bg-blue-50 border-blue-300 text-blue-700'
+                            : 'bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100'
+                        }`}
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => handleToggleEditUserModule(k)}
+                          className="rounded text-blue-600 focus:ring-blue-500"
+                        />
+                        <span>{MODULE_META[k].name}</span>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setEditingUser(null)}
+                  className="px-4 py-2 rounded-lg border border-slate-200 hover:bg-slate-100 text-slate-700 text-xs font-medium cursor-pointer"
+                >
+                  Отказ
+                </button>
+                <button
+                  type="submit"
+                  disabled={savingUser}
+                  className="px-4 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold cursor-pointer disabled:opacity-50 transition-colors"
+                >
+                  {savingUser ? 'Запазване...' : 'Запази промените'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

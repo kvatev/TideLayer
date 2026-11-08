@@ -590,8 +590,11 @@ export async function updateSchoolInstance(
   schoolId: string,
   patch: Partial<Omit<SchoolRecord, 'id' | 'created_at'>>
 ): Promise<void> {
-  const { error } = await supabase.from('schools').update(patch).eq('id', schoolId);
-  if (!error) return;
+  try {
+    await supabase.from('schools').update(patch).eq('id', schoolId);
+  } catch {
+    // ignore
+  }
 
   const store = readLocalStore();
   store.schools = store.schools.map((s) =>
@@ -601,8 +604,11 @@ export async function updateSchoolInstance(
 }
 
 export async function deleteSchoolInstance(schoolId: string): Promise<void> {
-  const { error } = await supabase.from('schools').delete().eq('id', schoolId);
-  if (!error) return;
+  try {
+    await supabase.from('schools').delete().eq('id', schoolId);
+  } catch {
+    // ignore
+  }
 
   const store = readLocalStore();
   store.schools = store.schools.filter((s) => s.id !== schoolId);
@@ -668,13 +674,15 @@ export async function updateSchoolLicensePeriod(
     updated_at: now.toISOString(),
   };
 
-  const { error } = await supabase
-    .from('school_licenses')
-    .upsert(payload, { onConflict: 'school_id,module_key' });
+  try {
+    await supabase
+      .from('school_licenses')
+      .upsert(payload, { onConflict: 'school_id,module_key' });
+  } catch {
+    // ignore
+  }
 
-  if (!error) return;
-
-  // Fallback to local store
+  // Always keep local store mirror in sync
   const store = readLocalStore();
   const idx = store.licenses.findIndex(
     (l) => l.school_id === schoolId && l.module_key === moduleKey
@@ -764,10 +772,13 @@ export async function createSchoolUser(input: CreateSchoolUserInput): Promise<Sc
 
 export async function updateSchoolUser(
   userId: string,
-  patch: Partial<Pick<SchoolUserRecord, 'password_hash' | 'pin_code' | 'is_active' | 'role' | 'allowed_modules' | 'full_name'>>
+  patch: Partial<Pick<SchoolUserRecord, 'email' | 'password_hash' | 'pin_code' | 'is_active' | 'role' | 'allowed_modules' | 'full_name'>>
 ): Promise<void> {
-  const { error } = await supabase.from('school_users').update(patch).eq('id', userId);
-  if (!error) return;
+  try {
+    await supabase.from('school_users').update(patch).eq('id', userId);
+  } catch {
+    // ignore
+  }
 
   const store = readLocalStore();
   store.users = store.users.map((u) => (u.id === userId ? { ...u, ...patch } : u));
@@ -775,8 +786,11 @@ export async function updateSchoolUser(
 }
 
 export async function deleteSchoolUser(userId: string): Promise<void> {
-  const { error } = await supabase.from('school_users').delete().eq('id', userId);
-  if (!error) return;
+  try {
+    await supabase.from('school_users').delete().eq('id', userId);
+  } catch {
+    // ignore
+  }
 
   const store = readLocalStore();
   store.users = store.users.filter((u) => u.id !== userId);

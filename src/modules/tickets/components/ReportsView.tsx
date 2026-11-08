@@ -61,7 +61,7 @@ export function ReportsView({
             <span>Статистика и отчети</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mb-0">
-            Обобщени графични справки за изпълнението на заявките и разходите за поръчки
+            Обобщени графични справки за изпълнението на задачите и разходите за поръчки
           </p>
         </div>
 
@@ -79,11 +79,11 @@ export function ReportsView({
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
           <div className="text-xs font-semibold uppercase text-slate-500 tracking-wider mb-1">
-            Общо заявки
+            Общо задачи
           </div>
           <div className="text-3xl font-heading font-bold text-navy-900">{total}</div>
           <div className="text-xs text-slate-500 mt-1">
-            Решени или затворени:{' '}
+            Изпълнени или приключени:{' '}
             <strong className="text-emerald-700">
               {statusCounts.resolved + statusCounts.closed}
             </strong>
@@ -130,10 +130,10 @@ export function ReportsView({
 
           <div className="space-y-3">
             {[
-              { label: 'Нови заявки', val: statusCounts.open, color: 'bg-blue-600' },
+              { label: 'Нови задачи', val: statusCounts.open, color: 'bg-blue-600' },
               { label: 'В процес на работа', val: statusCounts.in_progress, color: 'bg-amber-500' },
-              { label: 'Решени', val: statusCounts.resolved, color: 'bg-emerald-600' },
-              { label: 'Затворени', val: statusCounts.closed, color: 'bg-slate-400' },
+              { label: 'Изпълнени / За преглед', val: statusCounts.resolved, color: 'bg-emerald-600' },
+              { label: 'Приключени / Одобрени', val: statusCounts.closed, color: 'bg-slate-400' },
             ].map((item) => {
               const pct = total > 0 ? Math.round((item.val / total) * 100) : 0;
               return (
@@ -224,7 +224,7 @@ export function ReportsView({
                   </div>
 
                   <div className="text-[11px] text-slate-500">
-                    {pct}% от всички регистрирани заявки
+                    {pct}% от всички регистрирани задачи
                   </div>
                 </div>
               );

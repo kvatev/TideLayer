@@ -1,18 +1,22 @@
 import {
   ArrowRight,
+  Calendar,
   CheckCircle2,
   Clock,
+  FileText,
   Inbox,
   Megaphone,
+  Paperclip,
   Pin,
   Plus,
   ShoppingCart,
-  Ticket,
+  Users,
 } from 'lucide-react';
 import {
   PRIORITY_LABELS,
   STATUS_LABELS,
   type SchoolTicket,
+  type TaskDocumentAttachment,
   type TicketAnnouncement,
   type TicketDepartment,
 } from '../types';
@@ -21,6 +25,7 @@ interface TicketsDashboardViewProps {
   tickets: SchoolTicket[];
   departments: TicketDepartment[];
   announcements: TicketAnnouncement[];
+  allDocuments?: TaskDocumentAttachment[];
   onNavigate: (view: string, params?: { ticketId?: string }) => void;
   canCreateTicket: boolean;
 }
@@ -29,29 +34,24 @@ export function TicketsDashboardView({
   tickets,
   departments,
   announcements,
+  allDocuments = [],
   onNavigate,
   canCreateTicket,
 }: TicketsDashboardViewProps) {
   const total = tickets.length;
-  const newCount = tickets.filter((t) => t.status === 'open').length;
   const inProgressCount = tickets.filter((t) => t.status === 'in_progress').length;
-  const resolvedCount = tickets.filter((t) => t.status === 'resolved' || t.status === 'closed').length;
+  const reviewCount = tickets.filter((t) => t.status === 'resolved').length;
+  const docsCount = allDocuments.length;
 
   const pinnedAnnouncements = announcements.filter((a) => a.is_pinned);
   const recentTickets = tickets.slice(0, 6);
 
   const statCards = [
     {
-      label: 'Общо заявки',
+      label: 'Всички задачи',
       value: total,
-      icon: Ticket,
-      bg: 'bg-blue-50 text-blue-600 border-blue-200',
-    },
-    {
-      label: 'Нови (Чакащи)',
-      value: newCount,
       icon: Inbox,
-      bg: 'bg-amber-50 text-amber-700 border-amber-200',
+      bg: 'bg-blue-50 text-blue-600 border-blue-200',
     },
     {
       label: 'В процес на работа',
@@ -60,10 +60,16 @@ export function TicketsDashboardView({
       bg: 'bg-purple-50 text-purple-700 border-purple-200',
     },
     {
-      label: 'Решени сигнали',
-      value: resolvedCount,
+      label: 'За преглед / Одобрение',
+      value: reviewCount,
       icon: CheckCircle2,
       bg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    },
+    {
+      label: 'Документи в архива (1 г.)',
+      value: docsCount,
+      icon: FileText,
+      bg: 'bg-amber-50 text-amber-700 border-amber-200',
     },
   ];
 
@@ -133,16 +139,16 @@ export function TicketsDashboardView({
           <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between gap-3">
             <div>
               <h3 className="text-base sm:text-lg font-heading font-bold text-navy-900 mb-0.5">
-                Последни заявки
+                Последни възложени задачи
               </h3>
               <p className="text-xs text-slate-500 mb-0">
-                Най-новите регистрирани сигнали и проблеми
+                Най-новите активни задачи, срокове и прикачени файлове
               </p>
             </div>
             <button
               type="button"
               onClick={() => onNavigate('list')}
-              className="text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              className="text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
             >
               <span>Виж всички</span>
               <ArrowRight className="w-3.5 h-3.5" />
@@ -160,7 +166,7 @@ export function TicketsDashboardView({
                   onClick={() => onNavigate('detail', { ticketId: t.id })}
                   className="p-4 sm:p-5 hover:bg-slate-50/80 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3"
                 >
-                  <div className="min-w-0 flex-1 space-y-1">
+                  <div className="min-w-0 flex-1 space-y-1.5">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold border ${st.bg}`}>
                         <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
@@ -169,9 +175,51 @@ export function TicketsDashboardView({
                       <span className={`px-2 py-0.5 rounded-md text-xs font-semibold border ${pr.bg} ${pr.text} ${pr.border}`}>
                         {pr.label}
                       </span>
-                      {t.room_or_location && (
-                        <span className="text-xs text-slate-500 font-medium">
-                          📍 {t.room_or_location}
+                      {t.due_date && (() => {
+                        const due = new Date(t.due_date);
+                        const now = new Date();
+                        const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                        const isOverdue = diffDays < 0;
+                        const isUrgentDue = diffDays >= 0 && diffDays <= 1;
+
+                        return (
+                          <span
+                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border ${
+                              isOverdue
+                                ? 'bg-rose-50 text-rose-700 border-rose-200'
+                                : isUrgentDue
+                                ? 'bg-amber-50 text-amber-700 border-amber-200'
+                                : 'bg-slate-50 text-slate-700 border-slate-200'
+                            }`}
+                          >
+                            <Calendar className="w-3 h-3" />
+                            <span>
+                              {isOverdue ? 'Изтекъл: ' : 'Срок: '}
+                              {due.toLocaleDateString('bg-BG')}
+                            </span>
+                          </span>
+                        );
+                      })()}
+                      {((t.attachments?.length || t.attachments_count || 0) > 0) && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                          <Paperclip className="w-3 h-3" />
+                          <span>
+                            {(t.attachments?.length || t.attachments_count)} {(t.attachments?.length || t.attachments_count) === 1 ? 'файл' : 'файла'}
+                          </span>
+                        </span>
+                      )}
+                      {t.assigned_role_target && (
+                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                          <Users className="w-3 h-3" />
+                          <span>
+                            {t.assigned_role_target === 'all_teachers'
+                              ? 'Всички учители'
+                              : t.assigned_role_target === 'all_administration'
+                              ? 'Всички администратори'
+                              : t.assigned_role_target === 'all_staff'
+                              ? 'Целият персонал'
+                              : t.assigned_role_target}
+                          </span>
                         </span>
                       )}
                     </div>
@@ -186,6 +234,8 @@ export function TicketsDashboardView({
                       <span>{new Date(t.created_at).toLocaleDateString('bg-BG')}</span>
                       <span>•</span>
                       <span>От: {t.creator_name}</span>
+                      <span>•</span>
+                      <span>За: {t.assignee_name}</span>
                       {t.messages_count ? (
                         <>
                           <span>•</span>
@@ -206,7 +256,7 @@ export function TicketsDashboardView({
 
             {recentTickets.length === 0 && (
               <div className="py-12 text-center text-slate-400 text-sm">
-                Няма въведени заявки.
+                Няма въведени задачи.
               </div>
             )}
           </div>
@@ -224,21 +274,33 @@ export function TicketsDashboardView({
               <button
                 type="button"
                 onClick={() => onNavigate('create')}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold transition-colors shadow-2xs"
+                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold transition-colors shadow-2xs cursor-pointer"
               >
                 <Plus className="w-4 h-4" />
-                <span>Подай нова заявка</span>
+                <span>+ Възложи нова задача</span>
               </button>
             )}
 
             <button
               type="button"
+              onClick={() => onNavigate('documents_history')}
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-navy-900 text-xs sm:text-sm font-medium transition-colors cursor-pointer"
+            >
+              <div className="flex items-center gap-2">
+                <FileText className="w-4 h-4 text-blue-600" />
+                <span>История на документите (1 г.)</span>
+              </div>
+              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
+            </button>
+
+            <button
+              type="button"
               onClick={() => onNavigate('orders')}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-navy-900 text-xs sm:text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-navy-900 text-xs sm:text-sm font-medium transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2">
                 <ShoppingCart className="w-4 h-4 text-purple-600" />
-                <span>Заявки за доставки и поръчки</span>
+                <span>Заявки за доставки и поръчки (€)</span>
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
             </button>
@@ -246,7 +308,7 @@ export function TicketsDashboardView({
             <button
               type="button"
               onClick={() => onNavigate('channels')}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-navy-900 text-xs sm:text-sm font-medium transition-colors"
+              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-navy-900 text-xs sm:text-sm font-medium transition-colors cursor-pointer"
             >
               <div className="flex items-center gap-2">
                 <Megaphone className="w-4 h-4 text-emerald-600" />
@@ -259,7 +321,7 @@ export function TicketsDashboardView({
           {/* Department Breakdown */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
             <h3 className="text-sm font-heading font-bold text-navy-900 mb-1">
-              Заявки по отдели
+              Задачи по направления
             </h3>
 
             <div className="space-y-2">
@@ -282,7 +344,7 @@ export function TicketsDashboardView({
 
               {departments.length === 0 && (
                 <p className="text-xs text-slate-400 py-3 text-center mb-0">
-                  Няма регистрирани отдели.
+                  Няма регистрирани направления.
                 </p>
               )}
             </div>

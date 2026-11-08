@@ -129,17 +129,104 @@ console.log('✅ Inventory: Sequential code generator works ->', nextCode);
 // 5. Test School User Role & Module Permissions
 
 function canAccessModule(userRole, allowedModules, targetModule) {
-  if (userRole === 'school_admin') return true;
+  if (userRole === 'school_admin' || userRole === 'director') return true;
   return allowedModules.includes(targetModule);
 }
 
 assert.strictEqual(canAccessModule('school_admin', [], 'inventory'), true);
+assert.strictEqual(canAccessModule('director', [], 'tickets'), true);
 assert.strictEqual(canAccessModule('staff', ['duty'], 'duty'), true);
 assert.strictEqual(canAccessModule('staff', ['duty'], 'tickets'), false);
-assert.strictEqual(canAccessModule('tech_support', ['tickets', 'inventory'], 'inventory'), true);
+assert.strictEqual(canAccessModule('technician', ['tickets', 'inventory'], 'inventory'), true);
 console.log('✅ RBAC: School User Role & Module Permissions check passed');
 
-// 6. Test Public Site Routes Integrity
+// 6. Test 4-Tier Hierarchy Task Assignment Rules
+const ROLE_HIERARCHY_LEVEL = {
+  director: 1,
+  school_admin: 1,
+  deputy_director: 2,
+  administration: 3,
+  teacher: 4,
+  staff: 4,
+  technician: 4,
+};
+
+function canAssignTaskToRole(sourceRole, targetRole) {
+  const sourceLevel = ROLE_HIERARCHY_LEVEL[sourceRole] ?? 99;
+  const targetLevel = ROLE_HIERARCHY_LEVEL[targetRole] ?? 99;
+  if (sourceLevel === 1) return true; // Director/Admin can assign to everyone
+  return targetLevel > sourceLevel; // Can only assign strictly downward
+}
+
+// Level 1 (Director) tests
+assert.strictEqual(canAssignTaskToRole('director', 'deputy_director'), true, 'Director can assign to Deputy Director');
+assert.strictEqual(canAssignTaskToRole('director', 'administration'), true, 'Director can assign to Administration');
+assert.strictEqual(canAssignTaskToRole('director', 'teacher'), true, 'Director can assign to Teacher');
+assert.strictEqual(canAssignTaskToRole('director', 'technician'), true, 'Director can assign to Technician');
+
+// Level 2 (Deputy Director) tests
+assert.strictEqual(canAssignTaskToRole('deputy_director', 'director'), false, 'Deputy cannot assign to Director');
+assert.strictEqual(canAssignTaskToRole('deputy_director', 'administration'), true, 'Deputy can assign to Administration');
+assert.strictEqual(canAssignTaskToRole('deputy_director', 'teacher'), true, 'Deputy can assign to Teacher');
+
+// Level 3 (Administration) tests
+assert.strictEqual(canAssignTaskToRole('administration', 'director'), false, 'Administration cannot assign to Director');
+assert.strictEqual(canAssignTaskToRole('administration', 'deputy_director'), false, 'Administration cannot assign to Deputy');
+assert.strictEqual(canAssignTaskToRole('administration', 'teacher'), true, 'Administration can assign to Teacher');
+assert.strictEqual(canAssignTaskToRole('administration', 'staff'), true, 'Administration can assign to Staff');
+
+// Level 4 (Teacher/Staff) tests
+assert.strictEqual(canAssignTaskToRole('teacher', 'director'), false, 'Teacher cannot assign downward to Director');
+assert.strictEqual(canAssignTaskToRole('teacher', 'teacher'), false, 'Teacher cannot assign downward to Teacher');
+console.log('✅ Hierarchy: 4-Tier School Hierarchy Task Assignment matrix verified');
+
+// 7. Test Document Type Classification
+function detectDocumentType(fileName) {
+  const ext = (fileName.split('.').pop() || '').toLowerCase();
+  if (ext === 'pdf') return 'pdf';
+  if (['doc', 'docx', 'odt', 'rtf'].includes(ext)) return 'word';
+  if (['xls', 'xlsx', 'csv', 'ods'].includes(ext)) return 'excel';
+  if (['ppt', 'pptx', 'odp'].includes(ext)) return 'powerpoint';
+  return 'other';
+}
+
+assert.strictEqual(detectDocumentType('Document.pdf'), 'pdf');
+assert.strictEqual(detectDocumentType('Tematichen_Plan.docx'), 'word');
+assert.strictEqual(detectDocumentType('Grafik_Kontrolni.XLSX'), 'excel');
+assert.strictEqual(detectDocumentType('Prezentatsiya.pptx'), 'powerpoint');
+assert.strictEqual(detectDocumentType('Archive.zip'), 'other');
+console.log('✅ Documents: File extension classifier (Word, Excel, PDF, PPT) verified');
+
+// 8. Test 365-Day Document Retention Calculation
+const RETENTION_DAYS = 365;
+function getDocumentRetentionInfo(createdAt) {
+  const created = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now.getTime() - created.getTime();
+  const daysPassed = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const daysRemaining = Math.max(0, RETENTION_DAYS - daysPassed);
+  const isExpired = daysRemaining <= 0;
+  return { daysRemaining, daysPassed, isExpired };
+}
+
+const todayDoc = getDocumentRetentionInfo(new Date().toISOString());
+assert.strictEqual(todayDoc.daysRemaining, 365, 'Today document must have 365 days remaining');
+assert.strictEqual(todayDoc.isExpired, false);
+
+const pastDate100 = new Date();
+pastDate100.setDate(pastDate100.getDate() - 100);
+const doc100 = getDocumentRetentionInfo(pastDate100.toISOString());
+assert(doc100.daysRemaining >= 264 && doc100.daysRemaining <= 266);
+assert.strictEqual(doc100.isExpired, false);
+
+const expiredDate = new Date();
+expiredDate.setDate(expiredDate.getDate() - 370);
+const expDoc = getDocumentRetentionInfo(expiredDate.toISOString());
+assert.strictEqual(expDoc.daysRemaining, 0);
+assert.strictEqual(expDoc.isExpired, true);
+console.log('✅ Retention: 365-day document retention countdown verified');
+
+// 9. Test Public Site Routes Integrity
 const routes = [
   '/',
   '/web-solutions',

@@ -55,7 +55,7 @@ export const MANAGEABLE_NAV_ITEMS: { href: string; label: string; group: string;
   { href: '/web-solutions/website-maintenance', label: 'Поддръжка на уебсайтове', group: 'Уеб решения' },
 
   { href: '/education-solutions/duty-scheduler', label: 'График на дежурства', group: 'Училищни решения' },
-  { href: '/education-solutions/school-ticketing', label: 'Система за заявки', group: 'Училищни решения' },
+  { href: '/education-solutions/school-ticketing', label: 'Задачи и Документи', group: 'Училищни решения' },
   { href: '/education-solutions/school-inventory', label: 'Инвентарна система', group: 'Училищни решения' },
   { href: '/education-solutions/school-it-support', label: 'ИТ поддръжка за училища', group: 'Училищни решения' },
   { href: '/education-solutions/teacher-training', label: 'Обучения за учители', group: 'Училищни решения' },

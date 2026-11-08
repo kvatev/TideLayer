@@ -63,7 +63,7 @@ export function SchoolTicketing() {
             <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg min-w-0">
               <img
                 src="/images/sections/education.webp"
-                alt="Система за технически заявки в училище"
+                alt="Система за управление на задачи и документи в училище"
                 className="w-full h-full object-cover"
                 loading="lazy"
                 decoding="async"
@@ -81,7 +81,7 @@ export function SchoolTicketing() {
               Как работи системата
             </h2>
             <p className="text-base sm:text-lg text-slate-600">
-              Интуитивен процес от подаване до затваряне на заявка.
+              Интуитивен процес от възлагане до успешно приемане на задача и отчет.
             </p>
           </div>
 
@@ -111,7 +111,7 @@ export function SchoolTicketing() {
               Ключови функционалности
             </h2>
             <p className="text-base sm:text-lg text-slate-600">
-              Всичко необходимо за ефективно управление на заявки в училището.
+              Всичко необходимо за ефективно управление на задачи и обмен на документи в училището.
             </p>
           </div>
 
@@ -142,7 +142,7 @@ export function SchoolTicketing() {
               Интерактивна демонстрация на системата
             </h2>
             <p className="text-base text-slate-300 leading-relaxed mb-0">
-              Разгледайте реални училищни казуси, тествайте живия чат към заявка и проследете училищния бюджет за консумативи в Евро (€).
+              Разгледайте училищни задачи по йерархия, карти с прикачени документи (Word, Excel, PDF), 1-годишния архив и бюджета за консумативи в Евро (€).
             </p>
           </div>
 
@@ -207,7 +207,7 @@ export function SchoolTicketing() {
               Желаете да видите системата в действие?
             </h2>
             <p className="text-slate-300 mb-8 text-sm sm:text-base">
-              Запишете се за персонализирана демонстрация и ще ви покажем как системата може да подобри управлението на заявки във вашето училище.
+              Запишете се за персонализирана демонстрация и ще ви покажем как системата може да организира задачите, сроковете и документите във вашето училище.
             </p>
             <Button size="lg" variant="primary" asChild className="w-full sm:w-auto">
               <Link to="/contact?product=school-ticketing">Заяви демонстрация</Link>

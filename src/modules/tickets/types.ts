@@ -17,12 +17,33 @@ export interface TicketDepartment {
   created_at?: string;
 }
 
+export type DocumentFileType = 'pdf' | 'word' | 'excel' | 'powerpoint' | 'other';
+
+export interface TaskDocumentAttachment {
+  id: string;
+  school_id: string;
+  task_id: string;
+  message_id?: string | null;
+  file_name: string;
+  file_size_bytes: number;
+  file_type: DocumentFileType;
+  mime_type: string;
+  file_url: string; // public URL, blob, or data URL
+  uploaded_by_user_id: string | null;
+  uploaded_by_name: string;
+  uploaded_by_role: string;
+  uploaded_at: string;
+}
+
 export interface SchoolTicket {
   id: string;
   school_id: string;
   department_id: string | null;
   created_by_user_id: string | null;
   assigned_to_user_id: string | null;
+  assigned_role_target?: string | null; // напр. 'all_teachers', 'all_administration', 'all_staff'
+  assigned_user_ids?: string[];
+  due_date?: string | null;
   title: string;
   description: string;
   room_or_location: string | null;
@@ -33,8 +54,12 @@ export interface SchoolTicket {
   // Computed / joined fields
   department_name?: string;
   creator_name?: string;
+  creator_role?: string;
   assignee_name?: string;
+  assignee_role?: string;
   messages_count?: number;
+  attachments_count?: number;
+  attachments?: TaskDocumentAttachment[];
 }
 
 export interface TicketMessage {
@@ -43,7 +68,9 @@ export interface TicketMessage {
   ticket_id: string;
   sender_user_id: string | null;
   sender_name: string;
+  sender_role?: string;
   message: string;
+  attachments?: TaskDocumentAttachment[];
   created_at: string;
 }
 
@@ -133,7 +160,7 @@ export const STATUS_LABELS: Record<
   { label: string; bg: string; text: string; dot: string }
 > = {
   open: {
-    label: 'Нова заявка',
+    label: 'Нова задача',
     bg: 'bg-blue-50 text-blue-700 border-blue-200',
     text: 'text-blue-700',
     dot: 'bg-blue-600',
@@ -145,18 +172,118 @@ export const STATUS_LABELS: Record<
     dot: 'bg-amber-500',
   },
   resolved: {
-    label: 'Решена',
+    label: 'Изпълнена / За преглед',
     bg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     text: 'text-emerald-700',
     dot: 'bg-emerald-600',
   },
   closed: {
-    label: 'Затворена',
+    label: 'Приключена / Одобрена',
     bg: 'bg-slate-100 text-slate-700 border-slate-300',
     text: 'text-slate-600',
     dot: 'bg-slate-400',
   },
 };
+
+export const DOCUMENT_TYPE_META: Record<
+  DocumentFileType,
+  {
+    label: string;
+    badgeBg: string;
+    badgeText: string;
+    border: string;
+    iconColor: string;
+    dotColor: string;
+    extList: string[];
+  }
+> = {
+  pdf: {
+    label: 'PDF Документ',
+    badgeBg: 'bg-red-50 text-red-700',
+    badgeText: 'PDF',
+    border: 'border-red-200',
+    iconColor: 'text-red-600',
+    dotColor: 'bg-red-500',
+    extList: ['.pdf'],
+  },
+  word: {
+    label: 'Word Документ',
+    badgeBg: 'bg-blue-50 text-blue-700',
+    badgeText: 'DOCX',
+    border: 'border-blue-200',
+    iconColor: 'text-blue-600',
+    dotColor: 'bg-blue-500',
+    extList: ['.doc', '.docx'],
+  },
+  excel: {
+    label: 'Excel Таблица',
+    badgeBg: 'bg-emerald-50 text-emerald-700',
+    badgeText: 'XLSX',
+    border: 'border-emerald-200',
+    iconColor: 'text-emerald-600',
+    dotColor: 'bg-emerald-500',
+    extList: ['.xls', '.xlsx', '.csv'],
+  },
+  powerpoint: {
+    label: 'PowerPoint Презентация',
+    badgeBg: 'bg-amber-50 text-amber-800',
+    badgeText: 'PPTX',
+    border: 'border-amber-200',
+    iconColor: 'text-amber-600',
+    dotColor: 'bg-amber-500',
+    extList: ['.ppt', '.pptx'],
+  },
+  other: {
+    label: 'Файл',
+    badgeBg: 'bg-slate-100 text-slate-700',
+    badgeText: 'FILE',
+    border: 'border-slate-200',
+    iconColor: 'text-slate-600',
+    dotColor: 'bg-slate-400',
+    extList: [],
+  },
+};
+
+export function detectDocumentType(fileName: string, mimeType?: string): DocumentFileType {
+  const ext = fileName.toLowerCase().slice(fileName.lastIndexOf('.'));
+  if (ext === '.pdf' || mimeType?.includes('pdf')) return 'pdf';
+  if (['.doc', '.docx'].includes(ext) || mimeType?.includes('word') || mimeType?.includes('msword')) return 'word';
+  if (['.xls', '.xlsx', '.csv'].includes(ext) || mimeType?.includes('excel') || mimeType?.includes('spreadsheet')) return 'excel';
+  if (['.ppt', '.pptx'].includes(ext) || mimeType?.includes('powerpoint') || mimeType?.includes('presentation')) return 'powerpoint';
+  return 'other';
+}
+
+export function formatFileSize(bytes: number): string {
+  if (!bytes || bytes <= 0) return '0 KB';
+  if (bytes < 1024 * 1024) {
+    return `${(bytes / 1024).toFixed(1)} KB`;
+  }
+  return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+}
+
+export const RETENTION_DAYS = 365;
+
+export function getDocumentRetentionInfo(uploadedAt: string): {
+  isWithinRetention: boolean;
+  daysPassed: number;
+  daysRemaining: number;
+  retentionLabel: string;
+} {
+  const uploadMs = new Date(uploadedAt).getTime();
+  const nowMs = Date.now();
+  const diffDays = Math.floor((nowMs - uploadMs) / (1000 * 60 * 60 * 24));
+  const daysRemaining = Math.max(0, RETENTION_DAYS - diffDays);
+  const isWithinRetention = diffDays <= RETENTION_DAYS;
+
+  return {
+    isWithinRetention,
+    daysPassed: diffDays,
+    daysRemaining,
+    retentionLabel: isWithinRetention
+      ? `Остават ${daysRemaining} дни от 1-год. архив`
+      : 'Архивиран (над 1 година)',
+  };
+}
 
 export const ORDER_STATUS_LABELS: Record<
   OrderStatus,

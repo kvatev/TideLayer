@@ -3,14 +3,14 @@ import { Link } from 'react-router-dom';
 import {
   BarChart3,
   Building2,
+  ClipboardList,
+  FileText,
   Hash,
   History,
   LayoutDashboard,
   Megaphone,
   Plus,
   ShoppingCart,
-  Ticket,
-  Wrench,
 } from 'lucide-react';
 import { useSchoolPortal } from '../../components/layout/schoolPortalContext';
 import { useTicketsStore } from './useTicketsStore';
@@ -18,6 +18,7 @@ import { TicketsDashboardView } from './components/TicketsDashboardView';
 import { TicketsListView } from './components/TicketsListView';
 import { TicketCreateView } from './components/TicketCreateView';
 import { TicketDetailView } from './components/TicketDetailView';
+import { DocumentsHistoryView } from './components/DocumentsHistoryView';
 import { OrdersView } from './components/OrdersView';
 import { ChannelsView } from './components/ChannelsView';
 import { AnnouncementsView } from './components/AnnouncementsView';
@@ -32,6 +33,7 @@ export type TicketsSubView =
   | 'list'
   | 'create'
   | 'detail'
+  | 'documents_history'
   | 'orders'
   | 'channels'
   | 'announcements'
@@ -47,7 +49,10 @@ export function TicketsModuleApp() {
 
   const isStaffOrAdmin =
     session.isSuperAdminPreview ||
+    session.role === 'director' ||
     session.role === 'school_admin' ||
+    session.role === 'deputy_director' ||
+    session.role === 'administration' ||
     session.role === 'technician' ||
     session.role === 'staff';
 
@@ -65,9 +70,9 @@ export function TicketsModuleApp() {
   if (store.isLoading) {
     return (
       <div className="min-h-[50vh] flex flex-col items-center justify-center gap-3">
-        <div className="w-8 h-8 rounded-full border-2 border-cyan-600 border-t-transparent animate-spin" />
+        <div className="w-8 h-8 rounded-full border-2 border-blue-600 border-t-transparent animate-spin" />
         <p className="text-xs sm:text-sm text-slate-500 font-medium mb-0">
-          Зареждане на системата за заявки...
+          Зареждане на системата за задачи и документи...
         </p>
       </div>
     );
@@ -90,9 +95,9 @@ export function TicketsModuleApp() {
           <button
             type="button"
             onClick={() => setCurrentView('dashboard')}
-            className="hover:underline text-navy-900 font-bold"
+            className="hover:underline text-navy-900 font-bold cursor-pointer"
           >
-            Система за заявки
+            Задачи и Документи
           </button>
           {currentView === 'detail' && selectedTicket && (
             <>
@@ -126,12 +131,12 @@ export function TicketsModuleApp() {
       <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-xl bg-cyan-600 text-white flex items-center justify-center shrink-0 shadow-xs">
-              <Wrench className="w-6 h-6" />
+            <div className="w-12 h-12 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <ClipboardList className="w-6 h-6" />
             </div>
             <div>
               <h1 className="text-lg sm:text-xl font-heading font-bold text-navy-900 leading-tight mb-0.5">
-                Система за заявки и поддръжка
+                Система за управление на задачи и документи
               </h1>
               <p className="text-xs text-slate-500 mb-0">
                 {school.name}
@@ -144,28 +149,29 @@ export function TicketsModuleApp() {
             <button
               type="button"
               onClick={() => setCurrentView('create')}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold transition-colors shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold transition-colors shadow-2xs cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Подай заявка</span>
+              <span>+ Възложи задача</span>
             </button>
           </div>
         </div>
 
         {/* Tab Switcher */}
         <nav
-          aria-label="Навигация в модул Заявки"
+          aria-label="Навигация в модул Задачи и Документи"
           className="flex items-center gap-1 overflow-x-auto pb-1 pt-1 border-t border-slate-100 scrollbar-none"
         >
           {[
             { id: 'dashboard', label: 'Табло', icon: LayoutDashboard },
-            { id: 'list', label: 'Заявки', icon: Ticket },
+            { id: 'list', label: 'Задачи', icon: ClipboardList },
+            { id: 'documents_history', label: 'История на документите (1 г.)', icon: FileText },
             { id: 'orders', label: 'Поръчки (€)', icon: ShoppingCart },
             { id: 'channels', label: 'Канали', icon: Hash },
             { id: 'announcements', label: 'Съобщения', icon: Megaphone },
             ...(isStaffOrAdmin
               ? [
-                  { id: 'departments', label: 'Отдели', icon: Building2 },
+                  { id: 'departments', label: 'Направления', icon: Building2 },
                   { id: 'reports', label: 'Справки', icon: BarChart3 },
                   { id: 'audit', label: 'Журнал', icon: History },
                 ]
@@ -181,14 +187,13 @@ export function TicketsModuleApp() {
                 type="button"
                 onClick={() => {
                   if (tab.id === 'list' && currentView === 'detail') {
-                    // stay in detail or switch to list
                     setCurrentView('list');
                   } else {
                     setCurrentView(tab.id as TicketsSubView);
                   }
                 }}
                 className={cn(
-                  'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-1.5',
+                  'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer',
                   isCurrent
                     ? 'bg-navy-900 text-white shadow-2xs'
                     : 'text-slate-600 hover:text-navy-900 hover:bg-slate-100'
@@ -209,6 +214,7 @@ export function TicketsModuleApp() {
             tickets={store.tickets}
             departments={store.departments}
             announcements={store.announcements}
+            allDocuments={store.allDocuments}
             onNavigate={handleNavigate}
             canCreateTicket={true}
           />
@@ -224,8 +230,18 @@ export function TicketsModuleApp() {
           />
         )}
 
+        {currentView === 'documents_history' && (
+          <DocumentsHistoryView
+            documents={store.allDocuments}
+            tickets={store.tickets}
+            currentUserId={session.userId}
+            onNavigateToTask={(ticketId) => handleNavigate('detail', { ticketId })}
+          />
+        )}
+
         {currentView === 'create' && (
           <TicketCreateView
+            session={session}
             departments={store.departments}
             schoolUsers={bundle.users}
             isStaffOrAdmin={isStaffOrAdmin}
@@ -248,6 +264,8 @@ export function TicketsModuleApp() {
             onPriorityChange={store.updateTicketPriority}
             onAssigneeChange={store.updateTicketAssignee}
             onSendMessage={store.sendMessage}
+            onAddAttachment={store.addAttachmentToTask}
+            onDeleteAttachment={store.deleteAttachment}
             onEditTicket={store.editTicket}
             onDeleteTicket={store.deleteTicket}
             onCreateOrder={store.createOrder}
@@ -320,4 +338,3 @@ export function TicketsModuleApp() {
     </div>
   );
 }
-

@@ -1,9 +1,12 @@
 import { useState, useMemo } from 'react';
 import {
   ArrowRight,
+  Calendar,
   Inbox,
+  Paperclip,
   Plus,
   Search,
+  Users,
   X,
 } from 'lucide-react';
 import {
@@ -28,7 +31,7 @@ export function TicketsListView({
   onNavigate,
   canCreateTicket,
 }: TicketsListViewProps) {
-  const [tab, setTab] = useState<'all' | 'assigned'>('all');
+  const [tab, setTab] = useState<'all' | 'assigned_to_me' | 'created_by_me'>('all');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deptFilter, setDeptFilter] = useState<string>('all');
@@ -38,8 +41,12 @@ export function TicketsListView({
 
   const filtered = useMemo(() => {
     return tickets.filter((t) => {
-      if (tab === 'assigned' && t.assigned_to_user_id !== currentUserId) {
-        return false;
+      if (tab === 'assigned_to_me') {
+        const isDirect = t.assigned_to_user_id === currentUserId;
+        const isGroup = Boolean(t.assigned_role_target);
+        if (!isDirect && !isGroup) return false;
+      } else if (tab === 'created_by_me') {
+        if (t.created_by_user_id !== currentUserId) return false;
       }
       if (statusFilter !== 'all' && t.status !== statusFilter) {
         return false;
@@ -56,7 +63,8 @@ export function TicketsListView({
         const matchDesc = t.description.toLowerCase().includes(q);
         const matchRoom = (t.room_or_location || '').toLowerCase().includes(q);
         const matchCreator = (t.creator_name || '').toLowerCase().includes(q);
-        if (!matchTitle && !matchDesc && !matchRoom && !matchCreator) {
+        const matchAssignee = (t.assignee_name || '').toLowerCase().includes(q);
+        if (!matchTitle && !matchDesc && !matchRoom && !matchCreator && !matchAssignee) {
           return false;
         }
       }
@@ -85,10 +93,10 @@ export function TicketsListView({
       <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h2 className="text-xl sm:text-2xl font-heading font-bold text-navy-900 mb-1">
-            Списък със заявки
+            Списък със задачи
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mb-0">
-            Филтриране по отдели, приоритети, статус и отговорници
+            Възложени задачи, срокове за изпълнение, прикачени документи и отчети
           </p>
         </div>
 
@@ -97,10 +105,10 @@ export function TicketsListView({
             <button
               type="button"
               onClick={() => onNavigate('create')}
-              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold transition-colors shadow-2xs"
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold transition-colors shadow-2xs cursor-pointer"
             >
               <Plus className="w-4 h-4" />
-              <span>Нова заявка</span>
+              <span>+ Възложи задача</span>
             </button>
           )}
         </div>
@@ -108,36 +116,50 @@ export function TicketsListView({
 
       {/* Filter Tabs & Search Bar */}
       <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs space-y-3">
-        {/* View Switcher: All vs Assigned */}
+        {/* View Switcher: All vs Assigned to me vs Created by me */}
         <div className="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-100">
-          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+          <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl overflow-x-auto">
             <button
               type="button"
               onClick={() => {
                 setTab('all');
                 setPage(1);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                 tab === 'all'
                   ? 'bg-white text-navy-900 shadow-2xs'
                   : 'text-slate-600 hover:text-navy-900'
               }`}
             >
-              Всички заявки ({tickets.length})
+              Всички задачи ({tickets.length})
             </button>
             <button
               type="button"
               onClick={() => {
-                setTab('assigned');
+                setTab('assigned_to_me');
                 setPage(1);
               }}
-              className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-                tab === 'assigned'
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                tab === 'assigned_to_me'
                   ? 'bg-white text-navy-900 shadow-2xs'
                   : 'text-slate-600 hover:text-navy-900'
               }`}
             >
-              Моите задачи ({tickets.filter((t) => t.assigned_to_user_id === currentUserId).length})
+              Възложени на мен ({tickets.filter((t) => t.assigned_to_user_id === currentUserId || Boolean(t.assigned_role_target)).length})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab('created_by_me');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
+                tab === 'created_by_me'
+                  ? 'bg-white text-navy-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-navy-900'
+              }`}
+            >
+              Възложени от мен ({tickets.filter((t) => t.created_by_user_id === currentUserId).length})
             </button>
           </div>
 
@@ -145,7 +167,7 @@ export function TicketsListView({
             <button
               type="button"
               onClick={resetFilters}
-              className="text-xs font-medium text-blue-600 hover:underline flex items-center gap-1"
+              className="text-xs font-medium text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
             >
               <X className="w-3.5 h-3.5" />
               <span>Изчисти филтрите</span>
@@ -180,10 +202,10 @@ export function TicketsListView({
             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-slate-50/60 font-medium text-navy-900 focus:bg-white focus:outline-none focus:border-blue-500"
           >
             <option value="all">Всички статуси</option>
-            <option value="open">Нова заявка</option>
+            <option value="open">Нова задача</option>
             <option value="in_progress">В процес</option>
-            <option value="resolved">Решена</option>
-            <option value="closed">Затворена</option>
+            <option value="resolved">Изпълнена / За преглед</option>
+            <option value="closed">Приключена / Одобрена</option>
           </select>
 
           {/* Department Filter */}
@@ -247,6 +269,53 @@ export function TicketsListView({
                       📍 {t.room_or_location}
                     </span>
                   )}
+                  {t.due_date && (() => {
+                    const due = new Date(t.due_date);
+                    const now = new Date();
+                    const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+                    const isOverdue = diffDays < 0;
+                    const isUrgentDue = diffDays >= 0 && diffDays <= 1;
+
+                    return (
+                      <span
+                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border ${
+                          isOverdue
+                            ? 'bg-rose-50 text-rose-700 border-rose-200'
+                            : isUrgentDue
+                            ? 'bg-amber-50 text-amber-700 border-amber-200'
+                            : 'bg-slate-50 text-slate-700 border-slate-200'
+                        }`}
+                      >
+                        <Calendar className="w-3 h-3" />
+                        <span>
+                          {isOverdue ? 'Изтекъл: ' : 'Срок: '}
+                          {due.toLocaleDateString('bg-BG')}
+                        </span>
+                      </span>
+                    );
+                  })()}
+                  {((t.attachments?.length || t.attachments_count || 0) > 0) && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
+                      <Paperclip className="w-3 h-3" />
+                      <span>
+                        {(t.attachments?.length || t.attachments_count)} {(t.attachments?.length || t.attachments_count) === 1 ? 'документ' : 'документа'}
+                      </span>
+                    </span>
+                  )}
+                  {t.assigned_role_target && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                      <Users className="w-3 h-3" />
+                      <span>
+                        {t.assigned_role_target === 'all_teachers'
+                          ? 'Всички учители'
+                          : t.assigned_role_target === 'all_administration'
+                          ? 'Всички администратори'
+                          : t.assigned_role_target === 'all_staff'
+                          ? 'Целият персонал'
+                          : t.assigned_role_target}
+                      </span>
+                    </span>
+                  )}
                 </div>
 
                 <h3 className="text-base font-heading font-bold text-navy-900 truncate">
@@ -292,7 +361,7 @@ export function TicketsListView({
         {pagedTickets.length === 0 && (
           <div className="py-16 text-center text-slate-400 space-y-2">
             <Inbox className="w-10 h-10 mx-auto text-slate-300" />
-            <p className="text-sm font-medium mb-0">Няма намерени заявки с тези филтри.</p>
+            <p className="text-sm font-medium mb-0">Няма намерени задачи с тези филтри.</p>
           </div>
         )}
       </div>
@@ -301,7 +370,7 @@ export function TicketsListView({
       {totalPages > 1 && (
         <div className="flex items-center justify-between gap-3 px-2 text-xs sm:text-sm text-slate-600">
           <div>
-            Страница <strong>{currentPage}</strong> от <strong>{totalPages}</strong> (общо {filtered.length} заявки)
+            Страница <strong>{currentPage}</strong> от <strong>{totalPages}</strong> (общо {filtered.length} задачи)
           </div>
           <div className="flex items-center gap-1.5">
             <button

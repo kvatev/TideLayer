@@ -172,7 +172,7 @@ export function DepartmentsAdminView({
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
-                <span>Общо заявки: <strong>{linkedTickets.length}</strong></span>
+                <span>Общо задачи: <strong>{linkedTickets.length}</strong></span>
                 <span className="text-amber-700 font-semibold">
                   Активни: {openTickets.length}
                 </span>
@@ -283,7 +283,7 @@ export function DepartmentsAdminView({
         title="Изтриване на отдел"
         confirmLabel="Изтрий отдела"
         tone="danger"
-        description="Сигурни ли сте, че искате да изтриете този отдел? Ако в него има заявки, системата няма да позволи изтриването преди те да бъдат преместени."
+        description="Сигурни ли сте, че искате да изтриете това направление? Ако в него има свързани задачи, системата няма да позволи изтриването преди те да бъдат преместени."
       />
     </div>
   );

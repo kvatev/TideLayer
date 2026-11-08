@@ -22,7 +22,38 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
 
 export type SchoolModuleKey = 'duty' | 'tickets' | 'inventory';
 export type LicensePlanType = '6_months' | '1_year' | '2_years' | 'custom';
-export type SchoolUserRole = 'school_admin' | 'teacher' | 'staff' | 'technician';
+export type SchoolUserRole =
+  | 'director'
+  | 'school_admin'
+  | 'deputy_director'
+  | 'administration'
+  | 'teacher'
+  | 'staff'
+  | 'technician';
+
+export const ROLE_HIERARCHY_LEVEL: Record<SchoolUserRole, number> = {
+  director: 1,
+  school_admin: 1,
+  deputy_director: 2,
+  administration: 3,
+  teacher: 4,
+  staff: 4,
+  technician: 4,
+};
+
+/**
+ * Checks if a user role can assign tasks to a target role in school hierarchy.
+ * - Level 1 (Director / School Admin) can assign to all roles.
+ * - Level 2 (Deputy Director) can assign to Administration, Teachers, Staff.
+ * - Level 3 (Administration) can assign to Teachers and Staff.
+ * - Level 4 (Teacher / Staff) cannot assign downward tasks.
+ */
+export function canAssignTaskToRole(sourceRole: SchoolUserRole, targetRole: SchoolUserRole): boolean {
+  const sourceLevel = ROLE_HIERARCHY_LEVEL[sourceRole] ?? 4;
+  if (sourceLevel === 1) return true;
+  const targetLevel = ROLE_HIERARCHY_LEVEL[targetRole] ?? 4;
+  return targetLevel > sourceLevel;
+}
 
 export interface SchoolRecord {
   id: string;
@@ -117,10 +148,10 @@ export const MODULE_META: Record<
   },
   tickets: {
     key: 'tickets',
-    name: 'Система за заявки',
-    shortName: 'Заявки',
-    description: 'Вътрешни технически и административни заявки по кабинети, приоритети, отдели и статус на изпълнение.',
-    icon: 'Wrench',
+    name: 'Система за задачи и документи',
+    shortName: 'Задачи и Документи',
+    description: 'Вътрешно възлагане на задачи, йерархичен контрол, споделяне на учебни документи и 1-годишен архив.',
+    icon: 'ClipboardList',
     accentColor: 'cyan',
   },
   inventory: {
@@ -134,10 +165,13 @@ export const MODULE_META: Record<
 };
 
 export const ROLE_LABELS: Record<SchoolUserRole, string> = {
-  school_admin: 'Училищен Админ / Директор',
-  teacher: 'Учител',
-  technician: 'Технически персонал',
-  staff: 'Служител',
+  director: 'Директор (Ниво 1)',
+  school_admin: 'Училищен Админ / Директор (Ниво 1)',
+  deputy_director: 'Заместник-директор (Ниво 2)',
+  administration: 'Администрация / ЗАС / Счетоводство (Ниво 3)',
+  teacher: 'Учител (Ниво 4)',
+  staff: 'Служител / Персонал (Ниво 4)',
+  technician: 'ИТ координатор / Техник (Ниво 4)',
 };
 
 // =============================================================================
@@ -353,8 +387,47 @@ function getInitialDemoStore(): LocalSaasStore {
         email: 'director@petkanov.bg',
         password_hash: 'school123',
         pin_code: '1234',
-        full_name: 'Администратор Училище',
-        role: 'school_admin',
+        full_name: 'д-р Валентина Каменова (Директор)',
+        role: 'director',
+        allowed_modules: ['duty', 'tickets', 'inventory'],
+        is_active: true,
+        created_at: now.toISOString(),
+      },
+      {
+        id: 'usr-deputy-1',
+        school_id: schoolId,
+        auth_user_id: null,
+        email: 'deputy@petkanov.bg',
+        password_hash: 'school123',
+        pin_code: '2345',
+        full_name: 'Мария Тодорова (Зам.-директор УД)',
+        role: 'deputy_director',
+        allowed_modules: ['duty', 'tickets', 'inventory'],
+        is_active: true,
+        created_at: now.toISOString(),
+      },
+      {
+        id: 'usr-admin-office-1',
+        school_id: schoolId,
+        auth_user_id: null,
+        email: 'office@petkanov.bg',
+        password_hash: 'school123',
+        pin_code: '3456',
+        full_name: 'Силвия Николова (ЗАС / Администрация)',
+        role: 'administration',
+        allowed_modules: ['duty', 'tickets', 'inventory'],
+        is_active: true,
+        created_at: now.toISOString(),
+      },
+      {
+        id: 'usr-teacher-1',
+        school_id: schoolId,
+        auth_user_id: null,
+        email: 'teacher@petkanov.bg',
+        password_hash: 'school123',
+        pin_code: '4567',
+        full_name: 'Георги Димитров (Старши учител)',
+        role: 'teacher',
         allowed_modules: ['duty', 'tickets', 'inventory'],
         is_active: true,
         created_at: now.toISOString(),

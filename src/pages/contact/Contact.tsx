@@ -52,7 +52,7 @@ const SERVICE_BADGE_LABELS: Record<string, string> = {
   'network-installation': 'Изграждане на мрежи',
   'monthly-support': 'Месечна ИТ поддръжка',
   'duty-scheduler': 'График на учителските дежурства',
-  'school-ticketing': 'Училищна система за заявки',
+  'school-ticketing': 'Система за задачи и документи',
   'school-inventory': 'Училищна инвентарна система',
 };
 
@@ -372,7 +372,7 @@ export function Contact() {
                       >
                         <option value="">Изберете продукт (по избор)</option>
                         <option value="duty-scheduler">График на учителските дежурства</option>
-                        <option value="school-ticketing">Училищна система за заявки</option>
+                        <option value="school-ticketing">Система за задачи и документи</option>
                         <option value="school-inventory">Училищна инвентарна система</option>
                         <option value="school-it-support">ИТ поддръжка за училища</option>
                         <option value="teacher-training">Обучения за учители (технологии и мрежи)</option>

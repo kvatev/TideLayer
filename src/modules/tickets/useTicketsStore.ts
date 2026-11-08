@@ -1,12 +1,20 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { supabase, type SchoolRecord, type SchoolUserRecord, type SchoolPortalSession } from '../../lib/supabase';
+import {
+  supabase,
+  ROLE_LABELS,
+  type SchoolRecord,
+  type SchoolUserRecord,
+  type SchoolPortalSession,
+} from '../../lib/supabase';
 import {
   formatEur,
   isValidUuid,
   makeUuid,
   type ChannelMessage,
+  type DocumentFileType,
   type OrderStatus,
   type SchoolTicket,
+  type TaskDocumentAttachment,
   type TicketAnnouncement,
   type TicketAuditLog,
   type TicketChannel,
@@ -27,6 +35,7 @@ interface LocalTicketsSnapshot {
   channelMessages: ChannelMessage[];
   announcements: TicketAnnouncement[];
   auditLogs: TicketAuditLog[];
+  attachments?: TaskDocumentAttachment[];
   hasInitialized?: boolean;
 }
 
@@ -35,66 +44,232 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
   const dept1Id = makeUuid();
   const dept2Id = makeUuid();
   const dept3Id = makeUuid();
+  const dept4Id = makeUuid();
 
   const departments: TicketDepartment[] = [
     {
       id: dept1Id,
       school_id: schoolId,
-      name: 'ИТ и софтуерна поддръжка',
-      description: 'Компютърни кабинети, операционни системи, интерактивни дисплеи и мултимедия',
+      name: 'Ръководство и Педагогически съвет',
+      description: 'Заповеди на директора, годишни тематични планове и решения на ПС',
       created_at: now.toISOString(),
     },
     {
       id: dept2Id,
       school_id: schoolId,
-      name: 'Мрежи, WiFi и периферия',
-      description: 'Кабелна и безжична мрежа, рутери, суитчове, принтери и тонери',
+      name: 'Учебна дейност и Класни ръководители',
+      description: 'Графици за контролни работи, отсъствия, дневници и квалификация',
       created_at: now.toISOString(),
     },
     {
       id: dept3Id,
       school_id: schoolId,
-      name: 'Материална база и сграден фонд',
-      description: 'Осветление, брави, мебели, климатизация и технически ремонти в стаите',
+      name: 'Администрация, ЗАС и Човешки ресурси',
+      description: 'Справки, трудови досиета, GDPR декларации и материални заявки',
+      created_at: now.toISOString(),
+    },
+    {
+      id: dept4Id,
+      school_id: schoolId,
+      name: 'ИТ инфраструктура и Техническа поддръжка',
+      description: 'Компютърни кабинети, мрежи, електронни дневници и периферия',
       created_at: now.toISOString(),
     },
   ];
 
-  const firstUser = schoolUsers[0];
-  const validCreatorId = firstUser && isValidUuid(firstUser.id) ? firstUser.id : null;
-  const creatorName = firstUser?.full_name || 'Служебен администратор';
+  const directorUser = schoolUsers.find((u) => u.role === 'director' || u.role === 'school_admin') || schoolUsers[0];
+  const deputyUser = schoolUsers.find((u) => u.role === 'deputy_director') || schoolUsers[1] || schoolUsers[0];
+  const adminUser = schoolUsers.find((u) => u.role === 'administration') || schoolUsers[2] || schoolUsers[0];
+  const teacherUser = schoolUsers.find((u) => u.role === 'teacher') || schoolUsers[3] || schoolUsers[0];
+
+  const validCreatorId = directorUser ? directorUser.id : null;
+  const creatorName = directorUser ? directorUser.full_name : 'Директор';
 
   const tk1Id = makeUuid();
   const tk2Id = makeUuid();
+  const tk3Id = makeUuid();
+  const tk4Id = makeUuid();
+
+  const inFiveDays = new Date(Date.now() + 86400000 * 5).toISOString();
+  const inTwoDays = new Date(Date.now() + 86400000 * 2).toISOString();
+  const pastThreeDays = new Date(Date.now() - 86400000 * 3).toISOString();
 
   const tickets: SchoolTicket[] = [
     {
       id: tk1Id,
       school_id: schoolId,
       department_id: dept1Id,
-      created_by_user_id: validCreatorId,
+      created_by_user_id: directorUser ? directorUser.id : null,
       assigned_to_user_id: null,
-      title: 'Интерактивният дисплей в STEM кабинет 302 не реагира на докосване',
-      description: 'При стартиране на презентации сензорният слой отказва да регистрира докосване. Компютърът е рестартиран двукратно.',
-      room_or_location: 'STEM Кабинет 302 (Етаж 3)',
+      assigned_role_target: 'all_teachers',
+      due_date: inFiveDays,
+      title: 'Предаване на Годишен тематичен план и график за контролни работи (I срок)',
+      description: 'Колеги, моля всички учители и класни ръководители да попълнят и качат своите годишни тематични планове по приложения утвърден образец от МОН до указания краен срок.',
+      room_or_location: 'Учителска стая / Дигитален портал',
       priority: 'high',
-      status: 'open',
-      created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
-      updated_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+      status: 'in_progress',
+      created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
+      updated_at: new Date(Date.now() - 3600000 * 6).toISOString(),
     },
     {
       id: tk2Id,
       school_id: schoolId,
       department_id: dept2Id,
-      created_by_user_id: validCreatorId,
-      assigned_to_user_id: validCreatorId,
-      title: 'Подмяна на тонер касета за мрежов принтер в учителската стая',
-      description: 'Индикаторът на принтера мига в червено за остатъчен тонер под 5%. Необходима е нова черна касета.',
-      room_or_location: 'Учителска стая (Етаж 2)',
+      created_by_user_id: deputyUser ? deputyUser.id : null,
+      assigned_to_user_id: null,
+      assigned_role_target: 'all_teachers',
+      due_date: inTwoDays,
+      title: 'Месечна справка за отсъствия и неизвинени часове към МОН',
+      description: 'Изисква се въвеждане на обобщените данни за отсъствията за изминалия месец по паралелки с цел предаване на доклад към Регионалното управление на образованието.',
+      room_or_location: 'Канцелария / Дигитален кабинет',
+      priority: 'urgent',
+      status: 'open',
+      created_at: new Date(Date.now() - 3600000 * 14).toISOString(),
+      updated_at: new Date(Date.now() - 3600000 * 14).toISOString(),
+    },
+    {
+      id: tk3Id,
+      school_id: schoolId,
+      department_id: dept3Id,
+      created_by_user_id: adminUser ? adminUser.id : null,
+      assigned_to_user_id: teacherUser ? teacherUser.id : null,
+      due_date: pastThreeDays,
+      title: 'Заверка на трудови досиета, декларации за квалификация и GDPR',
+      description: 'Счетоводството и ЗАС събират подписани декларации за придобити професионално-квалификационни степени (ПКС) и декларации за защита на личните данни.',
+      room_or_location: 'Кабинет ЗАС (Етаж 1)',
       priority: 'medium',
-      status: 'in_progress',
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      updated_at: new Date(Date.now() - 86400000).toISOString(),
+      status: 'resolved',
+      created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
+      updated_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+    },
+    {
+      id: tk4Id,
+      school_id: schoolId,
+      department_id: dept4Id,
+      created_by_user_id: teacherUser ? teacherUser.id : null,
+      assigned_to_user_id: null,
+      title: 'Инсталиране на софтуерни симулации за STEM кабинет 302',
+      description: 'Необходимо е инсталиране на актуализирани софтуерни пакети за физика и химия на интерактивния дисплей и 15-те работни станции.',
+      room_or_location: 'STEM Кабинет 302',
+      priority: 'low',
+      status: 'closed',
+      created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
+      updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    },
+  ];
+
+  const attachments: TaskDocumentAttachment[] = [
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      task_id: tk1Id,
+      file_name: 'Годишен_тематичен_план_образец_2026.docx',
+      file_size_bytes: 245760,
+      file_type: 'word',
+      mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      file_url: '#',
+      uploaded_by_user_id: directorUser?.id || null,
+      uploaded_by_name: directorUser?.full_name || 'д-р Валентина Каменова',
+      uploaded_by_role: 'Директор',
+      uploaded_at: new Date(Date.now() - 3600000 * 6).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      task_id: tk1Id,
+      file_name: 'График_класни_и_контролни_работи.xlsx',
+      file_size_bytes: 184320,
+      file_type: 'excel',
+      mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      file_url: '#',
+      uploaded_by_user_id: directorUser?.id || null,
+      uploaded_by_name: directorUser?.full_name || 'д-р Валентина Каменова',
+      uploaded_by_role: 'Директор',
+      uploaded_at: new Date(Date.now() - 3600000 * 6).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      task_id: tk1Id,
+      file_name: 'Заповед_РД_09_Учебен_план_2026.pdf',
+      file_size_bytes: 532480,
+      file_type: 'pdf',
+      mime_type: 'application/pdf',
+      file_url: '#',
+      uploaded_by_user_id: directorUser?.id || null,
+      uploaded_by_name: directorUser?.full_name || 'д-р Валентина Каменова',
+      uploaded_by_role: 'Директор',
+      uploaded_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      task_id: tk1Id,
+      file_name: 'Презентация_Педагогически_съвет.pptx',
+      file_size_bytes: 3614720,
+      file_type: 'powerpoint',
+      mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+      file_url: '#',
+      uploaded_by_user_id: deputyUser?.id || null,
+      uploaded_by_name: deputyUser?.full_name || 'Мария Тодорова',
+      uploaded_by_role: 'Зам.-директор УД',
+      uploaded_at: new Date(Date.now() - 3600000 * 4).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      task_id: tk2Id,
+      file_name: 'Таблица_отсъствия_по_паралелки.xlsx',
+      file_size_bytes: 98304,
+      file_type: 'excel',
+      mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      file_url: '#',
+      uploaded_by_user_id: deputyUser?.id || null,
+      uploaded_by_name: deputyUser?.full_name || 'Мария Тодорова',
+      uploaded_by_role: 'Зам.-директор УД',
+      uploaded_at: new Date(Date.now() - 3600000 * 14).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      task_id: tk2Id,
+      file_name: 'Инструкция_за_попълване_на_отсъствия.pdf',
+      file_size_bytes: 317440,
+      file_type: 'pdf',
+      mime_type: 'application/pdf',
+      file_url: '#',
+      uploaded_by_user_id: deputyUser?.id || null,
+      uploaded_by_name: deputyUser?.full_name || 'Мария Тодорова',
+      uploaded_by_role: 'Зам.-директор УД',
+      uploaded_at: new Date(Date.now() - 3600000 * 13).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      task_id: tk3Id,
+      file_name: 'Декларация_придобита_ПКС_образец.docx',
+      file_size_bytes: 122880,
+      file_type: 'word',
+      mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+      file_url: '#',
+      uploaded_by_user_id: adminUser?.id || null,
+      uploaded_by_name: adminUser?.full_name || 'Силвия Николова',
+      uploaded_by_role: 'ЗАС / Администрация',
+      uploaded_at: new Date(Date.now() - 86400000 * 4).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      task_id: tk3Id,
+      file_name: 'Формуляр_съгласие_GDPR_персонал.pdf',
+      file_size_bytes: 194560,
+      file_type: 'pdf',
+      mime_type: 'application/pdf',
+      file_url: '#',
+      uploaded_by_user_id: adminUser?.id || null,
+      uploaded_by_name: adminUser?.full_name || 'Силвия Николова',
+      uploaded_by_role: 'ЗАС / Администрация',
+      uploaded_at: new Date(Date.now() - 86400000 * 4).toISOString(),
     },
   ];
 
@@ -157,8 +332,8 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
       school_id: schoolId,
       channel_id: channels[0].id,
       sender_name: creatorName,
-      sender_role: 'school_admin',
-      content: 'Добре дошли в училищната система за технически заявки и комуникация на TideLayer!',
+      sender_role: directorUser?.role || 'director',
+      content: 'Добре дошли в училищната система за задачи и документи на TideLayer!',
       created_at: now.toISOString(),
     },
   ];
@@ -167,8 +342,8 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
     {
       id: makeUuid(),
       school_id: schoolId,
-      title: 'График за профилактика на училищната Wi-Fi мрежа',
-      content: 'Този петък след 14:30 ч. ще се проведе планова профилактика на точките за достъп на втория и третия етаж. Възможни са кратки прекъсвания на безжичния интернет за около 15 минути.',
+      title: 'График за качване на планове и документи за новия срок',
+      content: 'Всички преподаватели могат да предават своите годишни планове и отчети през системата. Разменените файлове се пазят в 1-годишния архив.',
       is_pinned: true,
       created_at: now.toISOString(),
     },
@@ -180,7 +355,7 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
       school_id: schoolId,
       ticket_id: tk1Id,
       actor_name: creatorName,
-      action: 'Създадена заявка',
+      action: 'Възложена задача',
       details: { title: tickets[0].title, priority: 'high' },
       created_at: tickets[0].created_at,
     },
@@ -189,8 +364,8 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
       school_id: schoolId,
       ticket_id: tk2Id,
       actor_name: creatorName,
-      action: 'Създадена заявка',
-      details: { title: tickets[1].title, priority: 'medium' },
+      action: 'Възложена задача',
+      details: { title: tickets[1].title, priority: 'urgent' },
       created_at: tickets[1].created_at,
     },
   ];
@@ -204,6 +379,7 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
     channelMessages,
     announcements,
     auditLogs,
+    attachments,
     hasInitialized: true,
   };
 }
@@ -246,6 +422,7 @@ export function useTicketsStore(
   const [channelMessages, setChannelMessages] = useState<ChannelMessage[]>([]);
   const [announcements, setAnnouncements] = useState<TicketAnnouncement[]>([]);
   const [auditLogs, setAuditLogs] = useState<TicketAuditLog[]>([]);
+  const [attachments, setAttachments] = useState<TaskDocumentAttachment[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const pushToast = useCallback((type: ToastMessage['type'], message: string) => {
@@ -271,6 +448,7 @@ export function useTicketsStore(
         channelMessages: [],
         announcements: [],
         auditLogs: [],
+        attachments: [],
         hasInitialized: true,
       };
       writeLocalSnapshot(schoolId, { ...prev, ...patch, hasInitialized: true });
@@ -285,7 +463,7 @@ export function useTicketsStore(
     const loadAll = async () => {
       const localSnap = readLocalSnapshot(schoolId);
 
-      const [dRes, tRes, mRes, oRes, cRes, aRes, lRes] = await Promise.all([
+      const [dRes, tRes, mRes, oRes, cRes, aRes, lRes, attRes] = await Promise.all([
         supabase.from('ticket_departments').select('*').eq('school_id', schoolId).order('name'),
         supabase
           .from('tickets')
@@ -311,6 +489,11 @@ export function useTicketsStore(
           .eq('school_id', schoolId)
           .order('created_at', { ascending: false })
           .limit(100),
+        supabase
+          .from('task_document_attachments')
+          .select('*')
+          .eq('school_id', schoolId)
+          .order('uploaded_at', { ascending: false }),
       ]);
 
       if (!active) return;
@@ -327,6 +510,7 @@ export function useTicketsStore(
         let dbChannels = (cRes.data || []) as TicketChannel[];
         let dbAnnouncements = (aRes.data || []) as TicketAnnouncement[];
         let dbLogs = (lRes.data || []) as TicketAuditLog[];
+        let dbAttachments = (!attRes.error && attRes.data ? attRes.data : []) as TaskDocumentAttachment[];
 
         // If fresh school in Supabase with zero departments and zero tickets, bootstrap starter data
         if (dbDepts.length === 0 && dbTickets.length === 0 && !localSnap?.hasInitialized) {
@@ -340,6 +524,8 @@ export function useTicketsStore(
                 department_id: t.department_id,
                 created_by_user_id: t.created_by_user_id,
                 assigned_to_user_id: t.assigned_to_user_id,
+                assigned_role_target: t.assigned_role_target || null,
+                due_date: t.due_date || null,
                 title: t.title,
                 description: t.description,
                 room_or_location: t.room_or_location,
@@ -352,6 +538,9 @@ export function useTicketsStore(
             supabase.from('ticket_channels').insert(starter.channels),
             supabase.from('ticket_announcements').insert(starter.announcements),
             supabase.from('ticket_audit_logs').insert(starter.auditLogs),
+            starter.attachments && starter.attachments.length > 0
+              ? supabase.from('task_document_attachments').insert(starter.attachments)
+              : Promise.resolve(),
           ]);
 
           dbDepts = starter.departments;
@@ -361,6 +550,7 @@ export function useTicketsStore(
           dbChannels = starter.channels;
           dbAnnouncements = starter.announcements;
           dbLogs = starter.auditLogs;
+          dbAttachments = starter.attachments || [];
         }
 
         if (!active) return;
@@ -372,6 +562,7 @@ export function useTicketsStore(
         setChannelMessages(localSnap?.channelMessages || []);
         setAnnouncements(dbAnnouncements);
         setAuditLogs(dbLogs);
+        setAttachments(dbAttachments.length > 0 ? dbAttachments : (localSnap?.attachments || []));
         writeLocalSnapshot(schoolId, {
           departments: dbDepts,
           tickets: dbTickets,
@@ -381,6 +572,7 @@ export function useTicketsStore(
           channelMessages: localSnap?.channelMessages || [],
           announcements: dbAnnouncements,
           auditLogs: dbLogs,
+          attachments: dbAttachments.length > 0 ? dbAttachments : (localSnap?.attachments || []),
           hasInitialized: true,
         });
         setIsLoading(false);
@@ -398,6 +590,7 @@ export function useTicketsStore(
         setChannelMessages(localSnap.channelMessages || []);
         setAnnouncements(localSnap.announcements || []);
         setAuditLogs(localSnap.auditLogs || []);
+        setAttachments(localSnap.attachments || []);
         setIsLoading(false);
         return;
       }
@@ -411,6 +604,7 @@ export function useTicketsStore(
       setChannelMessages(starter.channelMessages);
       setAnnouncements(starter.announcements);
       setAuditLogs(starter.auditLogs);
+      setAttachments(starter.attachments || []);
       writeLocalSnapshot(schoolId, starter);
       setIsLoading(false);
     };
@@ -432,23 +626,53 @@ export function useTicketsStore(
     [schoolUsers]
   );
 
+  const userRoleMap = useMemo(
+    () => new Map(schoolUsers.map((u) => [u.id, u.role])),
+    [schoolUsers]
+  );
+
   // Enriched tickets
   const enrichedTickets = useMemo(() => {
     return tickets.map((t) => {
       const msgCount = messages.filter((m) => m.ticket_id === t.id).length;
+      const taskAttachments = attachments.filter((a) => a.task_id === t.id);
+      const creatorRole = t.created_by_user_id ? userRoleMap.get(t.created_by_user_id) : undefined;
+      const assigneeRole = t.assigned_to_user_id ? userRoleMap.get(t.assigned_to_user_id) : undefined;
+
+      let assigneeLabel = 'Неразпределена';
+      if (t.assigned_role_target) {
+        if (t.assigned_role_target === 'all_teachers') assigneeLabel = 'Всички учители';
+        else if (t.assigned_role_target === 'all_administration') assigneeLabel = 'Всички в администрацията';
+        else if (t.assigned_role_target === 'all_staff') assigneeLabel = 'Целия персонал';
+        else assigneeLabel = t.assigned_role_target;
+      } else if (t.assigned_to_user_id) {
+        assigneeLabel = userMap.get(t.assigned_to_user_id) || 'Служител';
+      }
+
       return {
         ...t,
-        department_name: t.department_id ? departmentMap.get(t.department_id) || 'Без отдел' : 'Без отдел',
+        department_name: t.department_id ? departmentMap.get(t.department_id) || 'Общо направление' : 'Общо направление',
         creator_name: t.created_by_user_id
           ? userMap.get(t.created_by_user_id) || 'Потребител'
           : session.isSuperAdminPreview
             ? 'Главен Администратор'
             : 'Потребител',
-        assignee_name: t.assigned_to_user_id ? userMap.get(t.assigned_to_user_id) || 'Неразпределен' : 'Неразпределен',
+        creator_role: creatorRole ? ROLE_LABELS[creatorRole] || creatorRole : undefined,
+        assignee_name: assigneeLabel,
+        assignee_role: assigneeRole ? ROLE_LABELS[assigneeRole] || assigneeRole : undefined,
         messages_count: msgCount,
+        attachments_count: taskAttachments.length,
+        attachments: taskAttachments,
       };
     });
-  }, [tickets, messages, departmentMap, userMap, session.isSuperAdminPreview]);
+  }, [tickets, messages, attachments, departmentMap, userMap, userRoleMap, session.isSuperAdminPreview]);
+
+  // All documents for 365-day history
+  const allDocuments = useMemo(() => {
+    return [...attachments].sort(
+      (a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()
+    );
+  }, [attachments]);
 
   // Enriched orders
   const enrichedOrders = useMemo(() => {
@@ -498,6 +722,16 @@ export function useTicketsStore(
       department_id?: string | null;
       priority: TicketPriority;
       assigned_to_user_id?: string | null;
+      assigned_role_target?: string | null;
+      assigned_user_ids?: string[];
+      due_date?: string | null;
+      attachments?: {
+        file_name: string;
+        file_size_bytes: number;
+        file_type: DocumentFileType;
+        mime_type: string;
+        file_url: string;
+      }[];
     }): Promise<SchoolTicket> => {
       const now = new Date().toISOString();
       const validCreatorId: string | null = isValidUuid(session.userId) ? session.userId : null;
@@ -512,6 +746,9 @@ export function useTicketsStore(
         department_id: validDeptId,
         created_by_user_id: validCreatorId,
         assigned_to_user_id: validAssigneeId,
+        assigned_role_target: input.assigned_role_target || null,
+        assigned_user_ids: input.assigned_user_ids || [],
+        due_date: input.due_date || null,
         title: input.title.trim(),
         description: input.description.trim(),
         room_or_location: input.room_or_location?.trim() || null,
@@ -521,9 +758,29 @@ export function useTicketsStore(
         updated_at: now,
       };
 
-      const next = [newTicket, ...tickets];
-      setTickets(next);
-      saveLocalMirror({ tickets: next });
+      const newAttachments: TaskDocumentAttachment[] = (input.attachments || []).map((att) => ({
+        id: makeUuid(),
+        school_id: schoolId,
+        task_id: newTicket.id,
+        file_name: att.file_name,
+        file_size_bytes: att.file_size_bytes,
+        file_type: att.file_type,
+        mime_type: att.mime_type,
+        file_url: att.file_url,
+        uploaded_by_user_id: validCreatorId,
+        uploaded_by_name: session.fullName,
+        uploaded_by_role: session.role ? ROLE_LABELS[session.role] || session.role : 'Служител',
+        uploaded_at: now,
+      }));
+
+      const nextTickets = [newTicket, ...tickets];
+      const nextAttachments = [...newAttachments, ...attachments];
+
+      setTickets(nextTickets);
+      if (newAttachments.length > 0) {
+        setAttachments(nextAttachments);
+      }
+      saveLocalMirror({ tickets: nextTickets, attachments: nextAttachments });
 
       if (usingSupabase) {
         await supabase.from('tickets').insert({
@@ -532,24 +789,124 @@ export function useTicketsStore(
           department_id: newTicket.department_id,
           created_by_user_id: newTicket.created_by_user_id,
           assigned_to_user_id: newTicket.assigned_to_user_id,
+          assigned_role_target: newTicket.assigned_role_target,
+          due_date: newTicket.due_date,
           title: newTicket.title,
           description: newTicket.description,
           room_or_location: newTicket.room_or_location,
           priority: newTicket.priority,
           status: newTicket.status,
         });
+
+        if (newAttachments.length > 0) {
+          await supabase.from('task_document_attachments').insert(
+            newAttachments.map((a) => ({
+              id: a.id,
+              school_id: schoolId,
+              task_id: a.task_id,
+              file_name: a.file_name,
+              file_size_bytes: a.file_size_bytes,
+              file_type: a.file_type,
+              mime_type: a.mime_type,
+              file_url: a.file_url,
+              uploaded_by_user_id: a.uploaded_by_user_id,
+              uploaded_by_name: a.uploaded_by_name,
+              uploaded_by_role: a.uploaded_by_role,
+              uploaded_at: a.uploaded_at,
+            }))
+          );
+        }
       }
 
-      await addAuditLog('Създадена нова заявка', newTicket.id, {
+      await addAuditLog(`Създадена нова задача: ${newTicket.title}`, newTicket.id, {
         title: newTicket.title,
         priority: newTicket.priority,
-        room: newTicket.room_or_location,
+        attachments_count: newAttachments.length,
       });
 
-      pushToast('success', 'Заявката е създадена успешно!');
+      pushToast('success', 'Задачата е възложена успешно!');
       return newTicket;
     },
-    [schoolId, session.userId, tickets, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+    [schoolId, session, tickets, attachments, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+  );
+
+  const addAttachmentToTask = useCallback(
+    async (
+      taskId: string,
+      doc: {
+        file_name: string;
+        file_size_bytes: number;
+        file_type: DocumentFileType;
+        mime_type: string;
+        file_url: string;
+      }
+    ): Promise<TaskDocumentAttachment> => {
+      const now = new Date().toISOString();
+      const validUserId = isValidUuid(session.userId) ? session.userId : null;
+      const item: TaskDocumentAttachment = {
+        id: makeUuid(),
+        school_id: schoolId,
+        task_id: taskId,
+        file_name: doc.file_name,
+        file_size_bytes: doc.file_size_bytes,
+        file_type: doc.file_type,
+        mime_type: doc.mime_type,
+        file_url: doc.file_url,
+        uploaded_by_user_id: validUserId,
+        uploaded_by_name: session.fullName,
+        uploaded_by_role: session.role ? ROLE_LABELS[session.role] || session.role : 'Служител',
+        uploaded_at: now,
+      };
+
+      const next = [item, ...attachments];
+      setAttachments(next);
+      saveLocalMirror({ attachments: next });
+
+      if (usingSupabase) {
+        await supabase.from('task_document_attachments').insert({
+          id: item.id,
+          school_id: schoolId,
+          task_id: item.task_id,
+          file_name: item.file_name,
+          file_size_bytes: item.file_size_bytes,
+          file_type: item.file_type,
+          mime_type: item.mime_type,
+          file_url: item.file_url,
+          uploaded_by_user_id: item.uploaded_by_user_id,
+          uploaded_by_name: item.uploaded_by_name,
+          uploaded_by_role: item.uploaded_by_role,
+          uploaded_at: item.uploaded_at,
+        });
+      }
+
+      await addAuditLog(`Прикачен документ „${item.file_name}“`, taskId);
+      pushToast('success', `Документът „${item.file_name}“ е прикачен.`);
+      return item;
+    },
+    [schoolId, session, attachments, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+  );
+
+  const deleteAttachment = useCallback(
+    async (attachmentId: string) => {
+      const doc = attachments.find((a) => a.id === attachmentId);
+      const next = attachments.filter((a) => a.id !== attachmentId);
+      setAttachments(next);
+      saveLocalMirror({ attachments: next });
+
+      if (usingSupabase && isValidUuid(attachmentId)) {
+        await supabase
+          .from('task_document_attachments')
+          .delete()
+          .eq('id', attachmentId)
+          .eq('school_id', schoolId);
+      }
+
+      if (doc) {
+        await addAuditLog(`Премахнат документ: ${doc.file_name}`, doc.task_id);
+      }
+      pushToast('info', 'Документът е премахнат.');
+    },
+    [attachments, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
   );
 
   const updateTicketStatus = useCallback(
@@ -1159,6 +1516,8 @@ export function useTicketsStore(
     channelMessages,
     announcements,
     auditLogs,
+    attachments: allDocuments,
+    allDocuments,
 
     createTicket,
     updateTicketStatus,
@@ -1166,6 +1525,8 @@ export function useTicketsStore(
     updateTicketAssignee,
     editTicket,
     deleteTicket,
+    addAttachmentToTask,
+    deleteAttachment,
 
     sendMessage,
 

@@ -767,7 +767,7 @@ export function InventoryItemsView({
       <ModuleModal
         open={repairModalOpen}
         onClose={() => setRepairModalOpen(false)}
-        title="Подаване на заявка за ремонт към системата за заявки"
+        title="Възлагане на задача за ремонт към системата за задачи"
         subtitle="Автоматично ще бъде създадена нова работна задача за техническия екип"
         maxWidthClass="max-w-lg"
       >

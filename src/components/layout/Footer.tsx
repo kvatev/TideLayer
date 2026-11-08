@@ -20,7 +20,7 @@ export function Footer() {
       ? []
       : [
           { label: 'График на дежурства', href: '/education-solutions/duty-scheduler' },
-          { label: 'Система за заявки', href: '/education-solutions/school-ticketing' },
+          { label: 'Задачи и Документи', href: '/education-solutions/school-ticketing' },
           { label: 'Инвентарна система', href: '/education-solutions/school-inventory' },
           { label: 'ИТ поддръжка за училища', href: '/education-solutions/school-it-support' },
           { label: 'Обучения за учители', href: '/education-solutions/teacher-training' }

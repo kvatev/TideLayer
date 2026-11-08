@@ -464,7 +464,7 @@ export function useInventoryStore(
         // ignore
       }
 
-      pushToast('success', `Заявката за ремонт на „${item.name}“ е регистрирана в Система за заявки!`);
+      pushToast('success', `Задачата за ремонт на „${item.name}“ е регистрирана в Система за задачи и документи!`);
     },
     [items, roomMap, schoolId, userSession.userId, usingSupabase, changeItemCondition, pushToast]
   );

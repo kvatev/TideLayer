@@ -1369,7 +1369,7 @@ export function LicenseAlertsTab({
               <tr className="bg-slate-50 border-b border-slate-200 text-slate-600">
                 <th className="py-3 px-4 font-semibold">Училище</th>
                 <th className="py-3 px-4 font-semibold">График за дежурства</th>
-                <th className="py-3 px-4 font-semibold">Система за заявки</th>
+                <th className="py-3 px-4 font-semibold">Задачи и Документи</th>
                 <th className="py-3 px-4 font-semibold">Инвентарна система</th>
               </tr>
             </thead>

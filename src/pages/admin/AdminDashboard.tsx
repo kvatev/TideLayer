@@ -56,7 +56,7 @@ const INQUIRY_TYPE_LABELS: Record<string, string> = {
   'website-maintenance': 'Поддръжка на уебсайт',
   'education-solutions': 'Училищни решения',
   'duty-scheduler': 'График на дежурства',
-  'school-ticketing': 'Система за заявки',
+  'school-ticketing': 'Задачи и Документи',
   'school-inventory': 'Инвентарна система',
   'school-it-support': 'ИТ поддръжка за училища',
   'teacher-training': 'Обучения за учители',
@@ -77,7 +77,7 @@ const PRODUCT_PRESELECT_LABELS: Record<string, string> = {
   'network-installation': 'Изграждане на мрежи',
   'monthly-support': 'Месечна ИТ поддръжка',
   'duty-scheduler': 'График на дежурства',
-  'school-ticketing': 'Училищна система за заявки',
+  'school-ticketing': 'Система за задачи и документи',
   'school-inventory': 'Училищна инвентарна система',
 };
 

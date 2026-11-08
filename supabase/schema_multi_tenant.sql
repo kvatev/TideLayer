@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS public.school_users (
   password_hash TEXT NOT NULL,
   pin_code TEXT NULL,
   full_name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('school_admin', 'teacher', 'staff', 'technician')),
+  role TEXT NOT NULL CHECK (role IN ('director', 'school_admin', 'deputy_director', 'administration', 'teacher', 'staff', 'technician')),
   allowed_modules TEXT[] DEFAULT ARRAY['duty', 'tickets', 'inventory'],
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS public.duty_broadcasts (
 );
 
 -- =============================================================================
--- 3. MODULE 2: СИСТЕМА ЗА ЗАЯВКИ (SCHOOL TICKETING)
+-- 3. MODULE 2: СИСТЕМА ЗА ЗАДАЧИ И ДОКУМЕНТИ (TASK & DOCUMENT MANAGEMENT)
 -- =============================================================================
 
 CREATE TABLE IF NOT EXISTS public.ticket_departments (
@@ -136,6 +136,9 @@ CREATE TABLE IF NOT EXISTS public.tickets (
   department_id UUID REFERENCES public.ticket_departments(id) ON DELETE SET NULL,
   created_by_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
   assigned_to_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
+  assigned_role_target TEXT NULL, -- напр. 'all_teachers', 'all_administration', 'all_staff'
+  assigned_user_ids UUID[] NULL, -- множество изпълнители
+  due_date TIMESTAMPTZ NULL, -- краен срок за изпълнение
   title TEXT NOT NULL,
   description TEXT NOT NULL,
   room_or_location TEXT,
@@ -144,6 +147,26 @@ CREATE TABLE IF NOT EXISTS public.tickets (
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Прикачени учебни документи (PDF, Word, Excel, PowerPoint) с 1-годишна валидност (365 дни)
+CREATE TABLE IF NOT EXISTS public.task_document_attachments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  task_id UUID NOT NULL REFERENCES public.tickets(id) ON DELETE CASCADE,
+  message_id UUID REFERENCES public.ticket_messages(id) ON DELETE CASCADE,
+  file_name TEXT NOT NULL,
+  file_size_bytes BIGINT NOT NULL DEFAULT 0,
+  file_type TEXT NOT NULL CHECK (file_type IN ('pdf', 'word', 'excel', 'powerpoint', 'other')),
+  mime_type TEXT,
+  file_url TEXT NOT NULL,
+  uploaded_by_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
+  uploaded_by_name TEXT NOT NULL,
+  uploaded_by_role TEXT NOT NULL,
+  uploaded_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_docs_school_uploaded ON public.task_document_attachments(school_id, uploaded_at DESC);
+CREATE INDEX IF NOT EXISTS idx_task_docs_task_id ON public.task_document_attachments(task_id);
 
 CREATE TABLE IF NOT EXISTS public.ticket_messages (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

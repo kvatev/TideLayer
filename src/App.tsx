@@ -12,6 +12,7 @@ import { DutyScheduler } from './pages/education-solutions/DutyScheduler';
 import { SchoolTicketing } from './pages/education-solutions/SchoolTicketing';
 import { SchoolInventory } from './pages/education-solutions/SchoolInventory';
 import { SchoolItSupport } from './pages/education-solutions/SchoolItSupport';
+import { TeacherTraining } from './pages/education-solutions/TeacherTraining';
 import { NetworksIt } from './pages/networks-it/NetworksIt';
 import { NetworkInstallation } from './pages/networks-it/NetworkInstallation';
 import { MonthlySupport } from './pages/networks-it/MonthlySupport';
@@ -45,6 +46,7 @@ function App() {
           <Route path="education-solutions/school-ticketing" element={<SchoolTicketing />} />
           <Route path="education-solutions/school-inventory" element={<SchoolInventory />} />
           <Route path="education-solutions/school-it-support" element={<SchoolItSupport />} />
+          <Route path="education-solutions/teacher-training" element={<TeacherTraining />} />
 
           {/* Networks & IT */}
           <Route path="networks-it" element={<NetworksIt />} />

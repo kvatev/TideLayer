@@ -24,10 +24,10 @@ function resolveQuerySelection(serviceParam: string | null, productParam: string
       if (serviceParam !== 'web-solutions') {
         productPreselect = extraParam ? `${serviceParam} (${extraParam})` : serviceParam;
       }
-    } else if (['education-solutions', 'school-it-support'].includes(serviceParam)) {
+    } else if (['education-solutions', 'school-it-support', 'teacher-training'].includes(serviceParam)) {
       inquiryType = 'education-solutions';
-      if (serviceParam === 'school-it-support') {
-        productPreselect = 'school-it-support';
+      if (serviceParam !== 'education-solutions') {
+        productPreselect = extraParam ? `${serviceParam} (${extraParam})` : serviceParam;
       }
     } else if (['networks-it', 'network-installation', 'monthly-support'].includes(serviceParam)) {
       inquiryType = 'networks-it';
@@ -48,6 +48,7 @@ const SERVICE_BADGE_LABELS: Record<string, string> = {
   'website-development': 'Уеб разработка',
   'website-maintenance': 'Поддръжка на уебсайтове',
   'school-it-support': 'ИТ поддръжка за училища',
+  'teacher-training': 'Обучения за учители',
   'network-installation': 'Изграждане на мрежи',
   'monthly-support': 'Месечна ИТ поддръжка',
   'duty-scheduler': 'График на учителските дежурства',
@@ -299,7 +300,7 @@ export function Contact() {
 
                 <form onSubmit={handleSubmit} className="space-y-6" noValidate>
                   {/* Preselected service context badge */}
-                  {activeProductPreselect && activeInquiryType !== 'education-solutions' && (
+                  {activeProductPreselect && (activeInquiryType !== 'education-solutions' || activeProductPreselect.includes(' (')) && (
                     <div className="flex items-center justify-between gap-2 px-3.5 py-2.5 rounded-xl bg-blue-50 border border-blue-200 text-xs sm:text-sm text-blue-800">
                       <span className="truncate">
                         Избрана услуга: <strong>{formatPreselectLabel(activeProductPreselect)}</strong>
@@ -361,7 +362,7 @@ export function Contact() {
                       <select
                         id="productPreselect"
                         name="productPreselect"
-                        value={activeProductPreselect}
+                        value={activeProductPreselect.split(' (')[0]}
                         onChange={handleChange}
                         className={cn(
                           'w-full px-3.5 sm:px-4 py-3 rounded-xl border transition-colors text-sm sm:text-base',
@@ -374,6 +375,7 @@ export function Contact() {
                         <option value="school-ticketing">Училищна система за заявки</option>
                         <option value="school-inventory">Училищна инвентарна система</option>
                         <option value="school-it-support">ИТ поддръжка за училища</option>
+                        <option value="teacher-training">Обучения за учители (технологии и мрежи)</option>
                       </select>
                     </div>
                   )}

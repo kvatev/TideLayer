@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Icon } from '../ui/Icon';
 import { Card } from '../ui/Card';
-import { educationProducts, educationItSupportService } from '../../data';
+import { educationProducts, educationItSupportService, educationTeacherTrainingService } from '../../data';
 import { useSiteControl } from '../../data/siteControl';
 
 export function EducationShowcase() {
@@ -12,18 +12,19 @@ export function EducationShowcase() {
     (p) => !hiddenHrefs.has(p.cta.href.replace('/contact?product=', '/education-solutions/'))
   );
   const showSchoolSupport = !hiddenHrefs.has('/education-solutions/school-it-support');
+  const showTeacherTraining = !hiddenHrefs.has('/education-solutions/teacher-training');
 
-  if (visibleProducts.length === 0 && !showSchoolSupport) return null;
+  if (visibleProducts.length === 0 && !showSchoolSupport && !showTeacherTraining) return null;
 
   return (
     <section className="section bg-white" aria-labelledby="education-title">
       <div className="container">
         <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12 animate-fade-in">
           <h2 id="education-title" className="text-2xl min-[375px]:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-navy-900 mb-4">
-            Софтуер за образованието
+            Софтуер и решения за образованието
           </h2>
           <p className="text-base sm:text-lg text-slate-600">
-            Три специализирани продукта, разработени за реалните нужди на българските училища, и пълна ИТ поддръжка.
+            Специализирани софтуерни продукти за българските училища, пълна ИТ поддръжка и технологични обучения за учители.
           </p>
         </div>
 
@@ -61,12 +62,12 @@ export function EducationShowcase() {
           </div>
         )}
 
-        {/* Education IT Support */}
-        <div className="grid md:grid-cols-3 gap-5 sm:gap-6">
+        {/* Education IT Support & Teacher Training */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 sm:gap-6">
           {showSchoolSupport && (
             <Link
               to="/education-solutions/school-it-support"
-              className="md:col-span-2 group min-w-0"
+              className="group min-w-0"
             >
               <Card variant="elevated" padding="lg" hover className="h-full flex flex-col">
                 <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-600 mb-5 group-hover:bg-cyan-200 transition-colors">
@@ -75,11 +76,11 @@ export function EducationShowcase() {
                 <h3 className="text-xl sm:text-2xl font-heading font-bold text-navy-900 mb-3">
                   ИТ поддръжка за училища
                 </h3>
-                <p className="text-slate-600 mb-6 flex-1 leading-relaxed">
+                <p className="text-slate-600 mb-6 flex-1 leading-relaxed text-sm sm:text-base">
                   Пълна техническа грижа за компютърни кабинети, мрежи, сървъри, принтери и цялата ИТ инфраструктура на училището.
                 </p>
                 <ul className="space-y-2 mb-6">
-                  {educationItSupportService.features.slice(0, 6).map((feature, i) => (
+                  {educationItSupportService.features.slice(0, 5).map((feature, i) => (
                     <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
                       <Icon name="Check" size={14} className="text-cyan-500 shrink-0 mt-1" />
                       <span>{feature}</span>
@@ -94,23 +95,31 @@ export function EducationShowcase() {
             </Link>
           )}
 
-          {!hiddenHrefs.has('/education-solutions') && (
+          {showTeacherTraining && (
             <Link
-              to="/education-solutions"
-              className={showSchoolSupport ? 'group min-w-0' : 'md:col-span-3 group min-w-0'}
+              to="/education-solutions/teacher-training"
+              className="group min-w-0"
             >
-              <Card variant="outlined" padding="lg" hover className="h-full flex flex-col text-center justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-600 mx-auto mb-5 group-hover:bg-slate-200 transition-colors">
-                  <Icon name="ArrowRight" size={24} />
+              <Card variant="elevated" padding="lg" hover className="h-full flex flex-col">
+                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 mb-5 group-hover:bg-blue-200 transition-colors">
+                  <Icon name="GraduationCap" size={24} />
                 </div>
-                <h3 className="text-lg sm:text-xl font-heading font-bold text-navy-900 mb-2">
-                  Всички училищни решения
+                <h3 className="text-xl sm:text-2xl font-heading font-bold text-navy-900 mb-3">
+                  Обучения за учители — технологии и мрежи
                 </h3>
-                <p className="text-slate-600 mb-6 flex-1">
-                  Разгледайте пълното портфолио от продукти и услуги за образованието.
+                <p className="text-slate-600 mb-6 flex-1 leading-relaxed text-sm sm:text-base">
+                  Практически обучения за педагогическия екип и ИТ координаторите за работа с училищната мрежа, интерактивна техника и киберсигурност.
                 </p>
-                <div className="flex items-center justify-center gap-1.5 text-slate-600 font-medium group-hover:gap-2.5 transition-all">
-                  <span>Разгледай</span>
+                <ul className="space-y-2 mb-6">
+                  {educationTeacherTrainingService.features.slice(0, 5).map((feature, i) => (
+                    <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                      <Icon name="Check" size={14} className="text-blue-500 shrink-0 mt-1" />
+                      <span>{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+                <div className="flex items-center gap-1.5 text-blue-600 font-medium group-hover:gap-2.5 transition-all">
+                  <span>Разгледайте обученията</span>
                   <Icon name="ArrowRight" size={16} />
                 </div>
               </Card>

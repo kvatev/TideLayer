@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { educationProducts, educationItSupportService } from '../../data';
+import { educationProducts, educationItSupportService, educationTeacherTrainingService } from '../../data';
 import { useSiteControl } from '../../data/siteControl';
 import { PageHero } from '../../components/ui/PageHero';
 
@@ -14,6 +14,7 @@ export function EducationSolutions() {
     (p) => !hiddenSet.has(`/education-solutions/${p.id}`)
   );
   const showItSupport = !hiddenSet.has('/education-solutions/school-it-support');
+  const showTeacherTraining = !hiddenSet.has('/education-solutions/teacher-training');
 
   return (
     <div>
@@ -22,10 +23,10 @@ export function EducationSolutions() {
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <h1 id="education-title" className="text-2xl min-[375px]:text-3xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
-              Специализиран софтуер и ИТ поддръжка за училища
+              Специализиран софтуер, ИТ поддръжка и обучения за училища
             </h1>
             <p className="text-base sm:text-lg text-slate-300 mb-8 max-w-2xl leading-relaxed">
-              Три продукта, разработени за реалните нужди на българските училища, и пълна техническа грижа за ИТ инфраструктурата.
+              Три софтуерни продукта, разработени за реалните нужди на българските училища, пълна техническа грижа за ИТ инфраструктурата и практически обучения за учители.
             </p>
             <div className="flex flex-col sm:flex-row flex-wrap gap-3 sm:gap-4">
               <Button size="lg" asChild className="w-full sm:w-auto">
@@ -81,54 +82,94 @@ export function EducationSolutions() {
             </div>
           )}
 
-          {/* Education IT Support */}
-          <div className="grid md:grid-cols-3 gap-6 mb-12">
-            {showItSupport && (
-              <Link
-                to="/education-solutions/school-it-support"
-                className="md:col-span-2 group min-w-0"
-              >
-                <Card variant="elevated" padding="lg" hover className="h-full flex flex-col">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-600 mb-5 group-hover:bg-cyan-200 transition-colors">
-                    <Icon name="LifeBuoy" size={24} />
-                  </div>
-                  <h3 className="text-xl sm:text-2xl font-heading font-bold text-navy-900 mb-3">
-                    ИТ поддръжка за училища
-                  </h3>
-                  <p className="text-slate-600 mb-6 flex-1 leading-relaxed text-sm sm:text-base">
-                    Пълна техническа грижа за компютърни кабинети, мрежи, сървъри, принтери и цялата ИТ инфраструктура на училището.
-                  </p>
-                  <ul className="space-y-2 mb-6">
-                    {educationItSupportService.features.slice(0, 6).map((feature, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
-                        <Icon name="Check" size={14} className="text-cyan-500 shrink-0 mt-1" />
-                        <span>{feature}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="flex items-center gap-1.5 text-cyan-600 font-medium group-hover:gap-2.5 transition-all">
-                    <span>Поискайте оферта</span>
-                    <Icon name="ArrowRight" size={16} />
-                  </div>
-                </Card>
-              </Link>
-            )}
+          {/* Education IT Support & Teacher Training */}
+          {(showItSupport || showTeacherTraining) && (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-12">
+              {showItSupport && (
+                <Link
+                  to="/education-solutions/school-it-support"
+                  className="group min-w-0"
+                >
+                  <Card variant="elevated" padding="lg" hover className="h-full flex flex-col">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-cyan-100 text-cyan-600 mb-5 group-hover:bg-cyan-200 transition-colors">
+                      <Icon name="LifeBuoy" size={24} />
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-heading font-bold text-navy-900 mb-3">
+                      ИТ поддръжка за училища
+                    </h3>
+                    <p className="text-slate-600 mb-6 flex-1 leading-relaxed text-sm sm:text-base">
+                      Пълна техническа грижа за компютърни кабинети, мрежи, сървъри, принтери и цялата ИТ инфраструктура на училището.
+                    </p>
+                    <ul className="space-y-2 mb-6">
+                      {educationItSupportService.features.slice(0, 6).map((feature, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                          <Icon name="Check" size={14} className="text-cyan-500 shrink-0 mt-1" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="flex items-center gap-1.5 text-cyan-600 font-medium group-hover:gap-2.5 transition-all">
+                      <span>Поискайте оферта</span>
+                      <Icon name="ArrowRight" size={16} />
+                    </div>
+                  </Card>
+                </Link>
+              )}
 
+              {showTeacherTraining && (
+                <Link
+                  to="/education-solutions/teacher-training"
+                  className="group min-w-0"
+                >
+                  <Card variant="elevated" padding="lg" hover className="h-full flex flex-col">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-blue-100 text-blue-600 mb-5 group-hover:bg-blue-200 transition-colors">
+                      <Icon name="GraduationCap" size={24} />
+                    </div>
+                    <h3 className="text-xl sm:text-2xl font-heading font-bold text-navy-900 mb-3">
+                      Обучения за учители — технологии и мрежи
+                    </h3>
+                    <p className="text-slate-600 mb-6 flex-1 leading-relaxed text-sm sm:text-base">
+                      Практически обучения за педагогическия екип и ИТ координаторите: работа с училищната мрежа, интерактивна техника, киберсигурност и облачни платформи.
+                    </p>
+                    <ul className="space-y-2 mb-6">
+                      {educationTeacherTrainingService.features.slice(0, 6).map((feature, i) => (
+                        <li key={i} className="flex items-start gap-2 text-sm text-slate-600">
+                          <Icon name="Check" size={14} className="text-blue-500 shrink-0 mt-1" />
+                          <span>{feature}</span>
+                        </li>
+                      ))}
+                    </ul>
+                    <div className="flex items-center gap-1.5 text-blue-600 font-medium group-hover:gap-2.5 transition-all">
+                      <span>Разгледайте програмите</span>
+                      <Icon name="ArrowRight" size={16} />
+                    </div>
+                  </Card>
+                </Link>
+              )}
+            </div>
+          )}
+
+          {/* Consultation Card */}
+          <div className="mb-12">
             <Link
               to="/contact?service=education-solutions"
-              className="group min-w-0"
+              className="group block min-w-0"
             >
-              <Card variant="outlined" padding="lg" hover className="h-full flex flex-col text-center justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-600 mx-auto mb-5 group-hover:bg-slate-200 transition-colors">
-                  <Icon name="MessageSquare" size={24} />
+              <Card variant="outlined" padding="lg" hover className="flex flex-col sm:flex-row items-center justify-between gap-6 text-center sm:text-left">
+                <div className="flex flex-col sm:flex-row items-center gap-4 min-w-0">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-slate-100 text-slate-600 shrink-0 group-hover:bg-slate-200 transition-colors">
+                    <Icon name="MessageSquare" size={24} />
+                  </div>
+                  <div className="min-w-0">
+                    <h3 className="text-lg sm:text-xl font-heading font-bold text-navy-900 mb-1">
+                      Консултация за вашето училище
+                    </h3>
+                    <p className="text-slate-600 text-sm sm:text-base mb-0">
+                      Опишете ни нуждите на учебното заведение и ще ви предложим демо, обучение или персонализиран план.
+                    </p>
+                  </div>
                 </div>
-                <h3 className="text-lg sm:text-xl font-heading font-bold text-navy-900 mb-2">
-                  Консултация за вашето училище
-                </h3>
-                <p className="text-slate-600 text-sm sm:text-base mb-6 flex-1">
-                  Опишете ни нуждите на учебното заведение и ще ви предложим демо или персонализиран план.
-                </p>
-                <div className="flex items-center justify-center gap-1.5 text-cyan-600 font-medium group-hover:gap-2.5 transition-all">
+                <div className="flex items-center justify-center gap-1.5 text-cyan-600 font-medium shrink-0 group-hover:gap-2.5 transition-all">
                   <span>Свържете се с нас</span>
                   <Icon name="ArrowRight" size={16} />
                 </div>

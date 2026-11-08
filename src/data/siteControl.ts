@@ -58,6 +58,7 @@ export const MANAGEABLE_NAV_ITEMS: { href: string; label: string; group: string;
   { href: '/education-solutions/school-ticketing', label: 'Система за заявки', group: 'Училищни решения' },
   { href: '/education-solutions/school-inventory', label: 'Инвентарна система', group: 'Училищни решения' },
   { href: '/education-solutions/school-it-support', label: 'ИТ поддръжка за училища', group: 'Училищни решения' },
+  { href: '/education-solutions/teacher-training', label: 'Обучения за учители', group: 'Училищни решения' },
 
   { href: '/networks-it/network-installation', label: 'Изграждане на мрежи', group: 'Мрежи и ИТ' },
   { href: '/networks-it/monthly-support', label: 'Месечна ИТ поддръжка', group: 'Мрежи и ИТ' },

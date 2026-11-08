@@ -873,3 +873,4 @@ export async function authenticateSchoolPortalUser(
   saveSchoolPortalSession(session);
   return { session };
 }
+

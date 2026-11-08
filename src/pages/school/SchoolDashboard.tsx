@@ -116,12 +116,12 @@ export function SchoolDashboard() {
                     ) : isExpired ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-red-100 border border-red-200 text-red-700 text-xs font-semibold">
                         <Icon name="AlertTriangle" size={13} />
-                        Изтекъл лиценз
+                        Изтекъл абонамент
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-200 text-slate-600 text-xs font-semibold">
                         <Icon name="Lock" size={13} />
-                        Заключен модул
+                        {modKey === 'inventory' ? 'Очаквайте скоро' : 'Заключено'}
                       </span>
                     )}
                   </div>

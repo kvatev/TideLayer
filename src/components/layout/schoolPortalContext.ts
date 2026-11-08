@@ -16,3 +16,4 @@ export function useSchoolPortal(): SchoolPortalContextValue {
   }
   return ctx;
 }
+

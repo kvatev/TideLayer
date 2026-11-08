@@ -8,6 +8,7 @@ import {
   Cpu, Monitor, LayoutDashboard, Ticket, Package, TreePine, Users,
   LifeBuoy, Target, Lightbulb, Eye, BookOpen, GraduationCap, MapPin,
   Mail, Phone, Clock,
+  Calendar, School, ShieldAlert, ShieldCheck, LogOut, Sparkles,
   SearchCheck, Truck, CheckCircle2, CalendarClock, MoreHorizontal,
   Image, SearchX, RotateCcw, TrendingUp, FileText, Database, Cloud,
   BarChart2, Settings, Zap, Lock, Unlock, Key, Home, Building,
@@ -40,6 +41,7 @@ const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>
   Cpu, Monitor, LayoutDashboard, Ticket, Package, TreePine, Users,
   LifeBuoy, Target, Lightbulb, Eye, BookOpen, GraduationCap, MapPin,
   Mail, Phone, Clock,
+  Calendar, School, ShieldAlert, ShieldCheck, LogOut, Sparkles,
   // Social/brand icons (using closest available alternatives)
   Linkedin: GitBranch,
   Github: GitFork,

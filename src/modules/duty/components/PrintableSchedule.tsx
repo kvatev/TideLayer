@@ -195,3 +195,4 @@ export const PrintableSchedule = forwardRef<HTMLDivElement, PrintableSchedulePro
 );
 
 PrintableSchedule.displayName = 'PrintableSchedule';
+

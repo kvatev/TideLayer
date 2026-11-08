@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   Calendar,
   Eye,
+  Megaphone,
   Pencil,
   Settings,
   Users,
@@ -16,8 +17,9 @@ import { Legend } from './components/Legend';
 import { TeacherList } from './components/TeacherList';
 import { ScheduleTable } from './components/ScheduleTable';
 import { DutySettingsDialog } from './components/DutySettingsDialog';
-import { ModuleToastContainer } from '../shared/ModulePrimitives';
+import { ModuleModal, ModuleToastContainer } from '../shared/ModulePrimitives';
 import { cn } from '../../utils/helpers';
+import type { DutyBroadcast } from './types';
 
 export function DutyModuleApp() {
   const { bundle, session } = useSchoolPortal();
@@ -30,7 +32,21 @@ export function DutyModuleApp() {
   const [editorMode, setEditorMode] = useState<boolean>(isSchoolAdmin);
   const [mobileSection, setMobileSection] = useState<'schedule' | 'teachers'>('schedule');
   const [settingsOpen, setSettingsOpen] = useState(false);
+  const [quickBcOpen, setQuickBcOpen] = useState(false);
+  const [bcTitle, setBcTitle] = useState('');
+  const [bcMessage, setBcMessage] = useState('');
+  const [bcPriority, setBcPriority] = useState<DutyBroadcast['priority']>('info');
   const [exportTrigger, setExportTrigger] = useState<(() => void) | null>(null);
+
+  const handlePostQuickBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!bcMessage.trim()) return;
+    await store.addBroadcast(bcMessage.trim(), bcPriority, bcTitle.trim() || undefined);
+    setBcTitle('');
+    setBcMessage('');
+    setBcPriority('info');
+    setQuickBcOpen(false);
+  };
 
   const handleExportReady = useCallback((fn: () => void) => {
     setExportTrigger(() => fn);
@@ -149,14 +165,24 @@ export function DutyModuleApp() {
 
         <div className="flex flex-wrap items-center gap-2">
           {isSchoolAdmin && (
-            <button
-              type="button"
-              onClick={() => setSettingsOpen(true)}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-navy-900 text-xs sm:text-sm font-semibold transition-colors shadow-2xs"
-            >
-              <Settings className="w-4 h-4 text-blue-600" />
-              <span>Настройки на модула</span>
-            </button>
+            <>
+              <button
+                type="button"
+                onClick={() => setQuickBcOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold transition-colors shadow-2xs"
+              >
+                <Megaphone className="w-4 h-4" />
+                <span>Ново известие</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setSettingsOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-navy-900 text-xs sm:text-sm font-semibold transition-colors shadow-2xs"
+              >
+                <Settings className="w-4 h-4 text-blue-600" />
+                <span>Настройки на модула</span>
+              </button>
+            </>
           )}
         </div>
       </div>
@@ -322,6 +348,89 @@ export function DutyModuleApp() {
           onResetToEmpty={store.resetToEmpty}
           onNotify={store.pushToast}
         />
+      )}
+
+      {/* Quick Admin Broadcast Modal */}
+      {isSchoolAdmin && (
+        <ModuleModal
+          open={quickBcOpen}
+          onClose={() => setQuickBcOpen(false)}
+          title="Публикуване на съобщение / известие"
+          subtitle="Известието ще се появи в банер най-отгоре над графика за всички учители"
+          maxWidthClass="max-w-lg"
+        >
+          <form onSubmit={handlePostQuickBroadcast} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Ниво на спешност
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {[
+                  { id: 'info', label: '📢 Информация', cls: 'border-blue-300 text-blue-700 bg-blue-50' },
+                  { id: 'warning', label: '⚠️ Важно', cls: 'border-amber-300 text-amber-800 bg-amber-50' },
+                  { id: 'urgent', label: '🚨 Спешно', cls: 'border-red-300 text-red-700 bg-red-50' },
+                ].map((item) => (
+                  <button
+                    key={item.id}
+                    type="button"
+                    onClick={() => setBcPriority(item.id as DutyBroadcast['priority'])}
+                    className={cn(
+                      'py-2 px-2.5 rounded-xl border text-xs font-semibold transition-all text-center',
+                      bcPriority === item.id
+                        ? `${item.cls} ring-2 ring-blue-500 font-bold shadow-2xs`
+                        : 'border-slate-200 text-slate-600 bg-white hover:bg-slate-50'
+                    )}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Кратко заглавие (по избор)
+              </label>
+              <input
+                type="text"
+                value={bcTitle}
+                onChange={(e) => setBcTitle(e.target.value)}
+                placeholder="напр. Промяна в графика за петък..."
+                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Текст на съобщението *
+              </label>
+              <textarea
+                rows={3}
+                value={bcMessage}
+                onChange={(e) => setBcMessage(e.target.value)}
+                placeholder="Въведете детайли за учителите..."
+                required
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-200">
+              <button
+                type="button"
+                onClick={() => setQuickBcOpen(false)}
+                className="px-4 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-semibold text-slate-700 hover:bg-slate-50"
+              >
+                Отказ
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-2xs transition-colors"
+              >
+                Публикувай веднага
+              </button>
+            </div>
+          </form>
+        </ModuleModal>
       )}
 
       {/* Shared Module Toasts */}

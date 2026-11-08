@@ -988,7 +988,7 @@ export function useTicketsStore(
 
   // Departments CRUD
   const createDepartment = useCallback(
-    async (name: string, description?: string) => {
+    async (name: string, description?: string, color?: string, manager_name?: string) => {
       const cleanName = name.trim();
       if (!cleanName) return;
 
@@ -997,6 +997,8 @@ export function useTicketsStore(
         school_id: schoolId,
         name: cleanName,
         description: description?.trim() || null,
+        color: color?.trim() || 'blue',
+        manager_name: manager_name?.trim() || null,
         created_at: new Date().toISOString(),
       };
 
@@ -1020,12 +1022,20 @@ export function useTicketsStore(
   );
 
   const updateDepartment = useCallback(
-    async (id: string, name: string, description?: string) => {
+    async (id: string, name: string, description?: string, color?: string, manager_name?: string) => {
       const cleanName = name.trim();
       if (!cleanName) return;
 
       const next = departments.map((d) =>
-        d.id === id ? { ...d, name: cleanName, description: description?.trim() || null } : d
+        d.id === id
+          ? {
+              ...d,
+              name: cleanName,
+              description: description?.trim() || null,
+              color: color !== undefined ? color : d.color,
+              manager_name: manager_name !== undefined ? manager_name?.trim() || null : d.manager_name,
+            }
+          : d
       );
       setDepartments(next);
       saveLocalMirror({ departments: next });

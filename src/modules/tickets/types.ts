@@ -12,6 +12,8 @@ export interface TicketDepartment {
   school_id: string;
   name: string;
   description: string | null;
+  color?: string | null;
+  manager_name?: string | null;
   created_at?: string;
 }
 
@@ -211,3 +213,4 @@ export function makeUuid(): string {
     return v.toString(16);
   });
 }
+

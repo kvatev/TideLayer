@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { educationProducts } from '../../data';
 import { PageHero } from '../../components/ui/PageHero';
+import { DutySchedulerDemo } from '../../components/demos/DutySchedulerDemo';
 
 const product = educationProducts.find(p => p.id === 'duty-scheduler');
 
@@ -162,38 +163,47 @@ export function DutyScheduler() {
         </div>
       </section>
 
-      {/* UI Preview */}
-      <section className="section bg-white" aria-labelledby="ds-ui">
+      {/* Interactive UI Demo Showcase */}
+      <section className="section bg-slate-900 text-white" aria-labelledby="ds-ui">
         <div className="container">
-          <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
-            <div className="animate-fade-in min-w-0">
-              <h2 id="ds-ui" className="text-2xl min-[375px]:text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">
-                Интерфейс на продукта
-              </h2>
-              <p className="text-slate-600 mb-6 leading-relaxed">
-                {product.mockupDescription}
-              </p>
-              <p className="text-sm text-slate-500 italic">
-                * Можете да видите интерактивния модел по време на безплатна демонстрация.
-              </p>
-              <div className="mt-8">
-                <Button size="lg" asChild variant="primary" className="w-full sm:w-auto">
-                  <Link to={product.cta.href}>{product.cta.label}</Link>
-                </Button>
-              </div>
+          <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-10 animate-fade-in">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold mb-3">
+              <Icon name="Sparkles" size={14} />
+              <span>Тествайте в реално време</span>
             </div>
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg min-w-0">
-              <img
-                src="/images/sections/office.webp"
-                alt="Училищна администрация и планиране"
-                className="w-full h-full object-cover"
-                loading="lazy"
-                decoding="async"
-              />
-              <div className="absolute bottom-3 left-3 right-3 bg-white/95 backdrop-blur-sm rounded-lg px-3 py-2 text-center text-xs sm:text-sm text-slate-700 font-medium">
-                Интерактивна UI концепция с седмичен график и филтри
+            <h2 id="ds-ui" className="text-2xl min-[375px]:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-white mb-4">
+              Интерактивна демонстрация на продукта
+            </h2>
+            <p className="text-base text-slate-300 leading-relaxed mb-0">
+              Превключвайте между дните, сменяйте изгледите и тествайте интелигентното автоматично разпределение на дежурните учители.
+            </p>
+          </div>
+
+          <div className="max-w-5xl mx-auto mb-10">
+            <DutySchedulerDemo />
+          </div>
+
+          {/* Multi-Tenant Instance Info Block */}
+          <div className="max-w-4xl mx-auto p-6 sm:p-7 rounded-3xl bg-slate-800/80 border border-slate-700/80 flex flex-col md:flex-row items-center justify-between gap-5 text-center md:text-left">
+            <div className="space-y-1">
+              <div className="text-sm sm:text-base font-heading font-bold text-white flex items-center justify-center md:justify-start gap-2">
+                <Icon name="ShieldCheck" size={18} className="text-emerald-400" />
+                <span>Изолирана и защитена инстанция за всяко училище</span>
               </div>
+              <p className="text-xs sm:text-sm text-slate-300 mb-0 leading-relaxed max-w-2xl">
+                Всяко училище получава своя собствена, изолирана и защитена инстанция (напр.{' '}
+                <code className="font-mono bg-slate-950 px-2 py-0.5 rounded text-blue-400 font-semibold">
+                  tidelayer.com/school/вашето-училище
+                </code>
+                ), конфигурирана индивидуално от нашия екип.
+              </p>
             </div>
+
+            <Button asChild className="shrink-0 whitespace-nowrap">
+              <Link to="/contact?service=education-solutions&plan=duty-scheduler">
+                Заявете достъп и оферта
+              </Link>
+            </Button>
           </div>
         </div>
       </section>

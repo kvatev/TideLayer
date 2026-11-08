@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ALL_MODULE_KEYS,
@@ -8,10 +9,14 @@ import {
 import { useSchoolPortal } from '../../components/layout/schoolPortalContext';
 import { Icon } from '../../components/ui/Icon';
 import { Button } from '../../components/ui/Button';
+import { SchoolProfileLicensesModal } from './SchoolProfileLicensesModal';
 
 export function SchoolDashboard() {
-  const { bundle, session } = useSchoolPortal();
+  const { bundle, session, refreshBundle } = useSchoolPortal();
   const { school, licenses } = bundle;
+  const [profileModalOpen, setProfileModalOpen] = useState(false);
+
+  const canManageSchool = session.isSuperAdminPreview || session.role === 'school_admin';
 
   return (
     <div className="space-y-8">
@@ -40,9 +45,22 @@ export function SchoolDashboard() {
           </div>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600 bg-slate-50 border border-slate-200 px-3.5 py-2.5 rounded-xl">
-          <Icon name="ShieldCheck" size={16} className="text-emerald-600 shrink-0" />
-          <span>Инстанция: <strong className="text-navy-900">Активна</strong></span>
+        <div className="flex flex-wrap items-center gap-2">
+          {canManageSchool && (
+            <button
+              type="button"
+              onClick={() => setProfileModalOpen(true)}
+              className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold shadow-2xs transition-colors"
+            >
+              <Icon name="ShieldCheck" size={16} />
+              <span>Екип и Лицензи</span>
+            </button>
+          )}
+
+          <div className="flex items-center gap-1.5 text-xs text-slate-600 bg-slate-50 border border-slate-200 px-3.5 py-2.5 rounded-xl">
+            <Icon name="CheckCircle2" size={15} className="text-emerald-600 shrink-0" />
+            <span>Инстанция: <strong className="text-navy-900">Активна</strong></span>
+          </div>
         </div>
       </div>
 
@@ -121,7 +139,7 @@ export function SchoolDashboard() {
                     ) : (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-200 text-slate-600 text-xs font-semibold">
                         <Icon name="Lock" size={13} />
-                        {modKey === 'inventory' ? 'Очаквайте скоро' : 'Заключено'}
+                        Заключен модул
                       </span>
                     )}
                   </div>
@@ -213,6 +231,16 @@ export function SchoolDashboard() {
           <Icon name="ExternalLink" size={14} />
         </Link>
       </div>
+
+      {/* School Profile, Team & Licenses Modal */}
+      {canManageSchool && (
+        <SchoolProfileLicensesModal
+          isOpen={profileModalOpen}
+          onClose={() => setProfileModalOpen(false)}
+          bundle={bundle}
+          refreshBundle={refreshBundle}
+        />
+      )}
     </div>
   );
 }

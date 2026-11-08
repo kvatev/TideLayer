@@ -235,7 +235,7 @@ export function SchoolLogin() {
                   htmlFor="school-login-pin"
                   className="block text-xs sm:text-sm font-semibold text-navy-900 mb-1.5"
                 >
-                  Персонален ПИН код
+                  Персонален училищен ПИН код
                 </label>
                 <input
                   id="school-login-pin"
@@ -248,6 +248,9 @@ export function SchoolLogin() {
                   required
                   className="w-full px-3.5 py-3 rounded-xl border border-slate-300 text-center tracking-widest font-mono text-lg focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 />
+                <p className="mt-2 text-xs text-slate-500 text-center mb-0">
+                  Бърз служебен ПИН код за персонал. (Демо достъп: <code className="font-mono bg-slate-100 px-1 py-0.5 rounded text-navy-900 font-bold">1234</code>)
+                </p>
               </div>
             )}
 

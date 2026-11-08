@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { educationProducts } from '../../data';
 import { PageHero } from '../../components/ui/PageHero';
+import { SchoolTicketingDemo } from '../../components/demos/SchoolTicketingDemo';
 
 const product = educationProducts.find(p => p.id === 'school-ticketing');
 
@@ -129,44 +130,47 @@ export function SchoolTicketing() {
         </div>
       </section>
 
-      {/* UI Preview */}
-      <section className="section bg-slate-50" aria-labelledby="st-ui">
+      {/* Interactive UI Demo Showcase */}
+      <section className="section bg-slate-900 text-white" aria-labelledby="st-ui">
         <div className="container">
-          <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-12 animate-fade-in">
-            <h2 id="st-ui" className="text-2xl min-[375px]:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-navy-900 mb-4">
-              Преглед на интерфейса
+          <div className="text-center max-w-3xl mx-auto mb-8 sm:mb-10 animate-fade-in">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-semibold mb-3">
+              <Icon name="Sparkles" size={14} />
+              <span>Тествайте в реално време</span>
+            </div>
+            <h2 id="st-ui" className="text-2xl min-[375px]:text-3xl md:text-4xl lg:text-5xl font-heading font-bold text-white mb-4">
+              Интерактивна демонстрация на системата
             </h2>
-            <p className="text-base sm:text-lg text-slate-600">
-              {product.mockupDescription}
+            <p className="text-base text-slate-300 leading-relaxed mb-0">
+              Разгледайте реални училищни казуси, тествайте живия чат към заявка и проследете училищния бюджет за консумативи в Евро (€).
             </p>
           </div>
 
-          <div className="max-w-5xl mx-auto rounded-2xl overflow-hidden shadow-xl border border-slate-200 bg-white animate-scale-in">
-            <div className="grid grid-cols-1 md:grid-cols-5 items-stretch">
-              <div className="min-w-0 md:col-span-3 relative min-h-[200px] sm:min-h-[260px]">
-                <img
-                  src="/images/sections/it-support.webp"
-                  alt="Училищна система за технически заявки — работен процес"
-                  className="w-full h-full object-cover"
-                  loading="lazy"
-                  decoding="async"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-navy-950/40 via-transparent to-transparent" />
+          <div className="max-w-5xl mx-auto mb-10">
+            <SchoolTicketingDemo />
+          </div>
+
+          {/* Multi-Tenant Instance Info Block */}
+          <div className="max-w-4xl mx-auto p-6 sm:p-7 rounded-3xl bg-slate-800/80 border border-slate-700/80 flex flex-col md:flex-row items-center justify-between gap-5 text-center md:text-left">
+            <div className="space-y-1">
+              <div className="text-sm sm:text-base font-heading font-bold text-white flex items-center justify-center md:justify-start gap-2">
+                <Icon name="ShieldCheck" size={18} className="text-emerald-400" />
+                <span>Изолирана и защитена инстанция за всяко училище</span>
               </div>
-              <div className="min-w-0 md:col-span-2 p-4 sm:p-6 flex flex-col justify-center gap-3 bg-slate-50/70">
-                <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Примерен поток на заявка</p>
-                {[
-                  { room: 'Кабинет 204 · Проектор', status: 'В работа', tone: 'bg-blue-100 text-blue-700' },
-                  { room: 'Стая 108 · Принтер не печата', status: 'Нова', tone: 'bg-amber-100 text-amber-800' },
-                  { room: 'Физкултурен салон · Wi-Fi', status: 'Приключена', tone: 'bg-green-100 text-green-700' },
-                ].map((ticket) => (
-                  <div key={ticket.room} className="min-w-0 rounded-xl bg-white border border-slate-200 p-2.5 sm:p-3 flex items-center justify-between gap-2">
-                    <span className="min-w-0 flex-1 text-xs sm:text-sm font-medium text-navy-900 truncate">{ticket.room}</span>
-                    <span className={`shrink-0 rounded-md px-2 py-0.5 text-[11px] font-semibold ${ticket.tone}`}>{ticket.status}</span>
-                  </div>
-                ))}
-              </div>
+              <p className="text-xs sm:text-sm text-slate-300 mb-0 leading-relaxed max-w-2xl">
+                Всяко училище получава своя собствена, изолирана и защитена инстанция (напр.{' '}
+                <code className="font-mono bg-slate-950 px-2 py-0.5 rounded text-blue-400 font-semibold">
+                  tidelayer.com/school/вашето-училище
+                </code>
+                ), конфигурирана индивидуално от нашия екип.
+              </p>
             </div>
+
+            <Button asChild className="shrink-0 whitespace-nowrap">
+              <Link to="/contact?service=education-solutions&plan=school-ticketing">
+                Заявете достъп и оферта
+              </Link>
+            </Button>
           </div>
         </div>
       </section>

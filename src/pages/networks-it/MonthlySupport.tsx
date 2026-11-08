@@ -20,7 +20,7 @@ export function MonthlySupport() {
     {
       name: 'Essential',
       description: 'За малки екипи с базови нужди',
-      price: 'от 299 лв/мес',
+      price: 'от 149 €/мес',
       features: [
         'Мониторинг на инфраструктура 24/7',
         'Patch management (OS и софтуер)',
@@ -35,7 +35,7 @@ export function MonthlySupport() {
     {
       name: 'Professional',
       description: 'За растящи бизнеси с по-високи изисквания',
-      price: 'от 599 лв/мес',
+      price: 'от 299 €/мес',
       features: [
         'Всичко в Essential',
         'Управление на антивирус и сигурност',

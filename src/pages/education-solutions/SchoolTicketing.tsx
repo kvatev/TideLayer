@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { educationProducts } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 const product = educationProducts.find(p => p.id === 'school-ticketing');
 
@@ -13,7 +14,7 @@ export function SchoolTicketing() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="st-title">
+      <PageHero theme="education" ariaLabelledby="st-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="primary" size="md" className="mb-4">
@@ -38,7 +39,7 @@ export function SchoolTicketing() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Problem & Solution */}
       <section className="section bg-white" aria-labelledby="st-problem">
@@ -62,10 +63,14 @@ export function SchoolTicketing() {
                 ))}
               </ul>
             </div>
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in">
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                <Icon name="Ticket" size={64} />
-              </div>
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+              <img
+                src="/images/sections/education.webp"
+                alt="Система за технически заявки в училище"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
           </div>
         </div>

@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { webSolutionsServices } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 const VISIBLE_SERVICES = ['website-development', 'website-maintenance'];
 
@@ -11,7 +12,7 @@ export function WebSolutions() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="web-solutions-title">
+      <PageHero theme="web" ariaLabelledby="web-solutions-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="primary" size="md" className="mb-4">
@@ -33,7 +34,7 @@ export function WebSolutions() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Services Grid */}
       <section className="section bg-white" aria-labelledby="services-title">

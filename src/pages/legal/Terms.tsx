@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom';
 import { brandConfig } from '../../config/brand';
+import { PageHero } from '../../components/ui/PageHero';
 
 const LAST_UPDATED = new Date().toLocaleDateString('bg-BG', { year: 'numeric', month: 'long', day: 'numeric' });
 
@@ -10,7 +11,7 @@ export function Terms() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="terms-title">
+      <PageHero theme="legal" ariaLabelledby="terms-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <h1 id="terms-title" className="text-4xl md:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
@@ -21,7 +22,7 @@ export function Terms() {
             </p>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Content */}
       <section className="section bg-white" aria-labelledby="terms-content">

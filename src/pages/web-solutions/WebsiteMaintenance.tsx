@@ -5,6 +5,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { webSolutionsServices } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 const service = webSolutionsServices.find(s => s.id === 'website-maintenance');
 
@@ -14,7 +15,7 @@ export function WebsiteMaintenance() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="wm-title">
+      <PageHero theme="web" ariaLabelledby="wm-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="primary" size="md" className="mb-4">
@@ -36,7 +37,7 @@ export function WebsiteMaintenance() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* What's included */}
       <section className="section bg-white" aria-labelledby="wm-included">
@@ -57,10 +58,14 @@ export function WebsiteMaintenance() {
                 ))}
               </ul>
             </div>
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in">
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                <Icon name="Shield" size={64} />
-              </div>
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+              <img
+                src="/images/sections/it-support.webp"
+                alt="Техническа поддръжка и мониторинг на уебсайтове"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
           </div>
         </div>
@@ -129,10 +134,14 @@ export function WebsiteMaintenance() {
       <section className="section bg-white" aria-labelledby="wm-benefits">
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in">
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                <Icon name="Users" size={64} />
-              </div>
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+              <img
+                src="/images/sections/office.webp"
+                alt="Екип за развитие и поддръжка на уеб проекти"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
             <div className="animate-fade-in">
               <h2 id="wm-benefits" className="text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">

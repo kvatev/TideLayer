@@ -5,6 +5,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { networksItServices, faqs } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 const service = networksItServices.find(s => s.id === 'monthly-support');
 
@@ -68,7 +69,7 @@ export function MonthlySupport() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="ms-title">
+      <PageHero theme="support" ariaLabelledby="ms-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="primary" size="md" className="mb-4">
@@ -90,7 +91,7 @@ export function MonthlySupport() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Intro */}
       <section className="section bg-white" aria-labelledby="ms-intro">

@@ -4,12 +4,13 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { educationProducts, educationItSupportService } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 export function EducationSolutions() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="education-title">
+      <PageHero theme="education" ariaLabelledby="education-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="accent" size="md" className="mb-4">
@@ -31,7 +32,7 @@ export function EducationSolutions() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Products Grid */}
       <section className="section bg-white" aria-labelledby="products-title">

@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { Link } from 'react-router-dom';
 import { demoProjects } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 type Project = typeof demoProjects[0];
 
@@ -103,7 +104,7 @@ export function Portfolio() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="portfolio-title">
+      <PageHero theme="portfolio" ariaLabelledby="portfolio-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="primary" size="md" className="mb-4">
@@ -117,7 +118,7 @@ export function Portfolio() {
             </p>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Filter + Grid */}
       <section className="section bg-white" aria-label="Портфолио проекти">

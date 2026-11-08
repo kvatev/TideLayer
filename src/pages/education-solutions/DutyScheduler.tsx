@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { educationProducts } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 const product = educationProducts.find(p => p.id === 'duty-scheduler');
 
@@ -13,7 +14,7 @@ export function DutyScheduler() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="ds-title">
+      <PageHero theme="education" ariaLabelledby="ds-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="accent" size="md" className="mb-4">
@@ -35,7 +36,7 @@ export function DutyScheduler() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Problem */}
       <section className="section bg-white" aria-labelledby="ds-problem">
@@ -65,10 +66,14 @@ export function DutyScheduler() {
                 ))}
               </ul>
             </div>
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in">
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                <Icon name="CalendarClock" size={64} />
-              </div>
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+              <img
+                src="/images/sections/education.webp"
+                alt="Автоматизиран график на дежурства за училища"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
           </div>
         </div>
@@ -181,10 +186,14 @@ export function DutyScheduler() {
                 </Button>
               </div>
             </div>
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in">
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                <Icon name="Monitor" size={64} />
-              </div>
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+              <img
+                src="/images/sections/office.webp"
+                alt="Училищна администрация и планиране"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
               <div className="absolute bottom-4 left-4 right-4 bg-white/90 backdrop-blur-sm rounded-lg px-4 py-2 text-center text-sm text-slate-600">
                 UI концепция — не е работащ софтуер
               </div>

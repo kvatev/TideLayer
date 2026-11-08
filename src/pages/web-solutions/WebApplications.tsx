@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { webSolutionsServices } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 const service = webSolutionsServices.find(s => s.id === 'web-applications');
 
@@ -13,7 +14,7 @@ export function WebApplications() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="wa-title">
+      <PageHero theme="web" ariaLabelledby="wa-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="primary" size="md" className="mb-4">
@@ -35,7 +36,7 @@ export function WebApplications() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Problem & Solution */}
       <section className="section bg-white" aria-labelledby="wa-problem">
@@ -63,10 +64,14 @@ export function WebApplications() {
                 ))}
               </ul>
             </div>
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in">
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                <Icon name="Code" size={64} />
-              </div>
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+              <img
+                src="/images/sections/web-dev.webp"
+                alt="Разработка на уеб приложения"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
           </div>
         </div>
@@ -134,10 +139,14 @@ export function WebApplications() {
       <section className="section bg-slate-50" aria-labelledby="wa-benefits">
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in">
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                <Icon name="BarChart3" size={64} />
-              </div>
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+              <img
+                src="/images/sections/office.webp"
+                alt="Автоматизация на бизнес процеси"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
             <div className="animate-fade-in">
               <h2 id="wa-benefits" className="text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">

@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { networksItServices, faqs } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 const service = networksItServices.find(s => s.id === 'wifi-lan');
 
@@ -13,7 +14,7 @@ export function WifiLan() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="wl-title">
+      <PageHero theme="networks" ariaLabelledby="wl-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="primary" size="md" className="mb-4">
@@ -35,7 +36,7 @@ export function WifiLan() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Features */}
       <section className="section bg-white" aria-labelledby="wl-features">
@@ -68,10 +69,14 @@ export function WifiLan() {
       <section className="section bg-slate-50" aria-labelledby="wl-benefits">
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-12 items-center">
-            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in">
-              <div className="absolute inset-0 flex items-center justify-center text-slate-400">
-                <Icon name="Wifi" size={64} />
-              </div>
+            <div className="relative aspect-video bg-slate-100 rounded-2xl overflow-hidden animate-scale-in shadow-lg">
+              <img
+                src="/images/sections/wifi-lan.webp"
+                alt="Корпоративна Wi-Fi и LAN мрежа"
+                className="w-full h-full object-cover"
+                loading="lazy"
+                decoding="async"
+              />
             </div>
             <div className="animate-fade-in">
               <h2 id="wl-benefits" className="text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">

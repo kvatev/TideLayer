@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { hardwareServices, faqs } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 export function HardwareService() {
   const service = hardwareServices;
@@ -11,7 +12,7 @@ export function HardwareService() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="hs-title">
+      <PageHero theme="hardware" ariaLabelledby="hs-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="primary" size="md" className="mb-4">
@@ -33,7 +34,7 @@ export function HardwareService() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Note about supplementary service */}
       <section className="section bg-slate-50" aria-labelledby="hs-note">

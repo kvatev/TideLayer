@@ -144,8 +144,15 @@
     font-family: var(--font-heading);
     font-weight: 700;
     line-height: 1.2;
-    color: var(--color-navy-900);
+    color: inherit;
     margin: 0;
+  }
+
+  .bg-navy-900 h1,
+  .bg-navy-900 h2,
+  .bg-navy-900 h3,
+  .bg-navy-900 h4 {
+    color: var(--color-white);
   }
 
   h1 { font-size: var(--text-5xl); letter-spacing: -0.02em; }

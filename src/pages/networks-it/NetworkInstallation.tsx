@@ -4,6 +4,7 @@ import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { networksItServices, faqs } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 const service = networksItServices.find(s => s.id === 'network-installation');
 
@@ -13,7 +14,7 @@ export function NetworkInstallation() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="ni-title">
+      <PageHero theme="networks" ariaLabelledby="ni-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="primary" size="md" className="mb-4">
@@ -35,7 +36,7 @@ export function NetworkInstallation() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Features */}
       <section className="section bg-white" aria-labelledby="ni-features">

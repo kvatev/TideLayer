@@ -5,6 +5,7 @@ import { Button } from '../../components/ui/Button';
 import { Badge } from '../../components/ui/Badge';
 import { webSolutionsServices } from '../../data';
 import { faqs } from '../../data';
+import { PageHero } from '../../components/ui/PageHero';
 
 const service = webSolutionsServices.find(s => s.id === 'website-development');
 
@@ -14,7 +15,7 @@ export function WebsiteDevelopment() {
   return (
     <div>
       {/* Hero */}
-      <section className="section-xl bg-navy-900 text-white" aria-labelledby="wd-title">
+      <PageHero theme="web" ariaLabelledby="wd-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
             <Badge variant="primary" size="md" className="mb-4">
@@ -36,7 +37,7 @@ export function WebsiteDevelopment() {
             </div>
           </div>
         </div>
-      </section>
+      </PageHero>
 
       {/* Problem & Solution */}
       <section className="section bg-white" aria-labelledby="wd-problem">

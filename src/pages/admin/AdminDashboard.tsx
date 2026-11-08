@@ -9,10 +9,22 @@ import {
 } from '../../data/siteControl';
 import { adminAuth } from '../../data/adminAuth';
 import { brandConfig } from '../../config/brand';
+import {
+  computeAllLicenseAlerts,
+  fetchAllSchoolBundles,
+  updateSchoolLicensePeriod,
+  type SchoolBundle,
+  type SchoolModuleKey,
+} from '../../lib/supabase';
+import {
+  LicenseAlertTopBanner,
+  LicenseAlertsTab,
+  SchoolsAndLicensesTab,
+} from './SchoolSaasAdminPanel';
 
 // ─── Constants & Helpers ─────────────────────────────────────────────────────
 
-type AdminTab = 'inquiries' | 'menus' | 'portfolio' | 'settings';
+type AdminTab = 'inquiries' | 'schools' | 'license_alerts' | 'menus' | 'portfolio' | 'settings';
 type FilterStatus = 'all' | InquiryStatus;
 
 interface ConfirmDialogState {
@@ -416,9 +428,42 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
   const contactPhone = contactDraft?.phone ?? siteControl.contactInfo.phone;
   const contactAddress = contactDraft?.addressFull ?? siteControl.contactInfo.addressFull;
 
+  // Multi-Tenant SaaS Schools & Licenses state
+  const [schoolBundles, setSchoolBundles] = useState<SchoolBundle[]>([]);
+  const [usingSupabaseFallback, setUsingSupabaseFallback] = useState(false);
+  const [supabaseFallbackMessage, setSupabaseFallbackMessage] = useState<string | null>(null);
+
   const showToast = (msg: string) => {
     setToast(msg);
   };
+
+  const refreshSchoolBundles = useCallback(async () => {
+    const res = await fetchAllSchoolBundles();
+    setSchoolBundles(res.bundles);
+    setUsingSupabaseFallback(res.usingFallback);
+    setSupabaseFallbackMessage(res.fallbackMessage);
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    fetchAllSchoolBundles().then((res) => {
+      if (!active) return;
+      setSchoolBundles(res.bundles);
+      setUsingSupabaseFallback(res.usingFallback);
+      setSupabaseFallbackMessage(res.fallbackMessage);
+    });
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const handleQuickRenewLicense = async (schoolId: string, moduleKey: SchoolModuleKey) => {
+    await updateSchoolLicensePeriod(schoolId, moduleKey, { type: '1_year' });
+    await refreshSchoolBundles();
+    showToast('Лицензът беше подновен с +1 година.');
+  };
+
+  const licenseAlertsCount = computeAllLicenseAlerts(schoolBundles).length;
 
   useEffect(() => {
     if (!toast) return;
@@ -651,6 +696,17 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
       title: 'Запитвания от клиенти',
       subtitle: `${filtered.length} от ${inquiries.length} записа`,
     },
+    schools: {
+      title: 'Училища и Лицензи (Multi-Tenant SaaS)',
+      subtitle: `${schoolBundles.length} училищни инстанции • управление на достъп, срокове и акаунти`,
+    },
+    license_alerts: {
+      title: 'Известия за Лицензи',
+      subtitle:
+        licenseAlertsCount > 0
+          ? `${licenseAlertsCount} активни предупреждения за изтекли или изтичащи лицензи`
+          : 'Всички активни лицензи са в редовен срок',
+    },
     menus: {
       title: 'Менюта, направления и раздели',
       subtitle:
@@ -767,7 +823,45 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
             />
           </div>
 
-          {/* Group 2: Site Management */}
+          {/* Group 2: Multi-Tenant SaaS (Schools & Licenses) */}
+          <div className="space-y-1">
+            <div className="px-2 pb-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
+              Училищна SaaS Платформа
+            </div>
+
+            <SidebarItem
+              icon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" />
+                </svg>
+              }
+              label="Училища и Лицензи"
+              count={schoolBundles.length}
+              active={activeTab === 'schools'}
+              onClick={() => {
+                setActiveTab('schools');
+                setSidebarOpen(false);
+              }}
+            />
+
+            <SidebarItem
+              icon={
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                </svg>
+              }
+              label="Известия за Лицензи"
+              count={licenseAlertsCount > 0 ? licenseAlertsCount : undefined}
+              highlight={licenseAlertsCount > 0}
+              active={activeTab === 'license_alerts'}
+              onClick={() => {
+                setActiveTab('license_alerts');
+                setSidebarOpen(false);
+              }}
+            />
+          </div>
+
+          {/* Group 3: Site Management */}
           <div className="space-y-1">
             <div className="px-2 pb-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
               Управление на сайта
@@ -901,6 +995,14 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
           {(
             [
               { id: 'inquiries', label: `Запитвания (${stats.total})` },
+              { id: 'schools', label: `Училища и Лицензи (${schoolBundles.length})` },
+              {
+                id: 'license_alerts',
+                label:
+                  licenseAlertsCount > 0
+                    ? `Известия за Лицензи (${licenseAlertsCount})`
+                    : 'Известия за Лицензи',
+              },
               { id: 'menus', label: 'Менюта и раздели' },
               { id: 'portfolio', label: `Портфолио (${siteControl.projects.length})` },
               { id: 'settings', label: 'Настройки / Изтриване' },
@@ -937,6 +1039,33 @@ export function AdminDashboard({ onLogout }: AdminDashboardProps) {
                 Затвори
               </button>
             </div>
+          )}
+
+          {/* Global License Expiration & Warning Top Alert Banner */}
+          <LicenseAlertTopBanner
+            bundles={schoolBundles}
+            onQuickRenew={handleQuickRenewLicense}
+            onOpenAlertsTab={() => setActiveTab('license_alerts')}
+          />
+
+          {/* ══════════════════ TAB: SCHOOLS & LICENSES (Multi-Tenant SaaS) ══════════════════ */}
+          {activeTab === 'schools' && (
+            <SchoolsAndLicensesTab
+              bundles={schoolBundles}
+              usingFallback={usingSupabaseFallback}
+              fallbackMessage={supabaseFallbackMessage}
+              onRefresh={refreshSchoolBundles}
+              showToast={showToast}
+            />
+          )}
+
+          {/* ══════════════════ TAB: LICENSE ALERTS ══════════════════ */}
+          {activeTab === 'license_alerts' && (
+            <LicenseAlertsTab
+              bundles={schoolBundles}
+              onRefresh={refreshSchoolBundles}
+              showToast={showToast}
+            />
           )}
 
           {/* ══════════════════ TAB 1: INQUIRIES ══════════════════ */}

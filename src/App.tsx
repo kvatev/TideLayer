@@ -1,7 +1,15 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
+import { SchoolPortalLayout } from './components/layout/SchoolPortalLayout';
 import { Home } from './pages/home/Home';
 import { Admin } from './pages/admin/Admin';
+
+// Hidden Multi-Tenant School Portal pages
+import { SchoolLogin } from './pages/school/SchoolLogin';
+import { SchoolDashboard } from './pages/school/SchoolDashboard';
+import { DutyModulePage } from './pages/school/modules/DutyModulePage';
+import { TicketsModulePage } from './pages/school/modules/TicketsModulePage';
+import { InventoryModulePage } from './pages/school/modules/InventoryModulePage';
 
 // Import page components
 import { WebSolutions } from './pages/web-solutions/WebSolutions';
@@ -29,6 +37,15 @@ function App() {
       <Routes>
         {/* Admin panel — standalone layout (no header/footer) */}
         <Route path="admin" element={<Admin />} />
+
+        {/* Hidden Multi-Tenant School Portal — standalone layout outside MainLayout */}
+        <Route path="school/:schoolSlug/login" element={<SchoolLogin />} />
+        <Route path="school/:schoolSlug" element={<SchoolPortalLayout />}>
+          <Route index element={<SchoolDashboard />} />
+          <Route path="duty/*" element={<DutyModulePage />} />
+          <Route path="tickets/*" element={<TicketsModulePage />} />
+          <Route path="inventory/*" element={<InventoryModulePage />} />
+        </Route>
 
         {/* Public site */}
         <Route element={<MainLayout />}>

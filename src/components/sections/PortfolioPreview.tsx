@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Icon } from '../ui/Icon';
 import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
 import { useSiteControl } from '../../data/siteControl';
 
 export function PortfolioPreview() {
@@ -66,9 +65,9 @@ export function PortfolioPreview() {
                   )}
                 </div>
 
-                <Badge variant="secondary" size="sm" className="mb-3 self-start">
+                <span className="text-xs font-semibold text-blue-600 mb-2 uppercase tracking-wider">
                   {project.category}
-                </Badge>
+                </span>
                 <h3 className="text-lg sm:text-xl font-heading font-bold text-navy-900 mb-2 group-hover:text-blue-600 transition-colors leading-snug">
                   {project.title}
                 </h3>

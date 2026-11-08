@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { Link } from 'react-router-dom';
 import { useSiteControl } from '../../data/siteControl';
 import type { Project } from '../../types';
@@ -70,10 +69,14 @@ export function Portfolio() {
         {/* Tags */}
         <div className="flex flex-wrap gap-1.5 mb-3">
           {project.tags.slice(0, 4).map((tag) => (
-            <Badge key={tag} variant="outline" size="sm">{tag}</Badge>
+            <span key={tag} className="px-2 py-0.5 text-xs bg-slate-100 text-slate-600 rounded font-medium">
+              {tag}
+            </span>
           ))}
           {project.tags.length > 4 && (
-            <Badge variant="outline" size="sm">+{project.tags.length - 4}</Badge>
+            <span className="px-2 py-0.5 text-xs bg-slate-100 text-slate-500 rounded font-medium">
+              +{project.tags.length - 4}
+            </span>
           )}
         </div>
 
@@ -111,9 +114,6 @@ export function Portfolio() {
       <PageHero theme="portfolio" ariaLabelledby="portfolio-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
-            <Badge variant="primary" size="md" className="mb-4">
-              Портфолио
-            </Badge>
             <h1 id="portfolio-title" className="text-2xl min-[375px]:text-3xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
               Реализирани проекти
             </h1>

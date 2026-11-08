@@ -3,7 +3,6 @@ import { cn } from '../../utils/helpers';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { networksItServices } from '../../data';
 import { useSiteControl } from '../../data/siteControl';
 import { PageHero } from '../../components/ui/PageHero';
@@ -76,9 +75,6 @@ export function MonthlySupport() {
       <PageHero theme="support" ariaLabelledby="ms-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
-            <Badge variant="primary" size="md" className="mb-4">
-              03. Мрежи и ИТ инфраструктура / Месечна ИТ поддръжка
-            </Badge>
             <h1 id="ms-title" className="text-2xl min-[375px]:text-3xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
               {service.title}
             </h1>
@@ -141,7 +137,7 @@ export function MonthlySupport() {
               >
                 {tier.popular && (
                   <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                    <Badge variant="primary" size="sm" className="whitespace-nowrap">Най-популярен</Badge>
+                    <span className="whitespace-nowrap bg-blue-600 text-white text-xs font-semibold px-3 py-0.5 rounded-full shadow-xs">Най-популярен</span>
                   </div>
                 )}
                 <h3 className="text-xl sm:text-2xl font-heading font-bold text-navy-900 mb-2">{tier.name}</h3>

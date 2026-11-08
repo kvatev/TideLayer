@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { educationProducts } from '../../data';
 import { PageHero } from '../../components/ui/PageHero';
 
@@ -17,9 +16,6 @@ export function SchoolTicketing() {
       <PageHero theme="education" ariaLabelledby="st-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
-            <Badge variant="primary" size="md" className="mb-4">
-              02. Училищни решения / Училищна система за заявки
-            </Badge>
             <h1 id="st-title" className="text-2xl min-[375px]:text-3xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
               {product.name}
             </h1>
@@ -155,11 +151,7 @@ export function SchoolTicketing() {
                   loading="lazy"
                   decoding="async"
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-navy-950/60 via-transparent to-transparent" />
-                <span className="absolute bottom-3 left-3 right-3 sm:right-auto inline-flex items-center gap-1.5 rounded-full bg-white/95 px-3 py-1 text-xs font-semibold text-navy-900 shadow-sm max-w-full">
-                  <Icon name="LayoutDashboard" size={14} className="text-blue-600 shrink-0" />
-                  <span className="truncate">UI концепция · Подавач и ИТ екип</span>
-                </span>
+                <div className="absolute inset-0 bg-gradient-to-t from-navy-950/40 via-transparent to-transparent" />
               </div>
               <div className="min-w-0 md:col-span-2 p-4 sm:p-6 flex flex-col justify-center gap-3 bg-slate-50/70">
                 <p className="text-xs font-semibold uppercase tracking-wider text-slate-500 mb-1">Примерен поток на заявка</p>

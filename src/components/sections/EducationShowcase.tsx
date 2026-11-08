@@ -1,7 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Icon } from '../ui/Icon';
 import { Card } from '../ui/Card';
-import { Badge } from '../ui/Badge';
 import { educationProducts, educationItSupportService } from '../../data';
 import { useSiteControl } from '../../data/siteControl';
 
@@ -45,9 +44,6 @@ export function EducationShowcase() {
                       loading="lazy"
                       decoding="async"
                     />
-                    <Badge variant="accent" className="absolute top-3 left-3">
-                      Продукт
-                    </Badge>
                   </div>
                   <h3 className="text-lg sm:text-xl font-heading font-bold text-navy-900 mb-2 group-hover:text-cyan-600 transition-colors">
                     {product.name}

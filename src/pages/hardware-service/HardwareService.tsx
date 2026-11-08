@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { hardwareServices } from '../../data';
 import { useSiteControl } from '../../data/siteControl';
 import { PageHero } from '../../components/ui/PageHero';
@@ -18,9 +17,6 @@ export function HardwareService() {
       <PageHero theme="hardware" ariaLabelledby="hs-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
-            <Badge variant="primary" size="md" className="mb-4">
-              04. Хардуерен сервиз
-            </Badge>
             <h1 id="hs-title" className="text-2xl min-[375px]:text-3xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
               {service.title}
             </h1>

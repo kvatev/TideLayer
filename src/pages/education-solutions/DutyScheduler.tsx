@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { educationProducts } from '../../data';
 import { PageHero } from '../../components/ui/PageHero';
 
@@ -17,9 +16,6 @@ export function DutyScheduler() {
       <PageHero theme="education" ariaLabelledby="ds-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
-            <Badge variant="accent" size="md" className="mb-4">
-              02. Училищни решения / График на дежурства
-            </Badge>
             <h1 id="ds-title" className="text-2xl min-[375px]:text-3xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
               {product.name}
             </h1>

@@ -3,7 +3,6 @@ import { cn } from '../../utils/helpers';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { webSolutionsServices } from '../../data';
 import { PageHero } from '../../components/ui/PageHero';
 
@@ -18,9 +17,6 @@ export function WebsiteMaintenance() {
       <PageHero theme="web" ariaLabelledby="wm-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
-            <Badge variant="primary" size="md" className="mb-4">
-              01. Уеб решения / Поддръжка
-            </Badge>
             <h1 id="wm-title" className="text-2xl min-[375px]:text-3xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
               {service.title}
             </h1>
@@ -107,9 +103,9 @@ export function WebsiteMaintenance() {
             ].map((plan) => (
               <Card key={plan.name} variant={plan.popular ? 'elevated' : 'outlined'} padding="lg" hover className={cn('relative flex flex-col mt-2 md:mt-0', plan.popular && 'border-blue-500 shadow-lg')}>
                 {plan.popular && (
-                  <Badge variant="primary" className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap">
+                  <span className="absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap bg-blue-600 text-white text-xs font-semibold px-3 py-0.5 rounded-full shadow-xs">
                     Най-популярен
-                  </Badge>
+                  </span>
                 )}
                 <h3 className="text-xl font-heading font-bold text-navy-900 mb-2">{plan.name}</h3>
                 <p className="text-2xl sm:text-3xl font-bold font-heading text-blue-600 mb-6">{plan.price}</p>

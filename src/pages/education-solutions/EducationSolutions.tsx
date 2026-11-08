@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { educationProducts, educationItSupportService } from '../../data';
 import { useSiteControl } from '../../data/siteControl';
 import { PageHero } from '../../components/ui/PageHero';
@@ -22,9 +21,6 @@ export function EducationSolutions() {
       <PageHero theme="education" ariaLabelledby="education-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
-            <Badge variant="accent" size="md" className="mb-4">
-              02. Училищни решения
-            </Badge>
             <h1 id="education-title" className="text-2xl min-[375px]:text-3xl sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight">
               Специализиран софтуер и ИТ поддръжка за училища
             </h1>
@@ -68,9 +64,6 @@ export function EducationSolutions() {
                         loading="lazy"
                         decoding="async"
                       />
-                      <Badge variant="accent" className="absolute top-3 left-3">
-                        Продукт
-                      </Badge>
                     </div>
                     <h3 className="text-lg sm:text-xl font-heading font-bold text-navy-900 mb-2 group-hover:text-cyan-600 transition-colors">
                       {product.name}

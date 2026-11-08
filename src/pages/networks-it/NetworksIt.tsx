@@ -2,7 +2,6 @@ import { Link } from 'react-router-dom';
 import { Icon } from '../../components/ui/Icon';
 import { Card } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
-import { Badge } from '../../components/ui/Badge';
 import { networksItServices } from '../../data';
 import { useSiteControl } from '../../data/siteControl';
 import { PageHero } from '../../components/ui/PageHero';
@@ -20,9 +19,6 @@ export function NetworksIt() {
       <PageHero theme="networks" ariaLabelledby="ni-title">
         <div className="container">
           <div className="max-w-3xl animate-fade-in">
-            <Badge variant="primary" size="md" className="mb-4">
-              03. Мрежи и ИТ инфраструктура
-            </Badge>
             <h1 id="ni-title" className="text-2xl min-[375px]:text-[1.75rem] sm:text-5xl lg:text-6xl font-heading font-bold mb-4 leading-tight break-words">
               Мрежи и ИТ инфраструктура
             </h1>
@@ -100,7 +96,6 @@ export function NetworksIt() {
         <div className="container">
           <div className="grid lg:grid-cols-2 gap-8 lg:gap-12 items-center">
             <div className="animate-fade-in min-w-0">
-              <Badge variant="primary" size="sm" className="mb-4">Ключова услуга</Badge>
               <h2 id="ni-highlight" className="text-2xl min-[375px]:text-3xl md:text-4xl font-heading font-bold text-navy-900 mb-6">
                 Месечна ИТ поддръжка — спокойствие за вашия бизнес
               </h2>

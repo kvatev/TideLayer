@@ -1,8 +1,6 @@
 import { Link } from 'react-router-dom';
 import { Icon } from '../ui/Icon';
 import { Button } from '../ui/Button';
-import { Badge } from '../ui/Badge';
-import { brandConfig } from '../../config/brand';
 
 const heroCards = [
   {
@@ -46,12 +44,9 @@ export function Hero() {
         <div className="grid lg:grid-cols-2 gap-10 lg:gap-16 items-center">
           {/* Content */}
           <div className="max-w-2xl min-w-0 animate-fade-in">
-            <Badge variant="accent" size="md" className="mb-5 animate-slide-up">
-              {brandConfig.tagline}
-            </Badge>
             <h1
               id="hero-title"
-              className="text-[1.75rem] min-[375px]:text-[2.125rem] sm:text-5xl md:text-6xl lg:text-[3.75rem] xl:text-[4.25rem] font-heading font-bold text-navy-900 leading-[1.12] tracking-tight mb-5 sm:mb-6 animate-slide-up delay-100"
+              className="text-[1.75rem] min-[375px]:text-[2.125rem] sm:text-5xl md:text-6xl lg:text-[3.75rem] xl:text-[4.25rem] font-heading font-bold text-navy-900 leading-[1.12] tracking-tight mb-5 sm:mb-6 animate-slide-up"
             >
               Технологиите зад{' '}
               <span className="text-gradient">успешния бизнес</span>

@@ -9,7 +9,6 @@ export function Footer() {
   const footerNav = {
     'Уеб решения': [
       { label: 'Уеб разработка', href: '/web-solutions/website-development' },
-      { label: 'Уеб приложения', href: '/web-solutions/web-applications' },
       { label: 'Поддръжка на уебсайтове', href: '/web-solutions/website-maintenance' }
     ],
     'Училищни решения': [
@@ -20,12 +19,9 @@ export function Footer() {
     ],
     'Мрежи и ИТ': [
       { label: 'Изграждане на мрежи', href: '/networks-it/network-installation' },
-      { label: 'Wi-Fi и LAN', href: '/networks-it/wifi-lan' },
-      { label: 'Сървъри и NAS', href: '/networks-it/servers-nas' },
       { label: 'Месечна ИТ поддръжка', href: '/networks-it/monthly-support' }
     ],
     Компания: [
-      { label: 'За нас', href: '/about' },
       { label: 'Портфолио', href: '/portfolio' },
       { label: 'Контакти', href: '/contact' }
     ],

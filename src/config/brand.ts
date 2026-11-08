@@ -52,13 +52,11 @@ export const brandConfig = {
       { label: 'Мрежи и ИТ', href: '/networks-it', hasDropdown: true },
       { label: 'Хардуерен сервиз', href: '/hardware-service' },
       { label: 'Портфолио', href: '/portfolio' },
-      { label: 'За нас', href: '/about' },
       { label: 'Контакти', href: '/contact', isCTA: true }
     ],
     
     webSolutionsDropdown: [
       { label: 'Уеб разработка', href: '/web-solutions/website-development' },
-      { label: 'Уеб приложения', href: '/web-solutions/web-applications' },
       { label: 'Поддръжка на уебсайтове', href: '/web-solutions/website-maintenance' }
     ],
     
@@ -71,8 +69,6 @@ export const brandConfig = {
     
     networksItDropdown: [
       { label: 'Изграждане на мрежи', href: '/networks-it/network-installation' },
-      { label: 'Wi-Fi и LAN', href: '/networks-it/wifi-lan' },
-      { label: 'Сървъри и NAS', href: '/networks-it/servers-nas' },
       { label: 'Месечна ИТ поддръжка', href: '/networks-it/monthly-support' }
     ]
   },

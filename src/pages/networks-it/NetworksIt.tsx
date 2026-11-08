@@ -6,7 +6,7 @@ import { Badge } from '../../components/ui/Badge';
 import { networksItServices } from '../../data';
 
 export function NetworksIt() {
-  const services = networksItServices;
+  const services = networksItServices.filter(s => ['network-installation', 'monthly-support'].includes(s.id));
 
   return (
     <div>
@@ -62,11 +62,11 @@ export function NetworksIt() {
               Нашите услуги
             </h2>
             <p className="text-lg text-slate-600">
-              Четири основни направления, покриващи цялото спектър от ИТ инфраструктурни нужди.
+              Две основни направления, покриващи вашите ИТ инфраструктурни нужди.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid md:grid-cols-2 gap-6">
             {services.map((service, index) => (
               <Card key={service.id} variant="elevated" padding="xl" hover className="animate-slide-up" style={{ animationDelay: `${index * 100}ms` }}>
                 <div className="flex-shrink-0 w-14 h-14 mb-5 rounded-2xl bg-blue-50 flex items-center justify-center">

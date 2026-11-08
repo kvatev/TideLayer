@@ -57,7 +57,6 @@ export function NotFound() {
                 { href: '/networks-it', label: 'Мрежи и ИТ' },
                 { href: '/hardware-service', label: 'Хардуерен сервиз' },
                 { href: '/portfolio', label: 'Портфолио' },
-                { href: '/about', label: 'За нас' },
               ].map((item) => (
                 <Link
                   key={item.href}

@@ -334,6 +334,30 @@ CREATE TABLE IF NOT EXISTS public.inventory_logs (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
+-- Safe migrations for existing databases (adds new columns if tables already exist)
+ALTER TABLE public.inventory_rooms ADD COLUMN IF NOT EXISTS room_number TEXT;
+ALTER TABLE public.inventory_rooms ADD COLUMN IF NOT EXISTS room_type TEXT DEFAULT 'classroom';
+ALTER TABLE public.inventory_rooms ADD COLUMN IF NOT EXISTS building TEXT;
+ALTER TABLE public.inventory_rooms ADD COLUMN IF NOT EXISTS floor TEXT;
+ALTER TABLE public.inventory_rooms ADD COLUMN IF NOT EXISTS building_or_floor TEXT;
+ALTER TABLE public.inventory_rooms ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.inventory_rooms ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT false;
+
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS tracking_type TEXT DEFAULT 'individual';
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS manufacturer TEXT;
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS model TEXT;
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS brand_or_model TEXT;
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS serial_number TEXT;
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS quantity INTEGER DEFAULT 1;
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS photos TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS documents TEXT[] DEFAULT ARRAY[]::TEXT[];
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT false;
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS is_written_off BOOLEAN DEFAULT false;
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS written_off_date DATE;
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS written_off_reason TEXT;
+ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
+
 -- =============================================================================
 -- 5. INDEXES BY school_id & slug
 -- =============================================================================

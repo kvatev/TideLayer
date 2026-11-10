@@ -7,12 +7,10 @@ import {
   type SchoolPortalSession,
 } from '../../lib/supabase';
 import {
-  formatEur,
   isValidUuid,
   makeUuid,
   type ChannelMessage,
   type DocumentFileType,
-  type OrderStatus,
   type SchoolTicket,
   type TaskDocumentAttachment,
   type TicketAnnouncement,
@@ -289,23 +287,12 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
       ticket_id: tk2Id,
       sender_user_id: validCreatorId,
       sender_name: 'Техник ИТ',
-      message: 'Поръчана е нова тонер касета през модул „Поръчки“. Очаквана доставка до петък.',
+      message: 'Заявена е нова тонер касета от ИТ координатора. Очаквана доставка до петък.',
       created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
     },
   ];
 
-  const orders: TicketOrder[] = [
-    {
-      id: makeUuid(),
-      school_id: schoolId,
-      ticket_id: tk2Id,
-      item_name: 'Оригинален тонер HP W1106A (106A) за лазерен принтер',
-      quantity: 2,
-      estimated_price: 74.5, // 74.50 €
-      status: 'approved',
-      created_at: new Date(Date.now() - 3600000 * 16).toISOString(),
-    },
-  ];
+  const orders: TicketOrder[] = [];
 
   const channels: TicketChannel[] = [
     {
@@ -673,15 +660,6 @@ export function useTicketsStore(
       (a, b) => new Date(b.uploaded_at).getTime() - new Date(a.uploaded_at).getTime()
     );
   }, [attachments]);
-
-  // Enriched orders
-  const enrichedOrders = useMemo(() => {
-    const tkMap = new Map(tickets.map((t) => [t.id, t.title]));
-    return orders.map((o) => ({
-      ...o,
-      ticket_title: o.ticket_id ? tkMap.get(o.ticket_id) : undefined,
-    }));
-  }, [orders, tickets]);
 
   // Record audit log helper
   const addAuditLog = useCallback(
@@ -1092,92 +1070,6 @@ export function useTicketsStore(
     [messages, schoolId, session.fullName, session.userId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
   );
 
-  // Orders CRUD (Prices strictly in EUR €)
-  const createOrder = useCallback(
-    async (input: {
-      item_name: string;
-      quantity: number;
-      estimated_price?: number | null; // in EUR €
-      ticket_id?: string | null;
-    }) => {
-      const validTicketId: string | null =
-        input.ticket_id && isValidUuid(input.ticket_id) ? input.ticket_id : null;
-      const order: TicketOrder = {
-        id: makeUuid(),
-        school_id: schoolId,
-        ticket_id: validTicketId,
-        item_name: input.item_name.trim(),
-        quantity: Math.max(1, input.quantity || 1),
-        estimated_price:
-          input.estimated_price !== undefined && input.estimated_price !== null
-            ? Number(input.estimated_price)
-            : null,
-        status: 'pending',
-        created_at: new Date().toISOString(),
-      };
-
-      const next = [order, ...orders];
-      setOrders(next);
-      saveLocalMirror({ orders: next });
-
-      if (usingSupabase) {
-        await supabase.from('ticket_orders').insert({
-          id: order.id,
-          school_id: schoolId,
-          ticket_id: order.ticket_id,
-          item_name: order.item_name,
-          quantity: order.quantity,
-          estimated_price: order.estimated_price,
-          status: order.status,
-        });
-      }
-
-      await addAuditLog(`Създадена поръчка за „${order.item_name}“ (${formatEur(order.estimated_price)})`, validTicketId, {
-        itemName: order.item_name,
-        priceEur: order.estimated_price,
-      });
-
-      pushToast('success', 'Поръчката е създадена!');
-    },
-    [orders, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
-  );
-
-  const updateOrderStatus = useCallback(
-    async (orderId: string, status: OrderStatus) => {
-      const next = orders.map((o) => (o.id === orderId ? { ...o, status } : o));
-      setOrders(next);
-      saveLocalMirror({ orders: next });
-
-      if (usingSupabase && isValidUuid(orderId)) {
-        await supabase
-          .from('ticket_orders')
-          .update({ status })
-          .eq('id', orderId)
-          .eq('school_id', schoolId);
-      }
-
-      await addAuditLog(`Сменен статус на поръчка: ${status}`, null, { orderId, status });
-      pushToast('success', 'Статусът на поръчката е обновен.');
-    },
-    [orders, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
-  );
-
-  const deleteOrder = useCallback(
-    async (orderId: string) => {
-      const next = orders.filter((o) => o.id !== orderId);
-      setOrders(next);
-      saveLocalMirror({ orders: next });
-
-      if (usingSupabase && isValidUuid(orderId)) {
-        await supabase.from('ticket_orders').delete().eq('id', orderId).eq('school_id', schoolId);
-      }
-
-      await addAuditLog('Изтрита поръчка', null, { orderId });
-      pushToast('info', 'Поръчката е изтрита.');
-    },
-    [orders, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
-  );
-
   // Channels & Channel Messages
   const createChannel = useCallback(
     async (name: string, channelType: string = 'general') => {
@@ -1511,7 +1403,6 @@ export function useTicketsStore(
     departments,
     tickets: enrichedTickets,
     messages,
-    orders: enrichedOrders,
     channels,
     channelMessages,
     announcements,
@@ -1529,10 +1420,6 @@ export function useTicketsStore(
     deleteAttachment,
 
     sendMessage,
-
-    createOrder,
-    updateOrderStatus,
-    deleteOrder,
 
     createChannel,
     toggleChannelActive,

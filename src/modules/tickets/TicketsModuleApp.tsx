@@ -10,7 +10,6 @@ import {
   LayoutDashboard,
   Megaphone,
   Plus,
-  ShoppingCart,
 } from 'lucide-react';
 import { useSchoolPortal } from '../../components/layout/schoolPortalContext';
 import { useTicketsStore } from './useTicketsStore';
@@ -19,7 +18,6 @@ import { TicketsListView } from './components/TicketsListView';
 import { TicketCreateView } from './components/TicketCreateView';
 import { TicketDetailView } from './components/TicketDetailView';
 import { DocumentsHistoryView } from './components/DocumentsHistoryView';
-import { OrdersView } from './components/OrdersView';
 import { ChannelsView } from './components/ChannelsView';
 import { AnnouncementsView } from './components/AnnouncementsView';
 import { DepartmentsAdminView } from './components/DepartmentsAdminView';
@@ -34,7 +32,6 @@ export type TicketsSubView =
   | 'create'
   | 'detail'
   | 'documents_history'
-  | 'orders'
   | 'channels'
   | 'announcements'
   | 'departments'
@@ -166,7 +163,6 @@ export function TicketsModuleApp() {
             { id: 'dashboard', label: 'Табло', icon: LayoutDashboard },
             { id: 'list', label: 'Задачи', icon: ClipboardList },
             { id: 'documents_history', label: 'История на документите (1 г.)', icon: FileText },
-            { id: 'orders', label: 'Поръчки (€)', icon: ShoppingCart },
             { id: 'channels', label: 'Канали', icon: Hash },
             { id: 'announcements', label: 'Съобщения', icon: Megaphone },
             ...(isStaffOrAdmin
@@ -257,7 +253,6 @@ export function TicketsModuleApp() {
             schoolUsers={bundle.users}
             messages={store.messages}
             auditLogs={store.auditLogs}
-            orders={store.orders}
             isStaffOrAdmin={isStaffOrAdmin}
             onBack={() => setCurrentView('list')}
             onStatusChange={store.updateTicketStatus}
@@ -268,18 +263,6 @@ export function TicketsModuleApp() {
             onDeleteAttachment={store.deleteAttachment}
             onEditTicket={store.editTicket}
             onDeleteTicket={store.deleteTicket}
-            onCreateOrder={store.createOrder}
-          />
-        )}
-
-        {currentView === 'orders' && (
-          <OrdersView
-            orders={store.orders}
-            tickets={store.tickets}
-            isStaffOrAdmin={isStaffOrAdmin}
-            onCreateOrder={store.createOrder}
-            onUpdateStatus={store.updateOrderStatus}
-            onDeleteOrder={store.deleteOrder}
           />
         )}
 
@@ -319,7 +302,7 @@ export function TicketsModuleApp() {
           <ReportsView
             tickets={store.tickets}
             departments={store.departments}
-            orders={store.orders}
+            allDocuments={store.allDocuments}
             onExportCsv={store.exportTicketsCsv}
           />
         )}

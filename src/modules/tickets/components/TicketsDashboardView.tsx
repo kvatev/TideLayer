@@ -9,7 +9,6 @@ import {
   Paperclip,
   Pin,
   Plus,
-  ShoppingCart,
   Users,
 } from 'lucide-react';
 import {
@@ -289,18 +288,6 @@ export function TicketsDashboardView({
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-blue-600" />
                 <span>История на документите (1 г.)</span>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onNavigate('orders')}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-navy-900 text-xs sm:text-sm font-medium transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <ShoppingCart className="w-4 h-4 text-purple-600" />
-                <span>Заявки за доставки и поръчки (€)</span>
               </div>
               <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
             </button>

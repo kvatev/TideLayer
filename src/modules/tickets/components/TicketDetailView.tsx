@@ -14,7 +14,6 @@ import {
   Plus,
   Presentation,
   Send,
-  ShoppingCart,
   Trash2,
   UploadCloud,
   User,
@@ -26,7 +25,6 @@ import {
 import {
   detectDocumentType,
   DOCUMENT_TYPE_META,
-  formatEur,
   formatFileSize,
   PRIORITY_LABELS,
   STATUS_LABELS,
@@ -36,7 +34,6 @@ import {
   type TicketAuditLog,
   type TicketDepartment,
   type TicketMessage,
-  type TicketOrder,
   type TicketPriority,
   type TicketStatus,
 } from '../types';
@@ -48,7 +45,6 @@ interface TicketDetailViewProps {
   schoolUsers: SchoolUserRecord[];
   messages: TicketMessage[];
   auditLogs: TicketAuditLog[];
-  orders: TicketOrder[];
   isStaffOrAdmin: boolean;
   onBack: () => void;
   onStatusChange: (ticketId: string, status: TicketStatus) => Promise<void>;
@@ -76,12 +72,6 @@ interface TicketDetailViewProps {
     }
   ) => Promise<void>;
   onDeleteTicket: (ticketId: string) => Promise<void>;
-  onCreateOrder: (input: {
-    item_name: string;
-    quantity: number;
-    estimated_price?: number | null;
-    ticket_id?: string | null;
-  }) => Promise<void>;
 }
 
 export function TicketDetailView({
@@ -90,7 +80,6 @@ export function TicketDetailView({
   schoolUsers,
   messages,
   auditLogs,
-  orders,
   isStaffOrAdmin,
   onBack,
   onStatusChange,
@@ -101,7 +90,6 @@ export function TicketDetailView({
   onDeleteAttachment,
   onEditTicket,
   onDeleteTicket,
-  onCreateOrder,
 }: TicketDetailViewProps) {
   const [newMessage, setNewMessage] = useState('');
   const [sendingMsg, setSendingMsg] = useState(false);
@@ -117,13 +105,6 @@ export function TicketDetailView({
   // Delete modal
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
 
-  // Quick Order Modal
-  const [orderModalOpen, setOrderModalOpen] = useState(false);
-  const [orderItem, setOrderItem] = useState('');
-  const [orderQty, setOrderQty] = useState('1');
-  const [orderPrice, setOrderPrice] = useState('');
-  const [savingOrder, setSavingOrder] = useState(false);
-
   // Add Document Modal
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -133,7 +114,6 @@ export function TicketDetailView({
 
   const ticketMessages = messages.filter((m) => m.ticket_id === ticket.id);
   const ticketLogs = auditLogs.filter((l) => l.ticket_id === ticket.id);
-  const ticketOrders = orders.filter((o) => o.ticket_id === ticket.id);
   const attachments = ticket.attachments || [];
 
   const handleSendReply = async (e: React.FormEvent) => {
@@ -203,23 +183,6 @@ export function TicketDetailView({
     });
     setSavingEdit(false);
     setEditOpen(false);
-  };
-
-  const handleCreateOrder = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!orderItem.trim()) return;
-    setSavingOrder(true);
-    await onCreateOrder({
-      item_name: orderItem.trim(),
-      quantity: Math.max(1, Number(orderQty) || 1),
-      estimated_price: orderPrice ? Number(orderPrice) : null,
-      ticket_id: ticket.id,
-    });
-    setOrderItem('');
-    setOrderQty('1');
-    setOrderPrice('');
-    setSavingOrder(false);
-    setOrderModalOpen(false);
   };
 
   const st = STATUS_LABELS[ticket.status] || STATUS_LABELS.open;
@@ -649,51 +612,6 @@ export function TicketDetailView({
               )}
             </div>
           </div>
-
-          {/* Linked Orders / Supplies in EUR */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-            <div className="flex items-center justify-between">
-              <h3 className="text-sm font-heading font-bold text-navy-900 flex items-center gap-1.5 mb-0">
-                <ShoppingCart className="w-4 h-4 text-purple-600" />
-                <span>Заявки за материали (€)</span>
-              </h3>
-              {isStaffOrAdmin && (
-                <button
-                  type="button"
-                  onClick={() => setOrderModalOpen(true)}
-                  className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus className="w-3.5 h-3.5" />
-                  <span>Поръчай</span>
-                </button>
-              )}
-            </div>
-
-            <div className="space-y-2 text-xs">
-              {ticketOrders.map((ord) => (
-                <div
-                  key={ord.id}
-                  className="p-2.5 rounded-xl bg-purple-50/60 border border-purple-200 flex items-center justify-between gap-2"
-                >
-                  <div className="min-w-0">
-                    <div className="font-semibold text-navy-900 truncate">{ord.item_name}</div>
-                    <div className="text-[11px] text-slate-500">
-                      {ord.quantity} бр. • {formatEur(ord.estimated_price)}
-                    </div>
-                  </div>
-                  <span className="px-2 py-0.5 rounded-md bg-purple-100 text-purple-800 text-[10px] font-bold shrink-0">
-                    {ord.status}
-                  </span>
-                </div>
-              ))}
-
-              {ticketOrders.length === 0 && (
-                <p className="text-xs text-slate-400 py-2 mb-0 text-center">
-                  Няма поръчани учебни материали към тази задача.
-                </p>
-              )}
-            </div>
-          </div>
         </div>
       </div>
 
@@ -875,79 +793,6 @@ export function TicketDetailView({
         tone="danger"
         description="Сигурни ли сте, че искате да изтриете тази задача? Всички коментари, хронология и прикачени документи към нея ще бъдат премахнати."
       />
-
-      {/* Create Order Modal (in € EUR) */}
-      <ModuleModal
-        open={orderModalOpen}
-        onClose={() => setOrderModalOpen(false)}
-        title="Заявка за поръчка на учебни материали"
-        subtitle={`Към задача: ${ticket.title}`}
-        maxWidthClass="max-w-md"
-      >
-        <form onSubmit={handleCreateOrder} className="space-y-4">
-          <div>
-            <label className="block text-xs font-semibold text-navy-900 mb-1">
-              Артикул / Консуматив *
-            </label>
-            <input
-              type="text"
-              required
-              autoFocus
-              value={orderItem}
-              onChange={(e) => setOrderItem(e.target.value)}
-              placeholder="напр. Хартия за принтиране, Папки, Маркери или Кабели"
-              className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm focus:outline-none focus:border-blue-500"
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-navy-900 mb-1">
-                Количество (бр.)
-              </label>
-              <input
-                type="number"
-                min={1}
-                required
-                value={orderQty}
-                onChange={(e) => setOrderQty(e.target.value)}
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-navy-900 mb-1">
-                Ориентировъчна цена (€)
-              </label>
-              <input
-                type="number"
-                step="0.01"
-                min={0}
-                value={orderPrice}
-                onChange={(e) => setOrderPrice(e.target.value)}
-                placeholder="напр. 24.50"
-                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-sm"
-              />
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setOrderModalOpen(false)}
-              className="px-4 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-semibold text-slate-700 cursor-pointer"
-            >
-              Отказ
-            </button>
-            <button
-              type="submit"
-              disabled={savingOrder || !orderItem.trim()}
-              className="px-5 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs sm:text-sm font-semibold cursor-pointer"
-            >
-              {savingOrder ? 'Записване...' : 'Създай поръчка'}
-            </button>
-          </div>
-        </form>
-      </ModuleModal>
     </div>
   );
 }

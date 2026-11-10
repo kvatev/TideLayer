@@ -3,7 +3,6 @@ import {
   Calendar,
   Clock,
   Download,
-  Euro,
   Eye,
   FileSpreadsheet,
   FileText,
@@ -239,15 +238,8 @@ const SAMPLE_TASKS: DemoTask[] = [
   },
 ];
 
-const ORDERS_BUDGET = [
-  { item: 'Тонер касети Konica Minolta bizhub (к-т)', qty: 2, totalEur: 140.0, status: 'Одобрена' },
-  { item: 'Копирна хартия A4 Double A (10 кашона)', qty: 10, totalEur: 48.0, status: 'Доставена' },
-  { item: 'Кабелни организатори и пач кабели Cat6', qty: 15, totalEur: 35.5, status: 'Поръчана' },
-  { item: 'Маркери за бяла дъска и магнитни гъби (к-т)', qty: 6, totalEur: 22.0, status: 'Доставена' },
-];
-
 export function SchoolTicketingDemo() {
-  const [activeTab, setActiveTab] = useState<'tasks' | 'archive' | 'budget'>('tasks');
+  const [activeTab, setActiveTab] = useState<'tasks' | 'archive'>('tasks');
   const [selectedTask, setSelectedTask] = useState<DemoTask>(SAMPLE_TASKS[0]);
   const [taskList, setTaskList] = useState(SAMPLE_TASKS);
   const [newComment, setNewComment] = useState('');
@@ -338,25 +330,12 @@ export function SchoolTicketingDemo() {
             <Clock className="w-3.5 h-3.5 text-amber-400" />
             <span>1-годишен архив на документи (365 дни)</span>
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab('budget')}
-            className={cn(
-              'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all flex items-center gap-1.5 cursor-pointer whitespace-nowrap',
-              activeTab === 'budget' ? 'bg-blue-600 text-white shadow-xs' : 'text-slate-400 hover:text-white'
-            )}
-          >
-            <Euro className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Бюджет и Поръчки (€)</span>
-          </button>
         </div>
 
         <span className="text-xs text-slate-400 hidden lg:inline">
           {activeTab === 'tasks'
             ? 'Кликнете върху задача за преглед на документите и чата'
-            : activeTab === 'archive'
-            ? 'Преглед на съхранените документи с 365 дни гаранция'
-            : 'Контрол на разходите за материали'}
+            : 'Преглед на съхранените документи с 365 дни гаранция'}
         </span>
       </div>
 
@@ -678,57 +657,6 @@ export function SchoolTicketingDemo() {
                   </div>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* TAB 3: BUDGET & ORDERS VIEW IN EUR € */}
-        {activeTab === 'budget' && (
-          <div className="space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
-                <div className="text-xs text-slate-400 font-semibold uppercase">Одобрен бюджет (€)</div>
-                <div className="text-2xl font-bold text-emerald-400">2,500.00 €</div>
-                <div className="text-[11px] text-slate-500">за текущия учебен срок</div>
-              </div>
-              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
-                <div className="text-xs text-slate-400 font-semibold uppercase">Изразходвани до момента</div>
-                <div className="text-2xl font-bold text-blue-400">245.50 €</div>
-                <div className="text-[11px] text-slate-500">по 4 заявки за консумативи</div>
-              </div>
-              <div className="p-4 rounded-2xl bg-slate-950/80 border border-slate-800 space-y-1">
-                <div className="text-xs text-slate-400 font-semibold uppercase">Оставащ свободен лимит</div>
-                <div className="text-2xl font-bold text-slate-100">2,254.50 €</div>
-                <div className="text-[11px] text-emerald-400 font-semibold">90.2% от бюджета</div>
-              </div>
-            </div>
-
-            {/* Orders Table */}
-            <div className="rounded-2xl border border-slate-800 bg-slate-950/70 overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-900 border-b border-slate-800 text-slate-400 uppercase text-[11px]">
-                  <tr>
-                    <th className="p-3">Материал / Артикул</th>
-                    <th className="p-3 text-center">Количество</th>
-                    <th className="p-3 text-right">Стойност в Евро (€)</th>
-                    <th className="p-3 text-right">Статус на поръчката</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-800/60 text-slate-300">
-                  {ORDERS_BUDGET.map((o, idx) => (
-                    <tr key={idx} className="hover:bg-slate-900/40">
-                      <td className="p-3 font-semibold text-slate-100">{o.item}</td>
-                      <td className="p-3 text-center font-bold">{o.qty} бр.</td>
-                      <td className="p-3 text-right font-bold text-emerald-400">{o.totalEur.toFixed(2)} €</td>
-                      <td className="p-3 text-right">
-                        <span className="px-2 py-0.5 rounded-md bg-blue-500/15 text-blue-300 font-semibold text-[11px]">
-                          {o.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
             </div>
           </div>
         )}

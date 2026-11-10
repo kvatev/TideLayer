@@ -1,27 +1,27 @@
 import {
   BarChart3,
   FileSpreadsheet,
+  FileText,
   PieChart,
   TrendingUp,
 } from 'lucide-react';
 import {
-  formatEur,
   type SchoolTicket,
+  type TaskDocumentAttachment,
   type TicketDepartment,
-  type TicketOrder,
 } from '../types';
 
 interface ReportsViewProps {
   tickets: SchoolTicket[];
   departments: TicketDepartment[];
-  orders: TicketOrder[];
+  allDocuments?: TaskDocumentAttachment[];
   onExportCsv: () => void;
 }
 
 export function ReportsView({
   tickets,
   departments,
-  orders,
+  allDocuments = [],
   onExportCsv,
 }: ReportsViewProps) {
   const total = tickets.length;
@@ -42,14 +42,11 @@ export function ReportsView({
     low: tickets.filter((t) => t.priority === 'low').length,
   };
 
-  // Orders stats
-  const totalOrdersCostEur = orders.reduce(
-    (sum, o) => sum + (o.estimated_price || 0) * (o.quantity || 1),
-    0
-  );
-  const deliveredCostEur = orders
-    .filter((o) => o.status === 'delivered')
-    .reduce((sum, o) => sum + (o.estimated_price || 0) * (o.quantity || 1), 0);
+  // Documents count
+  const totalDocs =
+    allDocuments.length > 0
+      ? allDocuments.length
+      : tickets.reduce((sum, t) => sum + (t.attachments?.length || 0), 0);
 
   return (
     <div className="space-y-6">
@@ -61,7 +58,7 @@ export function ReportsView({
             <span>Статистика и отчети</span>
           </h2>
           <p className="text-xs sm:text-sm text-slate-500 mb-0">
-            Обобщени графични справки за изпълнението на задачите и разходите за поръчки
+            Обобщени графични справки за изпълнението на задачите, сроковете и документите
           </p>
         </div>
 
@@ -108,13 +105,13 @@ export function ReportsView({
 
         <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs">
           <div className="text-xs font-semibold uppercase text-slate-500 tracking-wider mb-1">
-            Обща стойност на поръчките
+            Прикачени документи
           </div>
-          <div className="text-3xl font-heading font-bold text-purple-700">
-            {formatEur(totalOrdersCostEur)}
+          <div className="text-3xl font-heading font-bold text-blue-600">
+            {totalDocs}
           </div>
           <div className="text-xs text-slate-500 mt-1">
-            Доставено оборудване: <strong>{formatEur(deliveredCostEur)}</strong>
+            Включени в 1-годишния училищен архив
           </div>
         </div>
       </div>

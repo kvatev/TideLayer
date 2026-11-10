@@ -24,7 +24,8 @@ import {
   BookOpen as BookOpenIcon, GraduationCap as GraduationCapIcon,
   MapPin as MapPinIcon, Mail as MailIcon, Phone as PhoneIcon,
   Clock as ClockIcon, GitBranch, GitFork, GitMerge, Link, Link2,
-  Unlink, Unlink2, PenTool, Toolbox, ToolCase
+  Unlink, Unlink2, PenTool, Toolbox, ToolCase,
+  ClipboardList, ClipboardCheck, CheckSquare, ListTodo, FileCheck
 } from 'lucide-react';
 
 export interface IconProps extends SVGAttributes<SVGSVGElement> {
@@ -59,12 +60,16 @@ const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>
   PackageIcon, TreePineIcon, LifeBuoyIcon, TargetIcon, LightbulbIcon, EyeIcon,
   BookOpenIcon, GraduationCapIcon, MapPinIcon, MailIcon, PhoneIcon,
   ClockIcon, GitBranch, GitFork, GitMerge, Link, Link2,
-  Unlink, Unlink2, PenTool, Toolbox, ToolCase
+  Unlink, Unlink2, PenTool, Toolbox, ToolCase,
+  ClipboardList, ClipboardCheck, CheckSquare, ListTodo, FileCheck,
+  Task: ClipboardList, Tasks: ClipboardList
 };
 
 const Icon = forwardRef<SVGSVGElement, IconProps>(
   ({ className, name, size = 24, strokeWidth = 1.5, ...props }, ref) => {
-    const IconComponent = iconMap[name];
+    const IconComponent =
+      iconMap[name] ||
+      (name ? iconMap[name.charAt(0).toUpperCase() + name.slice(1)] : undefined);
 
     if (!IconComponent) {
       console.warn(`Icon "${name}" not found in icon map`);

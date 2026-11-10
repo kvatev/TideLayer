@@ -25,7 +25,9 @@ import {
   MapPin as MapPinIcon, Mail as MailIcon, Phone as PhoneIcon,
   Clock as ClockIcon, GitBranch, GitFork, GitMerge, Link, Link2,
   Unlink, Unlink2, PenTool, Toolbox, ToolCase,
-  ClipboardList, ClipboardCheck, CheckSquare, ListTodo, FileCheck
+  ClipboardList, ClipboardCheck, CheckSquare, ListTodo, FileCheck,
+  Search, Printer, QrCode, ArrowRightLeft, History, FileSpreadsheet,
+  Boxes, Archive, Building2, Tag, Barcode, CheckCheck, Split
 } from 'lucide-react';
 
 export interface IconProps extends SVGAttributes<SVGSVGElement> {
@@ -62,6 +64,8 @@ const iconMap: Record<string, React.ComponentType<React.SVGProps<SVGSVGElement>>
   ClockIcon, GitBranch, GitFork, GitMerge, Link, Link2,
   Unlink, Unlink2, PenTool, Toolbox, ToolCase,
   ClipboardList, ClipboardCheck, CheckSquare, ListTodo, FileCheck,
+  Search, Printer, QrCode, ArrowRightLeft, History, FileSpreadsheet,
+  Boxes, Archive, Building2, Tag, Barcode, CheckCheck, Split,
   Task: ClipboardList, Tasks: ClipboardList
 };
 

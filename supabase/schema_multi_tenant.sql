@@ -224,9 +224,16 @@ CREATE TABLE IF NOT EXISTS public.ticket_audit_logs (
 CREATE TABLE IF NOT EXISTS public.inventory_rooms (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  room_number TEXT,
   name TEXT NOT NULL,
+  room_type TEXT DEFAULT 'classroom',
+  building TEXT,
+  floor TEXT,
   building_or_floor TEXT,
   responsible_person TEXT,
+  responsible_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
+  description TEXT,
+  is_archived BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
@@ -244,16 +251,77 @@ CREATE TABLE IF NOT EXISTS public.inventory_items (
   room_id UUID REFERENCES public.inventory_rooms(id) ON DELETE SET NULL,
   category_id UUID REFERENCES public.inventory_categories(id) ON DELETE SET NULL,
   name TEXT NOT NULL,
-  inventory_code TEXT,
+  inventory_code TEXT NOT NULL,
+  tracking_type TEXT DEFAULT 'individual' CHECK (tracking_type IN ('individual', 'batch')),
+  manufacturer TEXT,
+  model TEXT,
+  brand_or_model TEXT,
   serial_number TEXT,
   quantity INTEGER DEFAULT 1,
-  condition TEXT DEFAULT 'good' CHECK (condition IN ('new', 'good', 'needs_repair', 'written_off')),
+  condition TEXT DEFAULT 'good' CHECK (condition IN ('new', 'good', 'needs_repair', 'written_off', 'missing')),
   assigned_to TEXT,
+  assigned_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
   purchase_date DATE,
+  warranty_until DATE,
   purchase_price NUMERIC(10,2),
   notes TEXT,
+  description TEXT,
+  photos TEXT[] DEFAULT ARRAY[]::TEXT[],
+  documents TEXT[] DEFAULT ARRAY[]::TEXT[],
+  is_archived BOOLEAN DEFAULT false,
+  is_written_off BOOLEAN DEFAULT false,
+  written_off_date DATE,
+  written_off_reason TEXT,
   created_at TIMESTAMPTZ DEFAULT now(),
-  updated_at TIMESTAMPTZ DEFAULT now()
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(school_id, inventory_code)
+);
+
+CREATE TABLE IF NOT EXISTS public.inventory_movements (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  item_id UUID NOT NULL REFERENCES public.inventory_items(id) ON DELETE CASCADE,
+  from_room_id UUID REFERENCES public.inventory_rooms(id) ON DELETE SET NULL,
+  from_room_name TEXT,
+  to_room_id UUID REFERENCES public.inventory_rooms(id) ON DELETE SET NULL,
+  to_room_name TEXT NOT NULL,
+  from_mol TEXT,
+  to_mol TEXT,
+  moved_by_name TEXT,
+  moved_by_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
+  movement_date TIMESTAMPTZ DEFAULT now(),
+  reason TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.inventory_audits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  order_number TEXT,
+  scope TEXT DEFAULT 'all' CHECK (scope IN ('all', 'rooms', 'categories')),
+  target_room_ids UUID[] DEFAULT ARRAY[]::UUID[],
+  target_category_ids UUID[] DEFAULT ARRAY[]::UUID[],
+  committee_members TEXT[] DEFAULT ARRAY[]::TEXT[],
+  status TEXT DEFAULT 'in_progress' CHECK (status IN ('in_progress', 'completed', 'cancelled')),
+  started_at TIMESTAMPTZ DEFAULT now(),
+  completed_at TIMESTAMPTZ,
+  summary_notes TEXT,
+  created_by_name TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE IF NOT EXISTS public.inventory_audit_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  audit_id UUID NOT NULL REFERENCES public.inventory_audits(id) ON DELETE CASCADE,
+  item_id UUID NOT NULL REFERENCES public.inventory_items(id) ON DELETE CASCADE,
+  status TEXT DEFAULT 'unverified' CHECK (status IN ('present', 'missing', 'damaged', 'discrepancy', 'unverified')),
+  expected_room_id UUID REFERENCES public.inventory_rooms(id) ON DELETE SET NULL,
+  found_room_id UUID REFERENCES public.inventory_rooms(id) ON DELETE SET NULL,
+  notes TEXT,
+  checked_by_name TEXT,
+  checked_at TIMESTAMPTZ
 );
 
 CREATE TABLE IF NOT EXISTS public.inventory_logs (
@@ -284,7 +352,6 @@ CREATE INDEX IF NOT EXISTS idx_duty_broadcasts_school_id ON public.duty_broadcas
 CREATE INDEX IF NOT EXISTS idx_ticket_departments_school_id ON public.ticket_departments(school_id);
 CREATE INDEX IF NOT EXISTS idx_tickets_school_id ON public.tickets(school_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_messages_school_id ON public.ticket_messages(school_id);
-CREATE INDEX IF NOT EXISTS idx_ticket_orders_school_id ON public.ticket_orders(school_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_channels_school_id ON public.ticket_channels(school_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_announcements_school_id ON public.ticket_announcements(school_id);
 CREATE INDEX IF NOT EXISTS idx_ticket_audit_logs_school_id ON public.ticket_audit_logs(school_id);
@@ -292,6 +359,11 @@ CREATE INDEX IF NOT EXISTS idx_ticket_audit_logs_school_id ON public.ticket_audi
 CREATE INDEX IF NOT EXISTS idx_inventory_rooms_school_id ON public.inventory_rooms(school_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_categories_school_id ON public.inventory_categories(school_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_items_school_id ON public.inventory_items(school_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_items_code ON public.inventory_items(school_id, inventory_code);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_school_id ON public.inventory_movements(school_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_movements_item_id ON public.inventory_movements(item_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_audits_school_id ON public.inventory_audits(school_id);
+CREATE INDEX IF NOT EXISTS idx_inventory_audit_items_audit_id ON public.inventory_audit_items(audit_id);
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_school_id ON public.inventory_logs(school_id);
 
 -- =============================================================================
@@ -315,13 +387,15 @@ BEGIN
     'ticket_departments',
     'tickets',
     'ticket_messages',
-    'ticket_orders',
     'ticket_channels',
     'ticket_announcements',
     'ticket_audit_logs',
     'inventory_rooms',
     'inventory_categories',
     'inventory_items',
+    'inventory_movements',
+    'inventory_audits',
+    'inventory_audit_items',
     'inventory_logs'
   ]
   LOOP

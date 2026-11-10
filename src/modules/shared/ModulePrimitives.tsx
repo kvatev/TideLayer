@@ -67,34 +67,54 @@ export function ModuleToastContainer({
 }
 
 interface ModuleModalProps {
-  open: boolean;
+  open?: boolean;
+  isOpen?: boolean;
   onClose: () => void;
   title: ReactNode;
   subtitle?: ReactNode;
   maxWidthClass?: string;
+  size?: 'sm' | 'md' | 'lg' | 'xl' | '2xl';
   children: ReactNode;
   footer?: ReactNode;
 }
 
 export function ModuleModal({
   open,
+  isOpen,
   onClose,
   title,
   subtitle,
-  maxWidthClass = 'max-w-lg',
+  maxWidthClass,
+  size,
   children,
   footer,
 }: ModuleModalProps) {
+  const isModalOpen = isOpen !== undefined ? isOpen : Boolean(open);
+
+  const effectiveMaxWidthClass =
+    maxWidthClass ||
+    (size === 'sm'
+      ? 'max-w-sm'
+      : size === 'md'
+      ? 'max-w-lg'
+      : size === 'lg'
+      ? 'max-w-2xl'
+      : size === 'xl'
+      ? 'max-w-4xl'
+      : size === '2xl'
+      ? 'max-w-6xl'
+      : 'max-w-lg');
+
   useEffect(() => {
-    if (!open) return;
+    if (!isModalOpen) return;
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [open, onClose]);
+  }, [isModalOpen, onClose]);
 
-  if (!open) return null;
+  if (!isModalOpen) return null;
 
   return (
     <div
@@ -108,7 +128,7 @@ export function ModuleModal({
       <div
         className={cn(
           'bg-white text-slate-900 rounded-2xl border border-slate-200 shadow-2xl w-full max-h-[92dvh] flex flex-col overflow-hidden animate-scale-in',
-          maxWidthClass
+          effectiveMaxWidthClass
         )}
       >
         <div className="px-4 sm:px-6 py-4 border-b border-slate-200 bg-slate-50/80 flex items-start justify-between gap-3 shrink-0">
@@ -145,44 +165,61 @@ export function ModuleModal({
 }
 
 interface ModuleConfirmDialogProps {
-  open: boolean;
-  onClose: () => void;
+  open?: boolean;
+  isOpen?: boolean;
+  onClose?: () => void;
+  onCancel?: () => void;
   onConfirm: () => void | Promise<void>;
   title: string;
-  description: ReactNode;
+  description?: ReactNode;
+  message?: ReactNode;
   confirmLabel?: string;
   cancelLabel?: string;
   tone?: 'danger' | 'warning' | 'primary';
+  confirmVariant?: 'danger' | 'warning' | 'primary';
 }
 
 export function ModuleConfirmDialog({
   open,
+  isOpen,
   onClose,
+  onCancel,
   onConfirm,
   title,
   description,
+  message,
   confirmLabel = 'Потвърди',
   cancelLabel = 'Отказ',
-  tone = 'danger',
+  tone,
+  confirmVariant,
 }: ModuleConfirmDialogProps) {
+  const isDialogOpen = isOpen !== undefined ? isOpen : Boolean(open);
+  const handleClose = () => {
+    if (onCancel) onCancel();
+    else if (onClose) onClose();
+  };
+
+  const effectiveTone = confirmVariant || tone || 'danger';
+  const effectiveDescription = message !== undefined ? message : description;
+
   const confirmCls =
-    tone === 'danger'
+    effectiveTone === 'danger'
       ? 'bg-red-600 hover:bg-red-700 text-white'
-      : tone === 'warning'
+      : effectiveTone === 'warning'
         ? 'bg-amber-600 hover:bg-amber-700 text-white'
         : 'bg-blue-600 hover:bg-blue-700 text-white';
 
   return (
     <ModuleModal
-      open={open}
-      onClose={onClose}
+      open={isDialogOpen}
+      onClose={handleClose}
       title={title}
       maxWidthClass="max-w-md"
       footer={
         <>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 rounded-xl border border-slate-300 bg-white hover:bg-slate-100 text-slate-700 text-xs sm:text-sm font-semibold transition-colors"
           >
             {cancelLabel}
@@ -191,7 +228,7 @@ export function ModuleConfirmDialog({
             type="button"
             onClick={async () => {
               await onConfirm();
-              onClose();
+              handleClose();
             }}
             className={cn(
               'px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-colors shadow-xs',
@@ -203,7 +240,7 @@ export function ModuleConfirmDialog({
         </>
       }
     >
-      <div className="text-sm text-slate-700 leading-relaxed">{description}</div>
+      <div className="text-sm text-slate-700 leading-relaxed">{effectiveDescription}</div>
     </ModuleModal>
   );
 }

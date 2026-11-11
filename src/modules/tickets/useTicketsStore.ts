@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   supabase,
   ROLE_LABELS,
+  deactivateSchoolUser,
+  reactivateSchoolUser,
   type SchoolRecord,
   type SchoolUserRecord,
   type SchoolPortalSession,
@@ -9,6 +11,7 @@ import {
 import {
   isValidUuid,
   makeUuid,
+  normalizeTaskStatus,
   type ChannelMessage,
   type DepartmentMembership,
   type DocumentFileType,
@@ -132,11 +135,25 @@ function buildStarterTicketsData(
   const adminUser =
     schoolUsers.find((u) => u.role === 'administration') || schoolUsers[2] || schoolUsers[0];
   const teacherUser =
-    schoolUsers.find((u) => u.role === 'teacher') || schoolUsers[3] || schoolUsers[0];
+    schoolUsers.find((u) => u.role === 'teacher' && u.is_active !== false) || schoolUsers[3] || schoolUsers[0];
+  const formerUser =
+    schoolUsers.find((u) => u.is_active === false) || {
+      id: 'usr-former-1',
+      school_id: schoolId,
+      auth_user_id: null,
+      email: 'dimitar.ivanov@petkanov.bg',
+      password_hash: 'school123',
+      pin_code: '9999',
+      full_name: 'Димитър Иванов (Бивш учител по физика)',
+      role: 'teacher' as const,
+      allowed_modules: ['duty' as const, 'tickets' as const],
+      is_active: false,
+      created_at: new Date(Date.now() - 86400000 * 200).toISOString(),
+    };
 
   const validCreatorId = directorUser ? directorUser.id : null;
 
-  // Department memberships
+  // Department memberships (с пълна история и интервали от дати)
   const departmentMemberships: DepartmentMembership[] = [];
   if (directorUser) {
     departmentMemberships.push({
@@ -145,6 +162,9 @@ function buildStarterTicketsData(
       department_id: dept1Id,
       user_id: directorUser.id,
       is_lead: true,
+      is_active: true,
+      started_at: new Date(Date.now() - 86400000 * 365).toISOString(),
+      ended_at: null,
       created_at: now.toISOString(),
       user_name: directorUser.full_name,
       user_role: directorUser.role,
@@ -159,6 +179,9 @@ function buildStarterTicketsData(
         department_id: dept1Id,
         user_id: deputyUser.id,
         is_lead: false,
+        is_active: true,
+        started_at: new Date(Date.now() - 86400000 * 365).toISOString(),
+        ended_at: null,
         created_at: now.toISOString(),
         user_name: deputyUser.full_name,
         user_role: deputyUser.role,
@@ -170,6 +193,9 @@ function buildStarterTicketsData(
         department_id: dept2Id,
         user_id: deputyUser.id,
         is_lead: true,
+        is_active: true,
+        started_at: new Date(Date.now() - 86400000 * 365).toISOString(),
+        ended_at: null,
         created_at: now.toISOString(),
         user_name: deputyUser.full_name,
         user_role: deputyUser.role,
@@ -178,16 +204,35 @@ function buildStarterTicketsData(
     );
   }
   if (teacherUser) {
+    // Текущо активно членство
     departmentMemberships.push({
       id: makeUuid(),
       school_id: schoolId,
       department_id: dept2Id,
       user_id: teacherUser.id,
       is_lead: false,
+      is_active: true,
+      started_at: new Date(Date.now() - 86400000 * 120).toISOString(),
+      ended_at: null,
       created_at: now.toISOString(),
       user_name: teacherUser.full_name,
       user_role: teacherUser.role,
       department_name: 'Учебна дейност и Класни ръководители',
+    });
+    // Историческо приключило членство (преди преместването от Администрация)
+    departmentMemberships.push({
+      id: makeUuid(),
+      school_id: schoolId,
+      department_id: dept3Id,
+      user_id: teacherUser.id,
+      is_lead: false,
+      is_active: false,
+      started_at: new Date(Date.now() - 86400000 * 300).toISOString(),
+      ended_at: new Date(Date.now() - 86400000 * 121).toISOString(),
+      created_at: new Date(Date.now() - 86400000 * 300).toISOString(),
+      user_name: teacherUser.full_name,
+      user_role: teacherUser.role,
+      department_name: 'Администрация, ЗАС и Човешки ресурси',
     });
   }
   if (adminUser) {
@@ -198,6 +243,9 @@ function buildStarterTicketsData(
         department_id: dept3Id,
         user_id: adminUser.id,
         is_lead: true,
+        is_active: true,
+        started_at: new Date(Date.now() - 86400000 * 365).toISOString(),
+        ended_at: null,
         created_at: now.toISOString(),
         user_name: adminUser.full_name,
         user_role: adminUser.role,
@@ -209,6 +257,9 @@ function buildStarterTicketsData(
         department_id: dept4Id,
         user_id: adminUser.id,
         is_lead: true,
+        is_active: true,
+        started_at: new Date(Date.now() - 86400000 * 365).toISOString(),
+        ended_at: null,
         created_at: now.toISOString(),
         user_name: adminUser.full_name,
         user_role: adminUser.role,
@@ -216,11 +267,29 @@ function buildStarterTicketsData(
       }
     );
   }
+  if (formerUser) {
+    // Историческо приключило членство на напуснал служител
+    departmentMemberships.push({
+      id: makeUuid(),
+      school_id: schoolId,
+      department_id: dept2Id,
+      user_id: formerUser.id,
+      is_lead: false,
+      is_active: false,
+      started_at: new Date(Date.now() - 86400000 * 400).toISOString(),
+      ended_at: new Date(Date.now() - 86400000 * 45).toISOString(),
+      created_at: new Date(Date.now() - 86400000 * 400).toISOString(),
+      user_name: formerUser.full_name,
+      user_role: formerUser.role,
+      department_name: 'Учебна дейност и Класни ръководители',
+    });
+  }
 
   const tk1Id = makeUuid();
   const tk2Id = makeUuid();
   const tk3Id = makeUuid();
   const tk4Id = makeUuid();
+  const tk5Id = makeUuid();
 
   const inFiveDays = new Date(Date.now() + 86400000 * 5).toISOString();
   const inTwoDays = new Date(Date.now() + 86400000 * 2).toISOString();
@@ -309,6 +378,26 @@ function buildStarterTicketsData(
       is_recurring: false,
       created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
       updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    },
+    {
+      id: tk5Id,
+      school_id: schoolId,
+      code: 'TSK-1005',
+      department_id: dept2Id,
+      created_by_user_id: validCreatorId,
+      primary_assignee_id: formerUser.id,
+      assigned_to_user_id: formerUser.id,
+      assigned_user_ids: teacherUser ? [teacherUser.id] : [],
+      due_date: inTwoDays,
+      title: 'Годишна инвентаризация и калибриране на уредите в кабинет 208',
+      description:
+        'Във връзка с предстоящото оценяване е необходимо да се изготви протокол за техническата изправност на лабораторните уреди по физика и астрономия.',
+      room_or_location: 'Лаборатория 208',
+      priority: 'high',
+      status: 'in_progress',
+      is_recurring: false,
+      created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
+      updated_at: new Date(Date.now() - 86400000 * 50).toISOString(),
     },
   ];
 
@@ -545,6 +634,21 @@ function buildStarterTicketsData(
       previous_value: 'awaiting_approval',
       new_value: 'completed',
       created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      task_id: tk5Id,
+      actor_user_id: directorUser?.id || null,
+      actor_name: directorUser?.full_name || 'д-р Валентина Каменова',
+      actor_role: 'director',
+      actor_department_name: 'Ръководство и Педагогически съвет',
+      action: 'created',
+      entity_type: 'task',
+      entity_id: tk5Id,
+      details: `Създадена задача TSK-1005. Главен отговорник: ${formerUser.full_name}`,
+      new_value: formerUser.full_name,
+      created_at: new Date(Date.now() - 86400000 * 60).toISOString(),
     },
   ];
 
@@ -1019,7 +1123,12 @@ export function useTicketsStore(
     [schoolUsers]
   );
 
-  // Enriched department memberships
+  const userIsActiveMap = useMemo(
+    () => new Map(schoolUsers.map((u) => [u.id, u.is_active !== false])),
+    [schoolUsers]
+  );
+
+  // Enriched department memberships (с начални/крайни дати и активен флаг)
   const enrichedMemberships = useMemo(() => {
     return departmentMemberships.map((m) => {
       const u = schoolUsers.find((user) => user.id === m.user_id);
@@ -1028,15 +1137,18 @@ export function useTicketsStore(
         ...m,
         user_name: u?.full_name || m.user_name || 'Служител',
         user_role: u?.role || m.user_role || 'Служител',
+        user_is_active: u ? u.is_active !== false : (m.user_is_active ?? true),
         department_name: d?.name || m.department_name || 'Направление',
+        is_active: m.is_active !== false,
+        started_at: m.started_at || m.created_at,
       };
     });
   }, [departmentMemberships, schoolUsers, departments]);
 
-  // Current user's department IDs
+  // Current user's active department IDs
   const currentUserDepartmentIds = useMemo(() => {
     return departmentMemberships
-      .filter((m) => m.user_id === session.userId)
+      .filter((m) => m.user_id === session.userId && m.is_active !== false)
       .map((m) => m.department_id);
   }, [departmentMemberships, session.userId]);
 
@@ -1049,6 +1161,16 @@ export function useTicketsStore(
       const creatorRole = t.created_by_user_id ? userRoleMap.get(t.created_by_user_id) : undefined;
       const assigneeRole = t.assigned_to_user_id ? userRoleMap.get(t.assigned_to_user_id) : undefined;
 
+      const primaryId = t.primary_assignee_id || t.assigned_to_user_id || null;
+      const primaryAssigneeUser = primaryId ? schoolUsers.find((u) => u.id === primaryId) : undefined;
+      const primaryIsActive = primaryId ? (userIsActiveMap.get(primaryId) ?? true) : true;
+      const normStatus = normalizeTaskStatus(t.status);
+      const hasInactiveAssignee = Boolean(
+        primaryId &&
+        !primaryIsActive &&
+        normStatus !== 'completed'
+      );
+
       let assigneeLabel = 'Неразпределена';
       if (t.assigned_role_target) {
         if (t.assigned_role_target === 'all_teachers') assigneeLabel = 'Всички учители';
@@ -1056,11 +1178,25 @@ export function useTicketsStore(
           assigneeLabel = 'Всички в администрацията';
         else if (t.assigned_role_target === 'all_staff') assigneeLabel = 'Целия персонал';
         else assigneeLabel = t.assigned_role_target;
-      } else if (t.primary_assignee_id) {
-        assigneeLabel = userMap.get(t.primary_assignee_id) || 'Служител';
-      } else if (t.assigned_to_user_id) {
-        assigneeLabel = userMap.get(t.assigned_to_user_id) || 'Служител';
+      } else if (primaryAssigneeUser) {
+        assigneeLabel = primaryAssigneeUser.full_name;
+      } else if (primaryId) {
+        assigneeLabel = userMap.get(primaryId) || 'Служител';
       }
+
+      const additionalAssignees = (t.assigned_user_ids || []).map((id) => {
+        const u = schoolUsers.find((user) => user.id === id);
+        return {
+          id,
+          name: u?.full_name || userMap.get(id) || 'Служител',
+          role: u?.role
+            ? ROLE_LABELS[u.role] || u.role
+            : userRoleMap.get(id)
+              ? ROLE_LABELS[userRoleMap.get(id)!] || userRoleMap.get(id)!
+              : 'Служител',
+          is_active: userIsActiveMap.get(id) ?? true,
+        };
+      });
 
       const guaranteedCode = t.code || `TSK-${1000 + idx + 1}`;
 
@@ -1078,7 +1214,15 @@ export function useTicketsStore(
         creator_role: creatorRole ? ROLE_LABELS[creatorRole] || creatorRole : undefined,
         assignee_name: assigneeLabel,
         assignee_role: assigneeRole ? ROLE_LABELS[assigneeRole] || assigneeRole : undefined,
-        primary_assignee_name: t.primary_assignee_id ? userMap.get(t.primary_assignee_id) : undefined,
+        primary_assignee_name: primaryAssigneeUser?.full_name || (primaryId ? userMap.get(primaryId) : undefined),
+        primary_assignee_role: primaryAssigneeUser?.role
+          ? ROLE_LABELS[primaryAssigneeUser.role] || primaryAssigneeUser.role
+          : assigneeRole
+            ? ROLE_LABELS[assigneeRole] || assigneeRole
+            : undefined,
+        primary_assignee_is_active: primaryIsActive,
+        has_inactive_assignee: hasInactiveAssignee,
+        additional_assignees: additionalAssignees,
         approved_by_name: t.approved_by_user_id ? userMap.get(t.approved_by_user_id) : undefined,
         messages_count: msgCount,
         attachments_count: taskAttachments.length,
@@ -1094,6 +1238,8 @@ export function useTicketsStore(
     departmentMap,
     userMap,
     userRoleMap,
+    userIsActiveMap,
+    schoolUsers,
     session.isSuperAdminPreview,
   ]);
 
@@ -1143,25 +1289,37 @@ export function useTicketsStore(
     [schoolId, session.fullName, auditLogs, usingSupabase, saveLocalMirror]
   );
 
-  // Log task activity
+  // Log task activity (с пълен snapshot на актьора, ролята, отдела и причината)
   const logTaskActivity = useCallback(
     async (
       taskId: string,
       action: TaskActivityAction,
       details?: string,
       previousValue?: string,
-      newValue?: string
+      newValue?: string,
+      reason?: string | null
     ) => {
+      const activeDept = departmentMemberships.find(
+        (m) => m.user_id === session.userId && m.is_active !== false
+      );
       const newLog: TaskActivityLog = {
         id: makeUuid(),
         school_id: schoolId,
         task_id: taskId,
+        user_id: isValidUuid(session.userId) ? session.userId : null,
+        user_name: session.fullName,
         actor_user_id: isValidUuid(session.userId) ? session.userId : null,
         actor_name: session.fullName,
+        actor_role: session.role ? ROLE_LABELS[session.role] || session.role : 'Служител',
+        actor_department_name: activeDept?.department_name || 'Общо ръководство',
         action,
+        entity_type: 'task',
+        entity_id: taskId,
         details: details || null,
+        notes: details || null,
         previous_value: previousValue || null,
         new_value: newValue || null,
+        reason: reason || null,
         created_at: new Date().toISOString(),
       };
       const next = [newLog, ...taskActivityLogs];
@@ -1173,7 +1331,16 @@ export function useTicketsStore(
       }
       return newLog;
     },
-    [schoolId, session.userId, session.fullName, taskActivityLogs, usingSupabase, saveLocalMirror]
+    [
+      schoolId,
+      session.userId,
+      session.fullName,
+      session.role,
+      departmentMemberships,
+      taskActivityLogs,
+      usingSupabase,
+      saveLocalMirror,
+    ]
   );
 
   // In-app Notifications
@@ -1333,7 +1500,7 @@ export function useTicketsStore(
     [isDirectorOrAdmin, session.role, session.userId, currentUserDepartmentIds]
   );
 
-  // Task Creation
+  // Task Creation (Задължителен главен отговорник с валидация за активен статус)
   const createTicket = useCallback(
     async (input: {
       title: string;
@@ -1361,6 +1528,18 @@ export function useTicketsStore(
       const validCreatorId: string | null = isValidUuid(session.userId) ? session.userId : null;
       const primaryAssignee =
         input.primary_assignee_id || input.assigned_to_user_id;
+
+      if (!primaryAssignee) {
+        pushToast('error', 'Всяка задача трябва да има задължително посочен главен отговорник.');
+        throw new Error('Липсва задължителен главен отговорник по задачата.');
+      }
+
+      const primaryUser = schoolUsers.find((u) => u.id === primaryAssignee);
+      if (primaryUser && primaryUser.is_active === false) {
+        pushToast('error', 'Избраният служител е деактивиран/напуснал и не може да бъде главен отговорник.');
+        throw new Error('Избраният отговорник е деактивиран/напуснал служител.');
+      }
+
       const validAssigneeId: string | null =
         primaryAssignee && isValidUuid(primaryAssignee) ? primaryAssignee : null;
       const validDeptId: string | null =
@@ -1444,22 +1623,44 @@ export function useTicketsStore(
         }
       }
 
-      await logTaskActivity(newTicket.id, 'created', `Създадена задача ${newTicket.code}: ${newTicket.title}`);
+      await logTaskActivity(
+        newTicket.id,
+        'created',
+        `Създадена задача ${newTicket.code}: ${newTicket.title}. Главен отговорник: ${primaryUser?.full_name || primaryAssignee}`,
+        undefined,
+        primaryUser?.full_name || primaryAssignee
+      );
       await addAuditLog(`Създадена нова задача: ${newTicket.title}`, newTicket.id, {
         code: newTicket.code,
         title: newTicket.title,
         priority: newTicket.priority,
+        primary_assignee: primaryUser?.full_name || primaryAssignee,
       });
 
-      // Notify assigned user if specified
+      // Notify primary assigned user
       if (validAssigneeId && validAssigneeId !== session.userId) {
         await createNotification({
           user_id: validAssigneeId,
           type: 'task_assigned',
           title: `Възложена ви е нова задача (${newTicket.code})`,
-          message: `${session.fullName} ви възложи задача: "${newTicket.title}".`,
+          message: `${session.fullName} ви възложи като главен отговорник задача: "${newTicket.title}".`,
           task_id: newTicket.id,
         });
+      }
+
+      // Notify additional participants
+      if (input.assigned_user_ids && input.assigned_user_ids.length > 0) {
+        for (const addId of input.assigned_user_ids) {
+          if (addId && addId !== validAssigneeId && addId !== session.userId) {
+            await createNotification({
+              user_id: addId,
+              type: 'task_assigned',
+              title: `Включени сте в задача (${newTicket.code})`,
+              message: `${session.fullName} ви включи като допълнителен участник в задача: "${newTicket.title}".`,
+              task_id: newTicket.id,
+            });
+          }
+        }
       }
 
       pushToast('success', `Задачата ${newTicket.code} е възложена успешно!`);
@@ -1470,6 +1671,7 @@ export function useTicketsStore(
       session,
       tickets,
       attachments,
+      schoolUsers,
       usingSupabase,
       saveLocalMirror,
       addAuditLog,
@@ -1774,11 +1976,33 @@ export function useTicketsStore(
     ]
   );
 
-  // Reassign Task
+  // Reassign Task (Официално преразпределяне с одит, предишен и нов отговорник, причина и нотификации)
   const reassignTask = useCallback(
-    async (taskId: string, primaryAssigneeId: string | null, additionalAssigneeIds: string[] = []) => {
+    async (
+      taskId: string,
+      primaryAssigneeId: string | null,
+      additionalAssigneeIds: string[] = [],
+      reason?: string
+    ) => {
       const t = tickets.find((item) => item.id === taskId);
       if (!t) return;
+
+      if (!primaryAssigneeId) {
+        pushToast('error', 'Всяка задача трябва да има задължително определен главен отговорник.');
+        return;
+      }
+
+      const targetUser = schoolUsers.find((u) => u.id === primaryAssigneeId);
+      if (targetUser && targetUser.is_active === false) {
+        pushToast('error', 'Избраният отговорник е неактивен/напуснал служител. Изберете активен колега.');
+        return;
+      }
+
+      const prevAssigneeId = t.primary_assignee_id || t.assigned_to_user_id || null;
+      const prevAssigneeUser = prevAssigneeId ? schoolUsers.find((u) => u.id === prevAssigneeId) : undefined;
+      const prevAssigneeName = prevAssigneeUser?.full_name || (prevAssigneeId ? userMap.get(prevAssigneeId) : null) || 'Неразпределена';
+      const newAssigneeName = targetUser?.full_name || userMap.get(primaryAssigneeId) || 'Служител';
+
       const nowIso = new Date().toISOString();
       const validPrimaryId = isValidUuid(primaryAssigneeId) ? primaryAssigneeId : null;
 
@@ -1806,30 +2030,65 @@ export function useTicketsStore(
             updated_at: nowIso,
           })
           .eq('id', taskId)
-          .eq('school_id', schoolId)
-          ;
+          .eq('school_id', schoolId);
       }
 
-      const newAssigneeName = validPrimaryId ? userMap.get(validPrimaryId) || 'Служител' : 'Няма';
-      await logTaskActivity(taskId, 'reassigned', `Преразпределена към ${newAssigneeName}`);
-      await addAuditLog(`Преразпределена задача ${t.title} към ${newAssigneeName}`, taskId);
+      const reasonClean = reason?.trim() || null;
+      const reasonSuffix = reasonClean ? ` Причина: ${reasonClean}` : '';
 
+      await logTaskActivity(
+        taskId,
+        'reassigned',
+        `Преразпределена от „${prevAssigneeName}“ към „${newAssigneeName}“.${reasonSuffix}`,
+        prevAssigneeName,
+        newAssigneeName,
+        reasonClean
+      );
+
+      await addAuditLog(
+        `Преразпределена задача ${t.code || ''} ${t.title} от ${prevAssigneeName} към ${newAssigneeName}`,
+        taskId,
+        {
+          previous_assignee: prevAssigneeName,
+          new_assignee: newAssigneeName,
+          reason: reasonClean,
+        }
+      );
+
+      // Notify new responsible employee
       if (validPrimaryId && validPrimaryId !== session.userId) {
         await createNotification({
           user_id: validPrimaryId,
           type: 'task_assigned',
           title: `Възложена ви е задача (${t.code || 'TSK'})`,
-          message: `${session.fullName} ви определи като отговорник за задача "${t.title}".`,
+          message: `${session.fullName} ви определи като главен отговорник за задача "${t.title}".${reasonSuffix}`,
           task_id: taskId,
         });
       }
 
-      pushToast('success', `Отговорникът е обновен: ${newAssigneeName}`);
+      // Notify previous responsible employee if active and distinct
+      if (
+        prevAssigneeId &&
+        prevAssigneeId !== validPrimaryId &&
+        prevAssigneeId !== session.userId &&
+        prevAssigneeUser?.is_active !== false
+      ) {
+        await createNotification({
+          user_id: prevAssigneeId,
+          type: 'task_status_changed',
+          title: `Преразпределена задача (${t.code || 'TSK'})`,
+          message: `Отговорността за задача "${t.title}" беше прехвърлена на ${newAssigneeName} от ${session.fullName}.${reasonSuffix}`,
+          task_id: taskId,
+        });
+      }
+
+      pushToast('success', `Отговорникът е успешно променен на: ${newAssigneeName}`);
     },
     [
       tickets,
       schoolId,
       userMap,
+      schoolUsers,
       session.userId,
       session.fullName,
       usingSupabase,
@@ -1837,6 +2096,109 @@ export function useTicketsStore(
       logTaskActivity,
       addAuditLog,
       createNotification,
+      pushToast,
+    ]
+  );
+
+  // Archive Task (Защита на историята, архивиране без изтриване)
+  const archiveTask = useCallback(
+    async (taskId: string) => {
+      const t = tickets.find((item) => item.id === taskId);
+      if (!t) return;
+      const nowIso = new Date().toISOString();
+      const updatedTickets = tickets.map((item) =>
+        item.id === taskId
+          ? {
+              ...item,
+              is_archived: true,
+              archived_at: nowIso,
+              archived_by_user_id: isValidUuid(session.userId) ? session.userId : null,
+              archived_by_name: session.fullName,
+              updated_at: nowIso,
+            }
+          : item
+      );
+      setTickets(updatedTickets);
+      saveLocalMirror({ tickets: updatedTickets });
+
+      if (usingSupabase && isValidUuid(taskId)) {
+        await supabase
+          .from('tickets')
+          .update({
+            is_archived: true,
+            archived_at: nowIso,
+            archived_by_user_id: isValidUuid(session.userId) ? session.userId : null,
+            archived_by_name: session.fullName,
+            updated_at: nowIso,
+          })
+          .eq('id', taskId)
+          .eq('school_id', schoolId);
+      }
+
+      await logTaskActivity(taskId, 'archived', `Задачата е архивирана от ${session.fullName}`);
+      await addAuditLog(`Архивирана задача: ${t.code || ''} ${t.title}`, taskId);
+      pushToast('info', 'Задачата е преместена в архива. Всички документи и хронология се пазят.');
+    },
+    [
+      tickets,
+      schoolId,
+      session.userId,
+      session.fullName,
+      usingSupabase,
+      saveLocalMirror,
+      logTaskActivity,
+      addAuditLog,
+      pushToast,
+    ]
+  );
+
+  // Restore Task
+  const restoreTask = useCallback(
+    async (taskId: string) => {
+      const t = tickets.find((item) => item.id === taskId);
+      if (!t) return;
+      const nowIso = new Date().toISOString();
+      const updatedTickets = tickets.map((item) =>
+        item.id === taskId
+          ? {
+              ...item,
+              is_archived: false,
+              archived_at: null,
+              archived_by_user_id: null,
+              archived_by_name: null,
+              updated_at: nowIso,
+            }
+          : item
+      );
+      setTickets(updatedTickets);
+      saveLocalMirror({ tickets: updatedTickets });
+
+      if (usingSupabase && isValidUuid(taskId)) {
+        await supabase
+          .from('tickets')
+          .update({
+            is_archived: false,
+            archived_at: null,
+            archived_by_user_id: null,
+            archived_by_name: null,
+            updated_at: nowIso,
+          })
+          .eq('id', taskId)
+          .eq('school_id', schoolId);
+      }
+
+      await logTaskActivity(taskId, 'restored', `Задачата е възстановена от архива от ${session.fullName}`);
+      await addAuditLog(`Възстановена задача: ${t.code || ''} ${t.title}`, taskId);
+      pushToast('success', 'Задачата е успешно възстановена от архива.');
+    },
+    [
+      tickets,
+      schoolId,
+      session.fullName,
+      usingSupabase,
+      saveLocalMirror,
+      logTaskActivity,
+      addAuditLog,
       pushToast,
     ]
   );
@@ -2205,19 +2567,20 @@ export function useTicketsStore(
     pushToast('success', 'Деловодният регистър е експортиран в CSV.');
   }, [documentRegister, departmentMap, userMap, school.slug, pushToast]);
 
-  // Department Memberships: Add Member
+  // Department Memberships: Add Member (със запис на started_at и активен статус)
   const addDepartmentMember = useCallback(
     async (departmentId: string, userId: string, isLead: boolean = false) => {
       const exists = departmentMemberships.some(
-        (m) => m.department_id === departmentId && m.user_id === userId
+        (m) => m.department_id === departmentId && m.user_id === userId && m.is_active !== false
       );
       if (exists) {
-        pushToast('warning', 'Този служител вече е зачислен към това направление.');
+        pushToast('warning', 'Този служител вече има активно членство към това направление.');
         return;
       }
 
       const targetUser = schoolUsers.find((u) => u.id === userId);
       const targetDept = departments.find((d) => d.id === departmentId);
+      const nowIso = new Date().toISOString();
 
       const newMembership: DepartmentMembership = {
         id: makeUuid(),
@@ -2225,7 +2588,10 @@ export function useTicketsStore(
         department_id: departmentId,
         user_id: userId,
         is_lead: isLead,
-        created_at: new Date().toISOString(),
+        is_active: true,
+        started_at: nowIso,
+        ended_at: null,
+        created_at: nowIso,
         user_name: targetUser?.full_name,
         user_role: targetUser?.role,
         department_name: targetDept?.name,
@@ -2244,13 +2610,15 @@ export function useTicketsStore(
             department_id: newMembership.department_id,
             user_id: newMembership.user_id,
             is_lead: newMembership.is_lead,
+            is_active: true,
+            started_at: nowIso,
           });
       }
 
       await addAuditLog(
         `Зачислен служител ${targetUser?.full_name || userId} към ${targetDept?.name || departmentId}`,
         null,
-        { is_lead: isLead }
+        { is_lead: isLead, started_at: nowIso }
       );
       pushToast('success', 'Служителят е зачислен към направлението.');
     },
@@ -2266,27 +2634,98 @@ export function useTicketsStore(
     ]
   );
 
-  // Department Memberships: Remove Member
+  // Department Memberships: Move Member (Приключва старото членство с ended_at и създава ново с started_at)
+  const moveDepartmentMember = useCallback(
+    async (membershipId: string, newDeptId: string, isLead: boolean = false) => {
+      const mem = departmentMemberships.find((m) => m.id === membershipId);
+      if (!mem) return;
+      const targetDept = departments.find((d) => d.id === newDeptId);
+      if (!targetDept) return;
+
+      const nowIso = new Date().toISOString();
+      const oldDept = departments.find((d) => d.id === mem.department_id);
+
+      // Приключване на старото активно членство
+      const updatedPrev: DepartmentMembership = {
+        ...mem,
+        is_active: false,
+        ended_at: nowIso,
+      };
+
+      // Създаване на ново активно членство в новото направление
+      const newMembership: DepartmentMembership = {
+        id: makeUuid(),
+        school_id: schoolId,
+        department_id: newDeptId,
+        user_id: mem.user_id,
+        is_lead: isLead,
+        is_active: true,
+        started_at: nowIso,
+        ended_at: null,
+        created_at: nowIso,
+        user_name: mem.user_name,
+        user_role: mem.user_role,
+        department_name: targetDept.name,
+      };
+
+      const next = departmentMemberships.map((m) => (m.id === membershipId ? updatedPrev : m)).concat(newMembership);
+      setDepartmentMemberships(next);
+      saveLocalMirror({ departmentMemberships: next });
+
+      if (usingSupabase) {
+        if (isValidUuid(membershipId)) {
+          await supabase
+            .from('department_memberships')
+            .update({ is_active: false, ended_at: nowIso })
+            .eq('id', membershipId)
+            .eq('school_id', schoolId);
+        }
+        await supabase.from('department_memberships').insert({
+          id: newMembership.id,
+          school_id: schoolId,
+          department_id: newMembership.department_id,
+          user_id: newMembership.user_id,
+          is_lead: newMembership.is_lead,
+          is_active: true,
+          started_at: nowIso,
+        });
+      }
+
+      await addAuditLog(
+        `Преместен служител ${mem.user_name || mem.user_id} от ${oldDept?.name || mem.department_id} в ${targetDept.name}`,
+        null,
+        { old_dept: oldDept?.name, new_dept: targetDept.name, date: nowIso }
+      );
+      pushToast('success', `Служителят е преместен в „${targetDept.name}“ с пълна хронология.`);
+    },
+    [departmentMemberships, departments, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+  );
+
+  // Department Memberships: Remove Member (Soft-end: запазва хронологията с ended_at)
   const removeDepartmentMember = useCallback(
     async (membershipId: string) => {
       const mem = departmentMemberships.find((m) => m.id === membershipId);
-      const next = departmentMemberships.filter((m) => m.id !== membershipId);
+      if (!mem) return;
+      const nowIso = new Date().toISOString();
+
+      const next = departmentMemberships.map((m) =>
+        m.id === membershipId ? { ...m, is_active: false, ended_at: nowIso } : m
+      );
       setDepartmentMemberships(next);
       saveLocalMirror({ departmentMemberships: next });
 
       if (usingSupabase && isValidUuid(membershipId)) {
         await supabase
           .from('department_memberships')
-          .delete()
+          .update({ is_active: false, ended_at: nowIso })
           .eq('id', membershipId)
-          .eq('school_id', schoolId)
-          ;
+          .eq('school_id', schoolId);
       }
 
       if (mem) {
-        await addAuditLog(`Премахнато членство в направление (ID: ${mem.id})`);
+        await addAuditLog(`Прекратено активно членство в направление: ${mem.department_name || mem.id}`);
       }
-      pushToast('info', 'Членството в направлението е прекратено.');
+      pushToast('info', 'Активното членство в направлението е прекратено (запазено в историята).');
     },
     [departmentMemberships, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
   );
@@ -2305,8 +2744,7 @@ export function useTicketsStore(
           .from('department_memberships')
           .update({ is_lead: isLead })
           .eq('id', membershipId)
-          .eq('school_id', schoolId)
-          ;
+          .eq('school_id', schoolId);
       }
       pushToast(
         'success',
@@ -2944,9 +3382,47 @@ export function useTicketsStore(
     [tickets, departments, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
   );
 
-  // Administrative Journal CRUD
+  // Safe Employee Deactivation (Soft Deactivation - запазва история, авторство и членства)
+  const deactivateEmployee = useCallback(
+    async (userId: string, reason?: string) => {
+      await deactivateSchoolUser(userId, reason);
+      const nowIso = new Date().toISOString();
+      const nextMemberships = departmentMemberships.map((m) =>
+        m.user_id === userId && m.is_active !== false
+          ? { ...m, is_active: false, ended_at: nowIso }
+          : m
+      );
+      setDepartmentMemberships(nextMemberships);
+      saveLocalMirror({ departmentMemberships: nextMemberships });
+
+      const targetUser = schoolUsers.find((u) => u.id === userId);
+      await addAuditLog(
+        `Деактивиран служител: ${targetUser?.full_name || userId}. Причина: ${reason || 'Няма посочена'}`,
+        null,
+        { user_id: userId, reason: reason || null }
+      );
+      pushToast('warning', `Служителят ${targetUser?.full_name || ''} е деактивиран.`);
+    },
+    [departmentMemberships, schoolUsers, saveLocalMirror, addAuditLog, pushToast]
+  );
+
+  const reactivateEmployee = useCallback(
+    async (userId: string) => {
+      await reactivateSchoolUser(userId);
+      const targetUser = schoolUsers.find((u) => u.id === userId);
+      await addAuditLog(`Възстановен служител: ${targetUser?.full_name || userId}`, null, { user_id: userId });
+      pushToast('success', `Акаунтът на ${targetUser?.full_name || ''} е отново активен.`);
+    },
+    [schoolUsers, addAuditLog, pushToast]
+  );
+
+  // Administrative Journal CRUD (Защитен достъп - само за системни директори/администратори)
   const deleteAuditLog = useCallback(
     async (logId: string) => {
+      if (!isDirectorOrAdmin) {
+        pushToast('error', 'Само ръководители на училището имат административни права над одитния журнал.');
+        return;
+      }
       const next = auditLogs.filter((l) => l.id !== logId);
       setAuditLogs(next);
       saveLocalMirror({ auditLogs: next });
@@ -2960,10 +3436,14 @@ export function useTicketsStore(
       }
       pushToast('info', 'Записът от журнала е изтрит.');
     },
-    [auditLogs, schoolId, usingSupabase, saveLocalMirror, pushToast]
+    [isDirectorOrAdmin, auditLogs, schoolId, usingSupabase, saveLocalMirror, pushToast]
   );
 
   const clearAuditLogs = useCallback(async () => {
+    if (!isDirectorOrAdmin) {
+      pushToast('error', 'Само ръководители на училището имат права за изчистване на одитния журнал.');
+      return;
+    }
     setAuditLogs([]);
     saveLocalMirror({ auditLogs: [] });
 
@@ -2971,7 +3451,7 @@ export function useTicketsStore(
       await supabase.from('ticket_audit_logs').delete().eq('school_id', schoolId);
     }
     pushToast('info', 'Журналът на събитията е изчистен.');
-  }, [schoolId, usingSupabase, saveLocalMirror, pushToast]);
+  }, [isDirectorOrAdmin, schoolId, usingSupabase, saveLocalMirror, pushToast]);
 
   // Export Tasks to CSV
   const exportTicketsCsv = useCallback(() => {
@@ -2983,7 +3463,8 @@ export function useTicketsStore(
       'Приоритет',
       'Статус',
       'Създател',
-      'Отговорник',
+      'Главен Отговорник',
+      'Статус на отговорника',
       'Краен срок',
       'Дата на създаване',
     ];
@@ -2996,7 +3477,8 @@ export function useTicketsStore(
       t.priority,
       t.status,
       `"${(t.creator_name || '').replace(/"/g, '""')}"`,
-      `"${(t.assignee_name || '').replace(/"/g, '""')}"`,
+      `"${(t.primary_assignee_name || t.assignee_name || '').replace(/"/g, '""')}"`,
+      t.primary_assignee_is_active === false ? 'Неактивен/Напуснал' : 'Активен',
       t.due_date ? new Date(t.due_date).toLocaleDateString('bg-BG') : 'Няма',
       new Date(t.created_at).toLocaleString('bg-BG'),
     ]);
@@ -3056,6 +3538,8 @@ export function useTicketsStore(
     updateTicketAssignee,
     updateTaskDeadline,
     reassignTask,
+    archiveTask,
+    restoreTask,
     editTicket,
     deleteTicket,
     toggleRecurrence,
@@ -3063,6 +3547,10 @@ export function useTicketsStore(
     logTaskActivity,
     addAttachmentToTask,
     deleteAttachment,
+
+    // Employee management (soft deactivation/reactivation)
+    deactivateEmployee,
+    reactivateEmployee,
 
     // Messages
     sendMessage,
@@ -3077,6 +3565,7 @@ export function useTicketsStore(
 
     // Department Memberships
     addDepartmentMember,
+    moveDepartmentMember,
     removeDepartmentMember,
     toggleDepartmentMemberLead,
 

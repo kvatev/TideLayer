@@ -26,10 +26,14 @@ export interface DepartmentMembership {
   department_id: string;
   user_id: string;
   is_lead?: boolean;
+  is_active?: boolean; // true = текущо активно членство; false = историческо приключило
+  started_at?: string; // начална дата на членството
+  ended_at?: string | null; // крайна дата (при напускане или преместване в друго направление)
   created_at?: string;
   // Joined
   user_name?: string;
   user_role?: string;
+  user_is_active?: boolean;
   department_name?: string;
 }
 
@@ -78,7 +82,12 @@ export type TaskActivityAction =
   | 'deadline_changed'
   | 'priority_changed'
   | 'comment_added'
-  | 'attachment_added';
+  | 'attachment_added'
+  | 'archived'
+  | 'restored'
+  | 'employee_deactivated'
+  | 'employee_activated'
+  | 'department_changed';
 
 export interface TaskActivityLog {
   id: string;
@@ -88,11 +97,16 @@ export interface TaskActivityLog {
   user_name?: string;
   actor_user_id?: string | null;
   actor_name?: string;
+  actor_role?: string | null;
+  actor_department_name?: string | null;
   action: TaskActivityAction;
+  entity_type?: string;
+  entity_id?: string | null;
   from_status?: string | null;
   to_status?: string | null;
   previous_value?: string | null;
   new_value?: string | null;
+  reason?: string | null;
   notes?: string | null;
   details?: string | Record<string, unknown> | null;
   created_at: string;
@@ -104,10 +118,10 @@ export interface SchoolTicket {
   code?: string; // напр. "TSK-1001"
   department_id: string | null;
   created_by_user_id: string | null;
-  assigned_to_user_id: string | null; // главен отговорник
-  primary_assignee_id?: string | null;
+  assigned_to_user_id: string | null; // обратна съвместимост
+  primary_assignee_id?: string | null; // ЗАДЪЛЖИТЕЛЕН главен отговорник
   assigned_role_target?: string | null; // напр. 'all_teachers', 'all_administration', 'all_staff'
-  assigned_user_ids?: string[];
+  assigned_user_ids?: string[]; // допълнителни участници
   due_date?: string | null;
   title: string;
   description: string;
@@ -119,6 +133,10 @@ export interface SchoolTicket {
   recurrence_interval?: 'daily' | 'weekly' | 'monthly' | 'yearly' | null;
   recurrence_next_date?: string | null;
   recurrence_is_active?: boolean;
+  is_archived?: boolean; // архивирана ли е задачата
+  archived_at?: string | null;
+  archived_by_user_id?: string | null;
+  archived_by_name?: string | null;
   completed_at?: string | null;
   approved_by_user_id?: string | null;
   approved_by_name?: string | null;
@@ -130,6 +148,11 @@ export interface SchoolTicket {
   creator_role?: string;
   assignee_name?: string;
   assignee_role?: string;
+  primary_assignee_name?: string;
+  primary_assignee_role?: string;
+  primary_assignee_is_active?: boolean;
+  has_inactive_assignee?: boolean; // флаг за административно внимание
+  additional_assignees?: { id: string; name: string; role: string; is_active?: boolean }[];
   messages_count?: number;
   attachments_count?: number;
   attachments?: TaskDocumentAttachment[];

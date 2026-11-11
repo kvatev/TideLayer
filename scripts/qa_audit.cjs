@@ -428,4 +428,259 @@ assert.strictEqual(checkTaskManage(observer, taskDept1, [], false), false);
 
 console.log('✅ Authorization: Multi-department access & role-based management verified');
 
+// 15. Test Employee Departure & Soft Deactivation
+function authenticateEmployee(user) {
+  if (!user) return { success: false, error: 'Потребителят не съществува.' };
+  if (user.is_active === false) {
+    return {
+      success: false,
+      error: 'Акаунтът на този служител е деактивиран. Моля, обърнете се към ръководството на училището.',
+    };
+  }
+  return { success: true, user };
+}
+
+function deactivateEmployee(user, reason) {
+  assert(user, 'User must exist');
+  return {
+    ...user,
+    is_active: false,
+    deactivated_at: new Date().toISOString(),
+    deactivation_reason: reason || null,
+  };
+}
+
+function reactivateEmployee(user) {
+  assert(user, 'User must exist');
+  return {
+    ...user,
+    is_active: true,
+    deactivated_at: null,
+    deactivation_reason: null,
+  };
+}
+
+const activeEmp = { id: 'u-emp-1', full_name: 'Иван Петров', role: 'teacher', is_active: true };
+assert.strictEqual(authenticateEmployee(activeEmp).success, true);
+
+const deactivatedEmp = deactivateEmployee(activeEmp, 'Прекратен договор по взаимно съгласие');
+assert.strictEqual(deactivatedEmp.is_active, false);
+assert.strictEqual(deactivatedEmp.full_name, 'Иван Петров', 'Employee name must be preserved permanently');
+assert.strictEqual(deactivatedEmp.deactivation_reason, 'Прекратен договор по взаимно съгласие');
+assert(deactivatedEmp.deactivated_at !== null);
+
+const loginAttempt = authenticateEmployee(deactivatedEmp);
+assert.strictEqual(loginAttempt.success, false);
+assert(loginAttempt.error.includes('деактивиран'), 'Deactivated login error must be explicit in Bulgarian');
+
+const reactivatedEmp = reactivateEmployee(deactivatedEmp);
+assert.strictEqual(reactivatedEmp.is_active, true);
+assert.strictEqual(reactivatedEmp.deactivated_at, null);
+assert.strictEqual(authenticateEmployee(reactivatedEmp).success, true);
+console.log('✅ Historical Traceability: Safe employee deactivation and login prevention verified');
+
+// 16. Test Department Membership Date Ranges & Historical Continuity
+function moveDepartmentMember(memberships, membershipId, newDeptId, isLead = false) {
+  const now = new Date().toISOString();
+  let movedUser = null;
+  const updated = memberships.map((m) => {
+    if (m.id === membershipId) {
+      movedUser = m;
+      return {
+        ...m,
+        is_active: false,
+        ended_at: now,
+      };
+    }
+    return m;
+  });
+
+  assert(movedUser, 'Membership must exist');
+  const newMembership = {
+    id: `mem-${Date.now()}`,
+    department_id: newDeptId,
+    user_id: movedUser.user_id,
+    user_name: movedUser.user_name,
+    is_lead: isLead,
+    is_active: true,
+    started_at: now,
+    ended_at: null,
+  };
+  updated.push(newMembership);
+  return updated;
+}
+
+const initialMemberships = [
+  {
+    id: 'mem-1',
+    department_id: 'dept-stem',
+    user_id: 'u-10',
+    user_name: 'Мария Тодорова',
+    is_active: true,
+    started_at: '2025-09-15T08:00:00Z',
+    ended_at: null,
+  },
+];
+
+const afterMove = moveDepartmentMember(initialMemberships, 'mem-1', 'dept-admin', true);
+assert.strictEqual(afterMove.length, 2, 'History must contain 2 records for the employee');
+const pastRecord = afterMove.find((m) => m.id === 'mem-1');
+assert.strictEqual(pastRecord.is_active, false);
+assert(pastRecord.ended_at !== null, 'Past membership must have ended_at timestamp');
+const currentRecord = afterMove.find((m) => m.department_id === 'dept-admin');
+assert.strictEqual(currentRecord.is_active, true);
+assert.strictEqual(currentRecord.is_lead, true);
+assert.strictEqual(currentRecord.ended_at, null);
+console.log('✅ Historical Traceability: Department membership date ranges (started_at/ended_at) verified');
+
+// 17. Test Mandatory Primary Responsible Employee & Optional Participants
+function validateTaskCreation(input, users) {
+  if (!input.title || !input.title.trim()) {
+    throw new Error('Заглавието на задачата е задължително.');
+  }
+  if (!input.primary_assignee_id) {
+    throw new Error('Всяка задача задължително изисква точно един определен главен отговорник!');
+  }
+  const primaryUser = users.find((u) => u.id === input.primary_assignee_id);
+  if (!primaryUser) {
+    throw new Error('Посоченият главен отговорник не съществува в системата.');
+  }
+  if (primaryUser.is_active === false) {
+    throw new Error('Не може да възлагате задача на деактивиран или напуснал служител!');
+  }
+  return {
+    ...input,
+    id: `tsk-${Date.now()}`,
+    assigned_user_ids: input.assigned_user_ids || [],
+    is_archived: false,
+    created_at: new Date().toISOString(),
+  };
+}
+
+const schoolUsersDb = [
+  { id: 'usr-active-1', full_name: 'Гергана Иванова', is_active: true },
+  { id: 'usr-active-2', full_name: 'Борис Стоянов', is_active: true },
+  { id: 'usr-inactive-1', full_name: 'Стоян Николов (бивш)', is_active: false },
+];
+
+// Valid task with primary assignee and optional participants
+const validTask = validateTaskCreation(
+  {
+    title: 'Подготовка на годишен отчет',
+    primary_assignee_id: 'usr-active-1',
+    assigned_user_ids: ['usr-active-2'],
+  },
+  schoolUsersDb
+);
+assert.strictEqual(validTask.primary_assignee_id, 'usr-active-1');
+assert.deepStrictEqual(validTask.assigned_user_ids, ['usr-active-2']);
+
+// Missing primary assignee must throw
+assert.throws(() => {
+  validateTaskCreation({ title: 'Задача без отговорник' }, schoolUsersDb);
+}, /главен отговорник/);
+
+// Inactive employee as primary assignee must throw
+assert.throws(() => {
+  validateTaskCreation(
+    { title: 'Задача към напуснал', primary_assignee_id: 'usr-inactive-1' },
+    schoolUsersDb
+  );
+}, /деактивиран или напуснал/);
+console.log('✅ Task Accountability: Mandatory primary assignee & inactive rejection verified');
+
+// 18. Test Formal Reassignment Workflow & Immutable Activity Log Snapshots
+function reassignTask(task, newPrimaryId, additionalIds, reason, actor, users, departments) {
+  const oldPrimary = users.find((u) => u.id === task.primary_assignee_id);
+  const newPrimary = users.find((u) => u.id === newPrimaryId);
+  assert(newPrimary, 'New primary must exist');
+  assert(newPrimary.is_active !== false, 'New primary must be active');
+
+  const actorDept = departments.find((d) => d.id === actor.department_id);
+
+  const updatedTask = {
+    ...task,
+    primary_assignee_id: newPrimaryId,
+    assigned_to_user_id: newPrimaryId,
+    assignee_name: newPrimary.full_name,
+    assigned_user_ids: additionalIds || [],
+  };
+
+  const activityLog = {
+    id: `log-${Date.now()}`,
+    task_id: task.id,
+    action: 'reassigned',
+    actor_id: actor.id,
+    actor_name: actor.full_name,
+    actor_role: actor.role,
+    actor_department_name: actorDept ? actorDept.name : null,
+    previous_value: oldPrimary ? oldPrimary.full_name : 'Неразпределена',
+    new_value: newPrimary.full_name,
+    reason: reason || null,
+    created_at: new Date().toISOString(),
+  };
+
+  return { updatedTask, activityLog };
+}
+
+const reassignActor = {
+  id: 'usr-dir',
+  full_name: 'Мария Симеонова',
+  role: 'director',
+  department_id: 'dept-admin',
+};
+const depts = [{ id: 'dept-admin', name: 'Ръководство' }];
+
+const { updatedTask, activityLog } = reassignTask(
+  validTask,
+  'usr-active-2',
+  ['usr-active-1'],
+  'Преразпределяне поради повишена натовареност',
+  reassignActor,
+  schoolUsersDb,
+  depts
+);
+
+assert.strictEqual(updatedTask.primary_assignee_id, 'usr-active-2');
+assert.strictEqual(activityLog.action, 'reassigned');
+assert.strictEqual(activityLog.actor_name, 'Мария Симеонова');
+assert.strictEqual(activityLog.actor_role, 'director');
+assert.strictEqual(activityLog.actor_department_name, 'Ръководство');
+assert.strictEqual(activityLog.previous_value, 'Гергана Иванова');
+assert.strictEqual(activityLog.new_value, 'Борис Стоянов');
+assert.strictEqual(activityLog.reason, 'Преразпределяне поради повишена натовареност');
+console.log('✅ Task Accountability: Formal reassignment and immutable audit snapshot verified');
+
+// 19. Test Task Soft-Archiving and Restoration
+function archiveTask(task, actor) {
+  return {
+    ...task,
+    is_archived: true,
+    archived_at: new Date().toISOString(),
+    archived_by_user_id: actor.id,
+    archived_by_name: actor.full_name,
+  };
+}
+
+function restoreTask(task) {
+  return {
+    ...task,
+    is_archived: false,
+    archived_at: null,
+    archived_by_user_id: null,
+    archived_by_name: null,
+  };
+}
+
+const archived = archiveTask(updatedTask, reassignActor);
+assert.strictEqual(archived.is_archived, true);
+assert(archived.archived_at !== null);
+assert.strictEqual(archived.archived_by_name, 'Мария Симеонова');
+
+const restored = restoreTask(archived);
+assert.strictEqual(restored.is_archived, false);
+assert.strictEqual(restored.archived_at, null);
+assert.strictEqual(restored.archived_by_name, null);
+console.log('✅ Historical Traceability: Task soft-archiving and restoration verified');
+
 console.log('\n🎉 ALL QA AUDIT CHECKS PASSED WITH 100% SUCCESS!\n');

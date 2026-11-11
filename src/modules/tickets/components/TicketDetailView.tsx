@@ -2,10 +2,13 @@ import { useState, useRef } from 'react';
 import {
   AlertCircle,
   AlertTriangle,
+  Archive,
+  ArchiveRestore,
   ArrowLeft,
   Calendar,
   CheckCircle2,
   Clock,
+  Crown,
   Download,
   Edit2,
   Eye,
@@ -19,6 +22,7 @@ import {
   Presentation,
   RotateCcw,
   Send,
+  ShieldCheck,
   Trash2,
   UploadCloud,
   User,
@@ -27,6 +31,7 @@ import {
 import {
   ROLE_LABELS,
   type SchoolUserRecord,
+  type SchoolUserRole,
 } from '../../../lib/supabase';
 import {
   detectDocumentType,
@@ -81,6 +86,14 @@ interface TicketDetailViewProps {
     }
   ) => Promise<unknown>;
   onDeleteAttachment?: (attachmentId: string) => Promise<unknown>;
+  onReassignTask?: (
+    taskId: string,
+    newPrimaryAssigneeId: string,
+    additionalAssigneeIds?: string[],
+    reason?: string
+  ) => Promise<unknown>;
+  onArchiveTask?: (taskId: string) => Promise<unknown>;
+  onRestoreTask?: (taskId: string) => Promise<unknown>;
   onEditTicket: (
     ticketId: string,
     patch: {
@@ -117,6 +130,9 @@ export function TicketDetailView({
   onUpdateDeadline,
   onAddAttachment,
   onDeleteAttachment,
+  onReassignTask,
+  onArchiveTask,
+  onRestoreTask,
   onEditTicket,
   onDeleteTicket,
 }: TicketDetailViewProps) {
@@ -137,6 +153,22 @@ export function TicketDetailView({
   const [returnModalOpen, setReturnModalOpen] = useState(false);
   const [returnReasonText, setReturnReasonText] = useState('');
   const [submittingReturn, setSubmittingReturn] = useState(false);
+
+  // Reassignment modal state
+  const [reassignModalOpen, setReassignModalOpen] = useState(false);
+  const [reassignPrimaryId, setReassignPrimaryId] = useState(
+    ticket.primary_assignee_id || ticket.assigned_to_user_id || ''
+  );
+  const [reassignAdditionalIds, setReassignAdditionalIds] = useState<string[]>(
+    ticket.assigned_user_ids || []
+  );
+  const [reassignReason, setReassignReason] = useState('');
+  const [submittingReassign, setSubmittingReassign] = useState(false);
+
+  // Archive & restore state
+  const [archiveModalOpen, setArchiveModalOpen] = useState(false);
+  const [archiving, setArchiving] = useState(false);
+  const [restoring, setRestoring] = useState(false);
 
   // Delete modal
   const [deleteModalOpen, setDeleteModalOpen] = useState(false);
@@ -219,6 +251,47 @@ export function TicketDetailView({
     setEditOpen(false);
   };
 
+  const handleReassignSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!reassignPrimaryId || !onReassignTask) return;
+    setSubmittingReassign(true);
+    try {
+      const ok = await onReassignTask(
+        ticket.id,
+        reassignPrimaryId,
+        reassignAdditionalIds,
+        reassignReason.trim() || undefined
+      );
+      if (ok) {
+        setReassignModalOpen(false);
+        setReassignReason('');
+      }
+    } finally {
+      setSubmittingReassign(false);
+    }
+  };
+
+  const handleArchiveConfirm = async () => {
+    if (!onArchiveTask) return;
+    setArchiving(true);
+    try {
+      await onArchiveTask(ticket.id);
+      setArchiveModalOpen(false);
+    } finally {
+      setArchiving(false);
+    }
+  };
+
+  const handleRestoreClick = async () => {
+    if (!onRestoreTask) return;
+    setRestoring(true);
+    try {
+      await onRestoreTask(ticket.id);
+    } finally {
+      setRestoring(false);
+    }
+  };
+
   const handleReturnSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!returnReasonText.trim() || !onReturnForCorrection) return;
@@ -295,9 +368,27 @@ export function TicketDetailView({
           <span>Назад към списъка със задачи</span>
         </button>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {canApproveOrManage && (
             <>
+              {onReassignTask && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setReassignPrimaryId(
+                      ticket.primary_assignee_id || ticket.assigned_to_user_id || ''
+                    );
+                    setReassignAdditionalIds(ticket.assigned_user_ids || []);
+                    setReassignReason('');
+                    setReassignModalOpen(true);
+                  }}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-amber-300 bg-amber-50 hover:bg-amber-100 text-amber-900 text-xs font-semibold shadow-2xs cursor-pointer"
+                >
+                  <Crown className="w-3.5 h-3.5 text-amber-600" />
+                  <span>Преразпредели</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => {
@@ -315,6 +406,29 @@ export function TicketDetailView({
                 <span>Редактирай</span>
               </button>
 
+              {onArchiveTask && !ticket.is_archived && (
+                <button
+                  type="button"
+                  onClick={() => setArchiveModalOpen(true)}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 text-xs font-semibold shadow-2xs cursor-pointer"
+                >
+                  <Archive className="w-3.5 h-3.5 text-slate-500" />
+                  <span>Архивирай</span>
+                </button>
+              )}
+
+              {onRestoreTask && ticket.is_archived && (
+                <button
+                  type="button"
+                  disabled={restoring}
+                  onClick={handleRestoreClick}
+                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-300 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 text-xs font-semibold shadow-2xs cursor-pointer"
+                >
+                  <ArchiveRestore className="w-3.5 h-3.5 text-emerald-600" />
+                  <span>{restoring ? 'Възстановяване...' : 'Възстанови'}</span>
+                </button>
+              )}
+
               <button
                 type="button"
                 onClick={() => setDeleteModalOpen(true)}
@@ -327,6 +441,70 @@ export function TicketDetailView({
           )}
         </div>
       </div>
+
+      {/* Top Banner: Inactive Assignee Alert */}
+      {ticket.has_inactive_assignee && normStatus !== 'completed' && (
+        <div className="p-4 rounded-2xl bg-rose-50 border-2 border-rose-300 text-rose-950 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-rose-600" />
+            </div>
+            <div>
+              <div className="text-xs sm:text-sm font-bold text-rose-900">
+                Внимание: Главният отговорник е деактивиран или напуснал училището!
+              </div>
+              <p className="text-xs text-rose-800 mb-0">
+                Служителят <strong>{ticket.primary_assignee_name || ticket.assignee_name}</strong> вече няма активен акаунт. Задачата е в ход и изисква незабавно преразпределяне.
+              </p>
+            </div>
+          </div>
+          {onReassignTask && canApproveOrManage && (
+            <button
+              type="button"
+              onClick={() => {
+                setReassignPrimaryId('');
+                setReassignAdditionalIds(ticket.assigned_user_ids || []);
+                setReassignReason('Преразпределяне поради деактивиран/напуснал служител');
+                setReassignModalOpen(true);
+              }}
+              className="px-4 py-2 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shrink-0 cursor-pointer shadow-2xs flex items-center gap-1.5 transition-colors"
+            >
+              <Crown className="w-4 h-4" />
+              <span>Преразпредели отговорника</span>
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Top Banner: Archived Task Alert */}
+      {ticket.is_archived && (
+        <div className="p-4 rounded-2xl bg-slate-100 border border-slate-300 text-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-slate-200 text-slate-700 flex items-center justify-center shrink-0">
+              <Archive className="w-5 h-5 text-slate-600" />
+            </div>
+            <div>
+              <div className="text-xs sm:text-sm font-bold text-navy-900">
+                Тази задача е архивирана
+              </div>
+              <p className="text-xs text-slate-600 mb-0">
+                Архивирана {ticket.archived_at ? `на ${new Date(ticket.archived_at).toLocaleString('bg-BG')}` : ''} {ticket.archived_by_name ? `от ${ticket.archived_by_name}` : ''}. Всички документи, комуникация и исторически данни са защитени и непроменени.
+              </p>
+            </div>
+          </div>
+          {onRestoreTask && canApproveOrManage && (
+            <button
+              type="button"
+              disabled={restoring}
+              onClick={handleRestoreClick}
+              className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shrink-0 cursor-pointer shadow-2xs flex items-center gap-1.5 transition-colors"
+            >
+              <ArchiveRestore className="w-4 h-4" />
+              <span>{restoring ? 'Възстановяване...' : 'Възстанови от архив'}</span>
+            </button>
+          )}
+        </div>
+      )}
 
       {/* Main Grid: Details (8 cols) + Sidebar Control (4 cols) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
@@ -545,28 +723,103 @@ export function TicketDetailView({
 
           {/* Activity History Timeline */}
           {(taskLogs.length > 0 || ticketLogs.length > 0) && (
-            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-              <h3 className="text-sm font-heading font-bold text-navy-900 mb-0">
-                Хронология и история на действията
-              </h3>
-              <div className="space-y-2 text-xs text-slate-600 divide-y divide-slate-100">
-                {taskLogs.map((log) => (
-                  <div key={log.id} className="pt-2 first:pt-0 flex items-start justify-between gap-3">
-                    <div>
-                      <strong className="text-navy-900">{log.actor_name || 'Служител'}</strong>:{' '}
-                      <span>
-                        {typeof log.details === 'string'
-                          ? log.details
-                          : log.details
-                            ? JSON.stringify(log.details)
-                            : log.action}
-                      </span>
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+              <div className="flex items-center justify-between">
+                <h3 className="text-sm font-heading font-bold text-navy-900 mb-0 flex items-center gap-2">
+                  <ShieldCheck className="w-4 h-4 text-blue-600" />
+                  <span>Неотменима хронология и журнал на действията ({taskLogs.length})</span>
+                </h3>
+                <span className="text-[11px] text-slate-400">
+                  Защитени записи с авторски отпечатък
+                </span>
+              </div>
+
+              <div className="space-y-3 divide-y divide-slate-100">
+                {taskLogs.map((log) => {
+                  const getActionBadge = (action: string) => {
+                    switch (action) {
+                      case 'created':
+                        return { label: 'Създаване', bg: 'bg-blue-50 text-blue-700 border-blue-200' };
+                      case 'reassigned':
+                        return { label: 'Преразпределяне', bg: 'bg-amber-50 text-amber-800 border-amber-200' };
+                      case 'status_changed':
+                        return { label: 'Статус', bg: 'bg-purple-50 text-purple-700 border-purple-200' };
+                      case 'returned_for_correction':
+                        return { label: 'Върната за корекция', bg: 'bg-rose-50 text-rose-700 border-rose-200' };
+                      case 'approved':
+                        return { label: 'Одобрение', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+                      case 'archived':
+                        return { label: 'Архивиране', bg: 'bg-slate-100 text-slate-700 border-slate-300' };
+                      case 'restored':
+                        return { label: 'Възстановяване', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' };
+                      case 'file_uploaded':
+                        return { label: 'Прикачен файл', bg: 'bg-cyan-50 text-cyan-700 border-cyan-200' };
+                      case 'file_deleted':
+                        return { label: 'Изтрит файл', bg: 'bg-rose-50 text-rose-700 border-rose-200' };
+                      case 'comment_added':
+                        return { label: 'Коментар', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200' };
+                      default:
+                        return { label: action, bg: 'bg-slate-50 text-slate-700 border-slate-200' };
+                    }
+                  };
+
+                  const badge = getActionBadge(log.action);
+
+                  return (
+                    <div key={log.id} className="pt-3 first:pt-0 space-y-1.5 text-xs">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span
+                            className={cn(
+                              'text-[10px] font-bold px-2 py-0.5 rounded-md border',
+                              badge.bg
+                            )}
+                          >
+                            {badge.label}
+                          </span>
+                          <strong className="text-navy-900">{log.actor_name || 'Служител'}</strong>
+                          {log.actor_role && (
+                            <span className="text-[11px] text-slate-500 font-medium">
+                              ({ROLE_LABELS[log.actor_role as SchoolUserRole] || log.actor_role}
+                              {log.actor_department_name ? ` • ${log.actor_department_name}` : ''})
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="text-[11px] text-slate-400">
+                          {new Date(log.created_at).toLocaleString('bg-BG')}
+                        </span>
+                      </div>
+
+                      {/* Previous to new value diff */}
+                      {(log.previous_value || log.new_value) && (
+                        <div className="text-slate-700 bg-slate-50 p-2 rounded-lg border border-slate-200/60 font-mono text-[11px]">
+                          {log.previous_value && (
+                            <span className="text-slate-500 line-through mr-1.5">
+                              {log.previous_value}
+                            </span>
+                          )}
+                          <span className="text-slate-400">➔</span>
+                          <span className="text-navy-900 font-semibold ml-1.5">
+                            {log.new_value || '—'}
+                          </span>
+                        </div>
+                      )}
+
+                      {/* Reason */}
+                      {log.reason && (
+                        <div className="text-amber-900 bg-amber-50/70 p-2 rounded-lg border border-amber-200/60 italic text-xs">
+                          Основание: „{log.reason}“
+                        </div>
+                      )}
+
+                      {/* Details text if present and not diff */}
+                      {log.details && typeof log.details === 'string' && !log.previous_value && !log.new_value && (
+                        <p className="text-slate-600 mb-0 pl-1">{log.details}</p>
+                      )}
                     </div>
-                    <span className="text-[11px] text-slate-400 shrink-0">
-                      {new Date(log.created_at).toLocaleString('bg-BG')}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           )}
@@ -738,29 +991,141 @@ export function TicketDetailView({
               </select>
             </div>
 
-            {/* Primary Assignee */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 mb-1">
-                Главен отговорник
-              </label>
+            {/* Mandatory Primary Assignee Section */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-navy-900 flex items-center gap-1.5 mb-0">
+                  <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+                  <span>Главен отговорник</span>
+                </label>
+
+                {canApproveOrManage && onReassignTask && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReassignPrimaryId(
+                        ticket.primary_assignee_id || ticket.assigned_to_user_id || ''
+                      );
+                      setReassignAdditionalIds(ticket.assigned_user_ids || []);
+                      setReassignReason('');
+                      setReassignModalOpen(true);
+                    }}
+                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+                  >
+                    Преразпредели
+                  </button>
+                )}
+              </div>
+
               {ticket.assigned_role_target ? (
-                <div className="px-3 py-2 rounded-xl bg-blue-50 border border-blue-200 text-xs font-semibold text-blue-800">
-                  Групово: {ticket.assignee_name}
+                <div className="p-3 rounded-xl bg-purple-50 border border-purple-200 text-xs font-semibold text-purple-900">
+                  👥 Групово възложена: {ticket.assignee_name}
                 </div>
               ) : (
-                <select
-                  value={ticket.primary_assignee_id || ticket.assigned_to_user_id || ''}
-                  disabled={!canApproveOrManage}
-                  onChange={(e) => void onAssigneeChange(ticket.id, e.target.value || null)}
-                  className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm font-medium text-navy-900 bg-white focus:outline-none focus:border-blue-500"
+                <div
+                  className={cn(
+                    'p-3 rounded-xl border flex items-start gap-2.5',
+                    ticket.has_inactive_assignee
+                      ? 'bg-rose-50 border-rose-200 text-rose-950'
+                      : 'bg-slate-50 border-slate-200 text-navy-900'
+                  )}
                 >
-                  <option value="">Неразпределена</option>
-                  {schoolUsers.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.full_name} ({ROLE_LABELS[u.role] || u.role})
-                    </option>
+                  <div
+                    className={cn(
+                      'w-8 h-8 rounded-lg flex items-center justify-center shrink-0 text-xs font-bold',
+                      ticket.has_inactive_assignee
+                        ? 'bg-rose-100 text-rose-700'
+                        : 'bg-blue-100 text-blue-700'
+                    )}
+                  >
+                    {ticket.primary_assignee_name?.slice(0, 2).toUpperCase() || 'ОТ'}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-xs font-bold truncate">
+                      {ticket.primary_assignee_name || ticket.assignee_name || 'Неразпределена'}
+                    </div>
+                    <div className="text-[11px] text-slate-500">
+                      {ticket.primary_assignee_role
+                        ? ROLE_LABELS[ticket.primary_assignee_role as SchoolUserRole] || ticket.primary_assignee_role
+                        : 'Служител'}
+                    </div>
+                    <div className="mt-1 flex items-center gap-1.5">
+                      {ticket.primary_assignee_is_active === false ? (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded bg-rose-100 text-rose-800 border border-rose-200">
+                          ⚠️ Деактивиран / Напуснал
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-emerald-700">
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                          <span>Активен служител</span>
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Additional Assignees Section */}
+            <div className="space-y-2 pt-2 border-t border-slate-100">
+              <div className="flex items-center justify-between">
+                <label className="text-xs font-bold text-navy-900 flex items-center gap-1.5 mb-0">
+                  <Users className="w-3.5 h-3.5 text-blue-600" />
+                  <span>
+                    Допълнителни съотговорници (
+                    {ticket.additional_assignees?.length || ticket.assigned_user_ids?.length || 0})
+                  </span>
+                </label>
+
+                {canApproveOrManage && onReassignTask && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReassignPrimaryId(
+                        ticket.primary_assignee_id || ticket.assigned_to_user_id || ''
+                      );
+                      setReassignAdditionalIds(ticket.assigned_user_ids || []);
+                      setReassignReason('');
+                      setReassignModalOpen(true);
+                    }}
+                    className="text-[11px] font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+                  >
+                    Редактирай
+                  </button>
+                )}
+              </div>
+
+              {ticket.additional_assignees && ticket.additional_assignees.length > 0 ? (
+                <div className="space-y-1.5">
+                  {ticket.additional_assignees.map((u) => (
+                    <div
+                      key={u.id}
+                      className="p-2 rounded-lg bg-slate-50 border border-slate-200 flex items-center justify-between text-xs"
+                    >
+                      <div className="min-w-0 pr-2">
+                        <span className="font-semibold text-navy-900 truncate block">
+                          {u.name}
+                        </span>
+                        <span className="text-[10px] text-slate-500">
+                          {ROLE_LABELS[u.role as SchoolUserRole] || u.role}
+                        </span>
+                      </div>
+                      {u.is_active === false ? (
+                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-rose-100 text-rose-700 shrink-0">
+                          Деактивиран
+                        </span>
+                      ) : (
+                        <span className="text-[9px] text-emerald-600 font-semibold shrink-0">
+                          ● Активен
+                        </span>
+                      )}
+                    </div>
                   ))}
-                </select>
+                </div>
+              ) : (
+                <p className="text-[11px] text-slate-400 italic mb-0">
+                  Няма добавени допълнителни съотговорници.
+                </p>
               )}
             </div>
 
@@ -1004,6 +1369,141 @@ export function TicketDetailView({
             onBack();
           }}
           onCancel={() => setDeleteModalOpen(false)}
+        />
+      )}
+
+      {/* Formal Reassign Task Modal */}
+      {reassignModalOpen && (
+        <ModuleModal
+          isOpen={reassignModalOpen}
+          onClose={() => setReassignModalOpen(false)}
+          title={`Преразпределяне на отговорности по задача ${ticket.code || ''}`}
+          size="lg"
+        >
+          <form onSubmit={handleReassignSubmit} className="space-y-4">
+            <div className="p-3.5 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 text-xs leading-relaxed">
+              <strong>Официално преразпределяне на задачата:</strong> Всяка промяна на главния
+              отговорник и участниците се вписва автоматично в защитената хронология с дата, час,
+              потребител и посоченото основание.
+            </div>
+
+            {/* Current assignee info */}
+            <div className="text-xs text-slate-600 bg-slate-50 p-3 rounded-xl border border-slate-200 flex items-center justify-between">
+              <span>Досегашен отговорник:</span>
+              <strong className="text-navy-900">
+                {ticket.primary_assignee_name || ticket.assignee_name || 'Неразпределена'}{' '}
+                {ticket.primary_assignee_is_active === false && '(⚠️ Деактивиран акаунт)'}
+              </strong>
+            </div>
+
+            {/* Mandatory New Primary Assignee */}
+            <div>
+              <label className="block text-xs font-bold text-navy-900 mb-1.5 flex items-center gap-1.5">
+                <Crown className="w-3.5 h-3.5 text-amber-500 fill-amber-400" />
+                <span>Нов главен отговорник <span className="text-rose-500">*</span></span>
+              </label>
+              <select
+                value={reassignPrimaryId}
+                required
+                onChange={(e) => {
+                  const newId = e.target.value;
+                  setReassignPrimaryId(newId);
+                  setReassignAdditionalIds((prev) => prev.filter((id) => id !== newId));
+                }}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs sm:text-sm font-semibold text-navy-900 bg-white focus:outline-none focus:border-blue-500"
+              >
+                <option value="">-- Изберете активен служител за главен отговорник --</option>
+                {schoolUsers
+                  .filter((u) => u.is_active !== false)
+                  .map((u) => (
+                    <option key={u.id} value={u.id}>
+                      {u.full_name} ({ROLE_LABELS[u.role] || u.role})
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            {/* Optional Additional Assignees */}
+            <div>
+              <label className="block text-xs font-bold text-navy-900 mb-1.5 flex items-center gap-1.5">
+                <Users className="w-3.5 h-3.5 text-blue-600" />
+                <span>Допълнителни съотговорници (по избор)</span>
+              </label>
+              <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto p-2 bg-slate-50 rounded-xl border border-slate-200">
+                {schoolUsers
+                  .filter((u) => u.is_active !== false && u.id !== reassignPrimaryId)
+                  .map((u) => {
+                    const isSelected = reassignAdditionalIds.includes(u.id);
+                    return (
+                      <button
+                        key={u.id}
+                        type="button"
+                        onClick={() => {
+                          if (isSelected) {
+                            setReassignAdditionalIds((prev) => prev.filter((id) => id !== u.id));
+                          } else {
+                            setReassignAdditionalIds((prev) => [...prev, u.id]);
+                          }
+                        }}
+                        className={cn(
+                          'px-2.5 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center gap-1 border',
+                          isSelected
+                            ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                            : 'bg-white text-slate-700 border-slate-300 hover:border-blue-400'
+                        )}
+                      >
+                        <span>{u.full_name}</span>
+                        {isSelected && <span className="text-[10px]">✓</span>}
+                      </button>
+                    );
+                  })}
+              </div>
+            </div>
+
+            {/* Reason */}
+            <div>
+              <label className="block text-xs font-bold text-navy-900 mb-1">
+                Основание / Причина за преразпределянето (по избор)
+              </label>
+              <textarea
+                rows={2}
+                value={reassignReason}
+                onChange={(e) => setReassignReason(e.target.value)}
+                placeholder="напр. Служителят е в платен отпуск / Пренасочване по указание на Директора / Напуснал служител"
+                className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm focus:outline-none focus:border-blue-500"
+              />
+            </div>
+
+            <div className="flex items-center justify-end gap-2 pt-3 border-t border-slate-100">
+              <button
+                type="button"
+                onClick={() => setReassignModalOpen(false)}
+                className="px-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold text-slate-600 hover:bg-slate-50 cursor-pointer"
+              >
+                Отказ
+              </button>
+              <button
+                type="submit"
+                disabled={submittingReassign || !reassignPrimaryId}
+                className="px-4 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold transition-colors disabled:opacity-50 cursor-pointer shadow-2xs flex items-center gap-1.5"
+              >
+                {submittingReassign ? 'Запазване...' : 'Потвърди новото разпределение'}
+              </button>
+            </div>
+          </form>
+        </ModuleModal>
+      )}
+
+      {/* Archive Confirmation Dialog */}
+      {archiveModalOpen && (
+        <ModuleConfirmDialog
+          isOpen={archiveModalOpen}
+          title="Архивиране на задача"
+          message={`Сигурни ли сте, че искате да архивирате задача ${ticket.code || ''} (${ticket.title})? Всички документи, коментари и история на действията остават напълно запазени за постоянна отчетност.`}
+          confirmLabel={archiving ? 'Архивиране...' : 'Архивирай задачата'}
+          tone="primary"
+          onConfirm={handleArchiveConfirm}
+          onCancel={() => setArchiveModalOpen(false)}
         />
       )}
     </div>

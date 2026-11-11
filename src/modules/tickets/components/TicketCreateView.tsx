@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import {
   ArrowLeft,
   File,
@@ -7,6 +7,7 @@ import {
   Presentation,
   Send,
   UploadCloud,
+  Users,
   X,
 } from 'lucide-react';
 import {
@@ -89,14 +90,23 @@ export function TicketCreateView({
   const isLeadership = userLevel <= 2; // Director or Deputy
   const isAdministration = userLevel === 3;
 
-  // Filter assignable users based on strict hierarchy
+  // Filter assignable users based on strict hierarchy (само АКТИВНИ служители)
   const eligibleAssignees = schoolUsers.filter((u) => {
+    // Неактивни / напуснали служители не могат да получават нови задачи
+    if (u.is_active === false) return false;
     // Cannot assign to yourself
     if (u.id === session.userId) return false;
     // Main Admin Preview can assign to anyone
     if (session.isSuperAdminPreview) return true;
     return canAssignTaskToRole(session.role, u.role);
   });
+
+  // Автоматичен избор на първия допустим отговорник, ако още няма избран
+  useEffect(() => {
+    if (!assigneeId && eligibleAssignees.length > 0) {
+      setAssigneeId(eligibleAssignees[0].id);
+    }
+  }, [eligibleAssignees, assigneeId]);
 
   const handleProcessFiles = (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
@@ -131,17 +141,22 @@ export function TicketCreateView({
 
     setIsSubmitting(true);
     try {
-      const primaryAssignee = assignmentMode === 'individual' && assigneeId ? assigneeId : null;
+      if (!assigneeId) {
+        alert('Моля, посочете задължително главен отговорник по задачата.');
+        setIsSubmitting(false);
+        return;
+      }
+
       await onCreate({
         title: title.trim(),
         description: description.trim(),
         room_or_location: room.trim() || undefined,
         department_id: departmentId || null,
         priority,
-        primary_assignee_id: primaryAssignee,
-        assigned_to_user_id: primaryAssignee,
+        primary_assignee_id: assigneeId,
+        assigned_to_user_id: assigneeId,
         assigned_role_target: assignmentMode === 'group' && groupTarget ? groupTarget : null,
-        assigned_user_ids: assignmentMode === 'individual' ? additionalAssigneeIds : [],
+        assigned_user_ids: additionalAssigneeIds.filter((id) => id !== assigneeId),
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
         is_recurring: isRecurring,
         recurrence_interval: isRecurring ? recurrenceInterval : null,
@@ -332,25 +347,32 @@ export function TicketCreateView({
             )}
           </div>
 
-          {/* Hierarchy-based Assignee Selector */}
-          <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <label className="block text-xs font-bold text-navy-900 uppercase tracking-wider mb-0">
-                Възложи на (Изпълнител)
-              </label>
+          {/* Hierarchy-based Assignee Selector: Mandatory Primary Assignee + Optional Additional Participants */}
+          <div className="bg-gradient-to-br from-slate-50 to-blue-50/30 rounded-2xl p-5 border border-blue-200/80 shadow-2xs space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-blue-100 pb-3">
+              <div>
+                <label className="flex items-center gap-1.5 text-xs font-bold text-navy-900 uppercase tracking-wider mb-0">
+                  <span className="text-amber-500">👑</span>
+                  <span>Главен отговорник по задачата</span>
+                  <span className="text-rose-500">*</span>
+                </label>
+                <p className="text-[11px] text-slate-500 mb-0">
+                  Всяка задача има точно едно водещо материално и оперативно отговорно лице.
+                </p>
+              </div>
 
               {(isLeadership || isAdministration) && (
-                <div className="flex items-center gap-2 text-xs">
+                <div className="flex items-center gap-1.5 text-xs">
                   <button
                     type="button"
                     onClick={() => setAssignmentMode('individual')}
                     className={`px-2.5 py-1 rounded-lg font-semibold cursor-pointer transition-colors ${
                       assignmentMode === 'individual'
                         ? 'bg-blue-600 text-white shadow-2xs'
-                        : 'bg-white text-slate-600 hover:bg-slate-100'
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
-                    Конкретен колега
+                    Индивидуална
                   </button>
                   <button
                     type="button"
@@ -358,89 +380,110 @@ export function TicketCreateView({
                     className={`px-2.5 py-1 rounded-lg font-semibold cursor-pointer transition-colors ${
                       assignmentMode === 'group'
                         ? 'bg-blue-600 text-white shadow-2xs'
-                        : 'bg-white text-slate-600 hover:bg-slate-100'
+                        : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
                     }`}
                   >
-                    Цяла група / Отдел
+                    + Групова цел
                   </button>
                 </div>
               )}
             </div>
 
-            {assignmentMode === 'individual' ? (
-              <div>
-                <select
-                  value={assigneeId}
-                  onChange={(e) => setAssigneeId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
-                >
-                  <option value="">Неразпределена (обща задача за екипа)</option>
-                  {eligibleAssignees.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.full_name} — {ROLE_LABELS[u.role] || u.role} ({u.email})
-                    </option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-slate-500 mt-1 mb-2">
-                  Списъкът е автоматично филтриран спрямо училищната йерархия на длъжността ви.
-                </p>
+            <div>
+              <label className="block text-xs font-semibold text-slate-700 mb-1">
+                Изберете водещ отговорник <span className="text-rose-500">*</span>
+              </label>
+              <select
+                required
+                value={assigneeId}
+                onChange={(e) => setAssigneeId(e.target.value)}
+                className="w-full px-3.5 py-2.5 rounded-xl border border-blue-300 text-sm bg-white font-medium text-navy-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 shadow-2xs"
+              >
+                <option value="">-- Изберете задължителен главен отговорник --</option>
+                {eligibleAssignees.map((u) => (
+                  <option key={u.id} value={u.id}>
+                    {u.full_name} — {ROLE_LABELS[u.role] || u.role} ({u.email})
+                  </option>
+                ))}
+              </select>
+              <p className="text-[11px] text-slate-500 mt-1 mb-0">
+                Показани са само активни колеги, филтрирани спрямо субординацията в училищната йерархия.
+              </p>
+            </div>
 
-                {/* Additional Assignees */}
-                {assigneeId && eligibleAssignees.filter((u) => u.id !== assigneeId).length > 0 && (
-                  <div className="pt-2 border-t border-slate-200">
-                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
-                      Допълнителни съотговорници (по избор)
-                    </label>
-                    <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
-                      {eligibleAssignees
-                        .filter((u) => u.id !== assigneeId)
-                        .map((u) => {
-                          const isSelected = additionalAssigneeIds.includes(u.id);
-                          return (
-                            <button
-                              key={u.id}
-                              type="button"
-                              onClick={() => {
-                                if (isSelected) {
-                                  setAdditionalAssigneeIds(additionalAssigneeIds.filter((id) => id !== u.id));
-                                } else {
-                                  setAdditionalAssigneeIds([...additionalAssigneeIds, u.id]);
-                                }
-                              }}
-                              className={cn(
-                                'px-2 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer',
-                                isSelected
-                                  ? 'bg-blue-600 text-white border-blue-600'
-                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
-                              )}
-                            >
-                              + {u.full_name}
-                            </button>
-                          );
-                        })}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div>
+            {assignmentMode === 'group' && (
+              <div className="pt-2 border-t border-blue-100">
+                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                  Целева общност / Група
+                </label>
                 <select
                   value={groupTarget}
                   onChange={(e) => setGroupTarget(e.target.value)}
                   className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
                 >
-                  <option value="">Изберете целева група...</option>
-                  <option value="all_teachers">Всички учители (целия педагогически състав)</option>
+                  <option value="">Изберете общност...</option>
+                  <option value="all_teachers">Всички учители (педагогически състав)</option>
                   {isLeadership && (
                     <option value="all_administration">
-                      Всички в администрацията и канцеларията (ЗАС, Счетоводство)
+                      Всички в канцеларията (ЗАС, Счетоводство)
                     </option>
                   )}
                   <option value="all_staff">Целия персонал и поддръжка</option>
                 </select>
                 <p className="text-[11px] text-slate-500 mt-1 mb-0">
-                  Задачата ще бъде възложена едновременно на всички членове на избраната група.
+                  Задачата ще бъде видима за избраната общност, а избраният главен отговорник отговаря за координацията.
                 </p>
+              </div>
+            )}
+
+            {/* Additional Assignees Section */}
+            {eligibleAssignees.filter((u) => u.id !== assigneeId).length > 0 && (
+              <div className="pt-3 border-t border-blue-100">
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="flex items-center gap-1.5 text-xs font-bold text-slate-700 uppercase tracking-wider mb-0">
+                    <Users className="w-3.5 h-3.5 text-blue-600" />
+                    <span>Допълнителни участници по задачата (по избор)</span>
+                  </label>
+                  <span className="text-[11px] text-slate-500 font-semibold">
+                    Избрани: {additionalAssigneeIds.length}
+                  </span>
+                </div>
+                <p className="text-[11px] text-slate-500 mb-2">
+                  Допълнителните участници подпомагат главния отговорник и могат да обменят документи и отчети.
+                </p>
+
+                <div className="flex flex-wrap gap-1.5 max-h-36 overflow-y-auto pr-1">
+                  {eligibleAssignees
+                    .filter((u) => u.id !== assigneeId)
+                    .map((u) => {
+                      const isSelected = additionalAssigneeIds.includes(u.id);
+                      return (
+                        <button
+                          key={u.id}
+                          type="button"
+                          onClick={() => {
+                            if (isSelected) {
+                              setAdditionalAssigneeIds(additionalAssigneeIds.filter((id) => id !== u.id));
+                            } else {
+                              setAdditionalAssigneeIds([...additionalAssigneeIds, u.id]);
+                            }
+                          }}
+                          className={cn(
+                            'px-2.5 py-1 rounded-xl text-xs font-medium border transition-all cursor-pointer flex items-center gap-1',
+                            isSelected
+                              ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                              : 'bg-white text-slate-700 border-slate-200 hover:border-blue-300 hover:bg-blue-50/50'
+                          )}
+                        >
+                          <span>{isSelected ? '✓' : '+'}</span>
+                          <span>{u.full_name}</span>
+                          <span className={cn('text-[10px]', isSelected ? 'text-blue-100' : 'text-slate-400')}>
+                            ({ROLE_LABELS[u.role] || u.role})
+                          </span>
+                        </button>
+                      );
+                    })}
+                </div>
               </div>
             )}
           </div>

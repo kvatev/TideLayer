@@ -47,6 +47,8 @@ CREATE TABLE IF NOT EXISTS public.school_users (
   role TEXT NOT NULL CHECK (role IN ('director', 'school_admin', 'deputy_director', 'department_manager', 'administration', 'teacher', 'staff', 'technician', 'observer')),
   allowed_modules TEXT[] DEFAULT ARRAY['duty', 'tickets', 'inventory'],
   is_active BOOLEAN DEFAULT true,
+  deactivated_at TIMESTAMPTZ NULL,
+  deactivation_reason TEXT NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   UNIQUE(school_id, email)
 );
@@ -133,16 +135,24 @@ CREATE TABLE IF NOT EXISTS public.ticket_departments (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Членство на служители в направления/отдели (много към много)
+-- Членство на служители в направления/отдели (историческо проследяване с интервали от дати)
 CREATE TABLE IF NOT EXISTS public.department_memberships (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
   department_id UUID NOT NULL REFERENCES public.ticket_departments(id) ON DELETE CASCADE,
   user_id UUID NOT NULL REFERENCES public.school_users(id) ON DELETE CASCADE,
   is_lead BOOLEAN DEFAULT false,
-  created_at TIMESTAMPTZ DEFAULT now(),
-  UNIQUE(department_id, user_id)
+  is_active BOOLEAN DEFAULT true, -- true = текущо активно членство; false = историческо/приключило
+  started_at TIMESTAMPTZ DEFAULT now(),
+  ended_at TIMESTAMPTZ NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Частичен индекс: служител може да има само ЕДНО активно членство в даден отдел,
+-- но неограничен брой приключили исторически членства при преминаване между отдели
+CREATE UNIQUE INDEX IF NOT EXISTS idx_dept_memberships_active_unique 
+  ON public.department_memberships (department_id, user_id) 
+  WHERE is_active = true;
 
 CREATE INDEX IF NOT EXISTS idx_dept_memberships_school ON public.department_memberships(school_id);
 CREATE INDEX IF NOT EXISTS idx_dept_memberships_user ON public.department_memberships(user_id);
@@ -155,9 +165,9 @@ CREATE TABLE IF NOT EXISTS public.tickets (
   department_id UUID REFERENCES public.ticket_departments(id) ON DELETE SET NULL,
   created_by_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
   assigned_to_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL, -- главен отговорник
-  primary_assignee_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
+  primary_assignee_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL, -- задължителен главен отговорник
   assigned_role_target TEXT NULL, -- напр. 'all_teachers', 'all_administration', 'all_staff'
-  assigned_user_ids UUID[] NULL, -- множество изпълнители
+  assigned_user_ids UUID[] NULL, -- допълнителни участници по задачата
   due_date TIMESTAMPTZ NULL, -- краен срок за изпълнение
   title TEXT NOT NULL,
   description TEXT NOT NULL,
@@ -169,22 +179,33 @@ CREATE TABLE IF NOT EXISTS public.tickets (
   recurrence_interval TEXT NULL CHECK (recurrence_interval IN ('daily', 'weekly', 'monthly', 'yearly')),
   recurrence_next_date TIMESTAMPTZ NULL,
   recurrence_is_active BOOLEAN DEFAULT true,
+  is_archived BOOLEAN DEFAULT false, -- архивирана ли е задачата
+  archived_at TIMESTAMPTZ NULL,
+  archived_by_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
+  archived_by_name TEXT NULL,
   completed_at TIMESTAMPTZ NULL,
   approved_by_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
 
--- Хронологичен журнал на действията по конкретна задача (Task Activity Log)
+-- Хронологичен одит и журнал на действията по конкретна задача (Task Activity Log - Immutable)
 CREATE TABLE IF NOT EXISTS public.task_activity_logs (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
   task_id UUID NOT NULL REFERENCES public.tickets(id) ON DELETE CASCADE,
   user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
   user_name TEXT NOT NULL,
-  action TEXT NOT NULL, -- 'created', 'started', 'submitted_for_approval', 'approved', 'returned_for_correction', 'reassigned', 'deadline_changed', 'comment_added', 'attachment_added'
+  actor_role TEXT NULL,
+  actor_department_name TEXT NULL,
+  action TEXT NOT NULL, -- 'created', 'started', 'submitted_for_approval', 'approved', 'returned_for_correction', 'reassigned', 'deadline_changed', 'comment_added', 'attachment_added', 'archived', 'restored', 'employee_deactivated', 'department_changed'
+  entity_type TEXT DEFAULT 'task',
+  entity_id UUID NULL,
   from_status TEXT,
   to_status TEXT,
+  previous_value TEXT NULL,
+  new_value TEXT NULL,
+  reason TEXT NULL,
   notes TEXT,
   details JSONB,
   created_at TIMESTAMPTZ DEFAULT now()
@@ -498,7 +519,7 @@ CREATE INDEX IF NOT EXISTS idx_inventory_audit_items_audit_id ON public.inventor
 CREATE INDEX IF NOT EXISTS idx_inventory_logs_school_id ON public.inventory_logs(school_id);
 
 -- =============================================================================
--- 6. ROW LEVEL SECURITY (RLS) POLICIES
+-- 6. ROW LEVEL SECURITY (RLS) POLICIES & IMMUTABILITY GUARDS
 -- =============================================================================
 
 DO $$
@@ -543,4 +564,62 @@ BEGIN
     );
   END LOOP;
 END $$;
+
+-- -----------------------------------------------------------------------------
+-- 7. IDEMPOTENT UPGRADE MIGRATIONS & IMMUTABILITY PROTECTION
+-- -----------------------------------------------------------------------------
+
+-- 7.1 Полета за безопасно деактивиране на служители без физическо изтриване
+ALTER TABLE public.school_users ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+ALTER TABLE public.school_users ADD COLUMN IF NOT EXISTS deactivated_at TIMESTAMPTZ NULL;
+ALTER TABLE public.school_users ADD COLUMN IF NOT EXISTS deactivation_reason TEXT NULL;
+
+-- 7.2 Историческо членство в направления с интервали от дати
+ALTER TABLE public.department_memberships ADD COLUMN IF NOT EXISTS started_at TIMESTAMPTZ DEFAULT now();
+ALTER TABLE public.department_memberships ADD COLUMN IF NOT EXISTS ended_at TIMESTAMPTZ NULL;
+ALTER TABLE public.department_memberships ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+UPDATE public.department_memberships SET started_at = created_at WHERE started_at IS NULL;
+UPDATE public.department_memberships SET is_active = true WHERE is_active IS NULL;
+
+-- Замяна на уникалния ключ с частичен индекс, позволяващ история на членствата
+ALTER TABLE public.department_memberships DROP CONSTRAINT IF EXISTS department_memberships_department_id_user_id_key;
+CREATE UNIQUE INDEX IF NOT EXISTS idx_dept_memberships_active_unique 
+  ON public.department_memberships (department_id, user_id) 
+  WHERE is_active = true;
+
+-- 7.3 Архивиране на задачи и задължителен главен отговорник
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS primary_assignee_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS assigned_user_ids UUID[] NULL;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT false;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS archived_at TIMESTAMPTZ NULL;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS archived_by_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS archived_by_name TEXT NULL;
+
+-- Миграция на съществуващи задачи: възстановяване на главен отговорник от assigned_to_user_id
+UPDATE public.tickets
+SET primary_assignee_id = assigned_to_user_id
+WHERE primary_assignee_id IS NULL AND assigned_to_user_id IS NOT NULL;
+
+-- 7.4 Защитен хронологичен журнал за одит (Task Activity Logs)
+ALTER TABLE public.task_activity_logs ADD COLUMN IF NOT EXISTS actor_role TEXT NULL;
+ALTER TABLE public.task_activity_logs ADD COLUMN IF NOT EXISTS actor_department_name TEXT NULL;
+ALTER TABLE public.task_activity_logs ADD COLUMN IF NOT EXISTS entity_type TEXT DEFAULT 'task';
+ALTER TABLE public.task_activity_logs ADD COLUMN IF NOT EXISTS entity_id UUID NULL;
+ALTER TABLE public.task_activity_logs ADD COLUMN IF NOT EXISTS previous_value TEXT NULL;
+ALTER TABLE public.task_activity_logs ADD COLUMN IF NOT EXISTS new_value TEXT NULL;
+ALTER TABLE public.task_activity_logs ADD COLUMN IF NOT EXISTS reason TEXT NULL;
+
+-- Тригер за неизменност (Immutability): предотвратява редактиране и изтриване на одитните записи
+CREATE OR REPLACE FUNCTION public.prevent_activity_log_modification()
+RETURNS TRIGGER AS $$
+BEGIN
+  RAISE EXCEPTION 'Записите в одитния журнал са неизменни (immutable) и не могат да се редактират или изтриват.';
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS trg_immutable_task_activity_logs ON public.task_activity_logs;
+CREATE TRIGGER trg_immutable_task_activity_logs
+BEFORE UPDATE OR DELETE ON public.task_activity_logs
+FOR EACH ROW EXECUTE FUNCTION public.prevent_activity_log_modification();
+
 

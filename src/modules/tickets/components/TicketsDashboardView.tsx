@@ -7,6 +7,7 @@ import {
   Calendar,
   CheckCircle2,
   Clock,
+  Crown,
   Inbox,
   Plus,
   TrendingUp,
@@ -97,6 +98,16 @@ export function TicketsDashboardView({
       Boolean(t.return_reason && normalizeTaskStatus(t.status) === 'in_progress')
   );
   const myOverdueTasks = myTasks.filter((t) => isTaskOverdue(t));
+
+  // Unfinished tasks with inactive/former assignees
+  const tasksWithInactiveAssignees = useMemo(() => {
+    return tickets.filter(
+      (t) =>
+        t.has_inactive_assignee &&
+        normalizeTaskStatus(t.status) !== 'completed' &&
+        !t.is_archived
+    );
+  }, [tickets]);
 
   // Upcoming deadlines (next 7 days, active tasks)
   const upcomingDeadlines = useMemo(() => {
@@ -311,6 +322,53 @@ export function TicketsDashboardView({
         </div>
       )}
 
+      {/* Inactive Assignee Urgent Reassignment Banner (Management View) */}
+      {dashboardMode === 'management' && tasksWithInactiveAssignees.length > 0 && (
+        <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+              <AlertTriangle className="w-5 h-5 text-rose-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-rose-900 mb-1 flex items-center gap-2">
+                <span>
+                  Внимание: {tasksWithInactiveAssignees.length}{' '}
+                  {tasksWithInactiveAssignees.length === 1
+                    ? 'задача изисква преразпределяне'
+                    : 'задачи изискват преразпределяне'}
+                </span>
+                <span className="text-[10px] bg-rose-200 text-rose-900 font-extrabold px-2 py-0.5 rounded-full">
+                  Деактивиран отговорник
+                </span>
+              </h3>
+              <p className="text-xs text-rose-800 mb-0">
+                Тези задачи са в ход, но отговорният за тях служител вече е напуснал или профилът му е деактивиран. Преразпределете ги към активни колеги.
+              </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2 shrink-0 flex-wrap">
+            {tasksWithInactiveAssignees.slice(0, 2).map((t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => onNavigate('detail', { ticketId: t.id })}
+                className="px-3 py-1.5 rounded-xl bg-white border border-rose-300 hover:border-rose-400 text-rose-900 text-xs font-semibold transition-colors cursor-pointer shadow-2xs flex items-center gap-1"
+              >
+                <Crown className="w-3 h-3 text-amber-500" />
+                <span>{t.code || 'TSK'}: Преразпредели</span>
+              </button>
+            ))}
+            <button
+              type="button"
+              onClick={() => onNavigate('list')}
+              className="px-3.5 py-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold transition-colors cursor-pointer shadow-2xs"
+            >
+              Виж всички в списъка
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Main Content Split: Tasks List / Upcoming / Department Progress */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Priority Tasks & Deadlines */}
@@ -418,6 +476,18 @@ export function TicketsDashboardView({
                             </span>
                           )}
 
+                          {task.has_inactive_assignee && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-100 text-rose-800 border border-rose-200">
+                              ⚠️ Неактивен отговорник
+                            </span>
+                          )}
+
+                          {task.is_archived && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">
+                              Архивирана
+                            </span>
+                          )}
+
                           {task.return_reason && (
                             <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
                               Върната за корекция
@@ -429,10 +499,19 @@ export function TicketsDashboardView({
                           {task.title}
                         </p>
 
-                        <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                        <div className="flex items-center gap-3 text-[11px] text-slate-400 flex-wrap">
                           <span>{task.department_name}</span>
                           <span>•</span>
-                          <span>Отговорник: {task.assignee_name}</span>
+                          <span className="flex items-center gap-1">
+                            <Crown className="w-3 h-3 text-amber-500 fill-amber-400 inline" />
+                            <span>{task.primary_assignee_name || task.assignee_name}</span>
+                          </span>
+                          {task.additional_assignees && task.additional_assignees.length > 0 && (
+                            <>
+                              <span>•</span>
+                              <span>+{task.additional_assignees.length} съотговорника</span>
+                            </>
+                          )}
                           {task.due_date && (
                             <>
                               <span>•</span>

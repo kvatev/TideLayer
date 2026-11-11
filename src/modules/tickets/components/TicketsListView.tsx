@@ -1,7 +1,9 @@
 import { useState, useMemo } from 'react';
 import {
+  Archive,
   ArrowRight,
   Calendar,
+  Crown,
   Inbox,
   Paperclip,
   Plus,
@@ -33,7 +35,7 @@ export function TicketsListView({
   onNavigate,
   canCreateTicket,
 }: TicketsListViewProps) {
-  const [tab, setTab] = useState<'all' | 'assigned_to_me' | 'created_by_me'>('all');
+  const [tab, setTab] = useState<'all' | 'assigned_to_me' | 'created_by_me' | 'archived'>('all');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
   const [deptFilter, setDeptFilter] = useState<string>('all');
@@ -41,21 +43,34 @@ export function TicketsListView({
   const [page, setPage] = useState(1);
   const pageSize = 15;
 
+  const archivedCount = useMemo(() => tickets.filter((t) => t.is_archived).length, [tickets]);
+  const activeTicketsCount = useMemo(() => tickets.filter((t) => !t.is_archived).length, [tickets]);
+
   const filtered = useMemo(() => {
     return tickets.filter((t) => {
-      if (tab === 'assigned_to_me') {
-        const isDirect =
-          t.assigned_to_user_id === currentUserId || t.primary_assignee_id === currentUserId;
-        const isAssignedList = t.assigned_user_ids?.includes(currentUserId);
-        const isGroup = Boolean(t.assigned_role_target);
-        if (!isDirect && !isAssignedList && !isGroup) return false;
-      } else if (tab === 'created_by_me') {
-        if (t.created_by_user_id !== currentUserId) return false;
+      // Archive tab handling
+      if (tab === 'archived') {
+        if (!t.is_archived) return false;
+      } else {
+        // By default, regular tabs show non-archived tasks
+        if (t.is_archived) return false;
+
+        if (tab === 'assigned_to_me') {
+          const isDirect =
+            t.assigned_to_user_id === currentUserId || t.primary_assignee_id === currentUserId;
+          const isAssignedList = t.assigned_user_ids?.includes(currentUserId);
+          const isGroup = Boolean(t.assigned_role_target);
+          if (!isDirect && !isAssignedList && !isGroup) return false;
+        } else if (tab === 'created_by_me') {
+          if (t.created_by_user_id !== currentUserId) return false;
+        }
       }
 
       if (statusFilter !== 'all') {
         if (statusFilter === 'overdue') {
           if (!isTaskOverdue(t)) return false;
+        } else if (statusFilter === 'inactive_assignee') {
+          if (!t.has_inactive_assignee) return false;
         } else {
           if (normalizeTaskStatus(t.status) !== statusFilter) return false;
         }
@@ -74,7 +89,16 @@ export function TicketsListView({
         const matchRoom = (t.room_or_location || '').toLowerCase().includes(q);
         const matchCreator = (t.creator_name || '').toLowerCase().includes(q);
         const matchAssignee = (t.assignee_name || '').toLowerCase().includes(q);
-        if (!matchCode && !matchTitle && !matchDesc && !matchRoom && !matchCreator && !matchAssignee) {
+        const matchPrimary = (t.primary_assignee_name || '').toLowerCase().includes(q);
+        if (
+          !matchCode &&
+          !matchTitle &&
+          !matchDesc &&
+          !matchRoom &&
+          !matchCreator &&
+          !matchAssignee &&
+          !matchPrimary
+        ) {
           return false;
         }
       }
@@ -141,7 +165,7 @@ export function TicketsListView({
                   : 'text-slate-600 hover:text-navy-900'
               }`}
             >
-              Всички задачи ({tickets.length})
+              Всички активни ({activeTicketsCount})
             </button>
             <button
               type="button"
@@ -155,7 +179,7 @@ export function TicketsListView({
                   : 'text-slate-600 hover:text-navy-900'
               }`}
             >
-              Възложени на мен ({tickets.filter((t) => t.assigned_to_user_id === currentUserId || Boolean(t.assigned_role_target)).length})
+              Възложени на мен ({tickets.filter((t) => !t.is_archived && (t.assigned_to_user_id === currentUserId || t.primary_assignee_id === currentUserId || Boolean(t.assigned_role_target))).length})
             </button>
             <button
               type="button"
@@ -169,7 +193,22 @@ export function TicketsListView({
                   : 'text-slate-600 hover:text-navy-900'
               }`}
             >
-              Възложени от мен ({tickets.filter((t) => t.created_by_user_id === currentUserId).length})
+              Възложени от мен ({tickets.filter((t) => !t.is_archived && t.created_by_user_id === currentUserId).length})
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setTab('archived');
+                setPage(1);
+              }}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer flex items-center gap-1 ${
+                tab === 'archived'
+                  ? 'bg-white text-navy-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-navy-900'
+              }`}
+            >
+              <Archive className="w-3.5 h-3.5 text-slate-500" />
+              <span>Архив ({archivedCount})</span>
             </button>
           </div>
 
@@ -217,6 +256,7 @@ export function TicketsListView({
             <option value="awaiting_approval">Чакащи одобрение</option>
             <option value="completed">Приключени / Одобрени</option>
             <option value="overdue">⚠️ Просрочени задачи</option>
+            <option value="inactive_assignee">⚠️ С деактивиран отговорник</option>
           </select>
 
           {/* Department Filter */}
@@ -277,6 +317,16 @@ export function TicketsListView({
                     <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
                     {st.label}
                   </span>
+                  {t.is_archived && (
+                    <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-slate-100 text-slate-700 border border-slate-300">
+                      📦 Архивирана
+                    </span>
+                  )}
+                  {t.has_inactive_assignee && normStatus !== 'completed' && (
+                    <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-rose-100 text-rose-800 border border-rose-300">
+                      ⚠️ Деактивиран отговорник
+                    </span>
+                  )}
                   {isOverdue && (
                     <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
                       Просрочена
@@ -357,7 +407,26 @@ export function TicketsListView({
                   <span>•</span>
                   <span>Подател: <strong>{t.creator_name}</strong></span>
                   <span>•</span>
-                  <span>Отговорник: <strong>{t.assignee_name}</strong></span>
+                  <span className="flex items-center gap-1">
+                    <Crown className="w-3 h-3 text-amber-500 fill-amber-400 shrink-0" />
+                    <span>
+                      Отговорник:{' '}
+                      <strong className={t.has_inactive_assignee ? 'text-rose-700' : 'text-navy-900'}>
+                        {t.primary_assignee_name || t.assignee_name}
+                      </strong>
+                    </span>
+                    {t.primary_assignee_is_active === false && (
+                      <span className="text-[10px] text-rose-600 font-bold">(неактивен)</span>
+                    )}
+                  </span>
+                  {t.additional_assignees && t.additional_assignees.length > 0 && (
+                    <>
+                      <span>•</span>
+                      <span className="text-slate-600">
+                        +{t.additional_assignees.length} съотговорника
+                      </span>
+                    </>
+                  )}
                   <span>•</span>
                   <span>{new Date(t.created_at).toLocaleDateString('bg-BG')}</span>
                   {t.messages_count ? (

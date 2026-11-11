@@ -442,6 +442,9 @@ export function TicketsModuleApp() {
             onUpdateDeadline={store.updateTaskDeadline}
             onAddAttachment={store.addAttachmentToTask}
             onDeleteAttachment={store.deleteAttachment}
+            onReassignTask={store.reassignTask}
+            onArchiveTask={store.archiveTask}
+            onRestoreTask={store.restoreTask}
             onEditTicket={store.editTicket}
             onDeleteTicket={store.deleteTicket}
           />
@@ -460,6 +463,9 @@ export function TicketsModuleApp() {
             onAddMember={store.addDepartmentMember}
             onRemoveMember={store.removeDepartmentMember}
             onToggleLead={store.toggleDepartmentMemberLead}
+            onMoveMember={store.moveDepartmentMember}
+            onDeactivateEmployee={store.deactivateEmployee}
+            onReactivateEmployee={store.reactivateEmployee}
           />
         )}
 

@@ -109,6 +109,8 @@ export interface SchoolUserRecord {
   role: SchoolUserRole;
   allowed_modules: SchoolModuleKey[];
   is_active: boolean;
+  deactivated_at?: string | null;
+  deactivation_reason?: string | null;
   created_at: string;
 }
 
@@ -450,6 +452,21 @@ function getInitialDemoStore(): LocalSaasStore {
         allowed_modules: ['duty', 'tickets', 'inventory'],
         is_active: true,
         created_at: now.toISOString(),
+      },
+      {
+        id: 'usr-former-1',
+        school_id: schoolId,
+        auth_user_id: null,
+        email: 'dimitar.ivanov@petkanov.bg',
+        password_hash: 'school123',
+        pin_code: '9999',
+        full_name: 'Димитър Иванов (Бивш учител по физика)',
+        role: 'teacher',
+        allowed_modules: ['duty', 'tickets'],
+        is_active: false,
+        deactivated_at: new Date(Date.now() - 86400000 * 45).toISOString(),
+        deactivation_reason: 'Пенсиониран / напуснал училището',
+        created_at: new Date(Date.now() - 86400000 * 200).toISOString(),
       },
     ],
   };
@@ -864,7 +881,7 @@ export async function createSchoolUser(input: CreateSchoolUserInput): Promise<Sc
 
 export async function updateSchoolUser(
   userId: string,
-  patch: Partial<Pick<SchoolUserRecord, 'email' | 'password_hash' | 'pin_code' | 'is_active' | 'role' | 'allowed_modules' | 'full_name'>>
+  patch: Partial<Pick<SchoolUserRecord, 'email' | 'password_hash' | 'pin_code' | 'is_active' | 'role' | 'allowed_modules' | 'full_name' | 'deactivated_at' | 'deactivation_reason'>>
 ): Promise<void> {
   try {
     await supabase.from('school_users').update(patch).eq('id', userId);
@@ -877,16 +894,34 @@ export async function updateSchoolUser(
   writeLocalStore(store);
 }
 
-export async function deleteSchoolUser(userId: string): Promise<void> {
-  try {
-    await supabase.from('school_users').delete().eq('id', userId);
-  } catch {
-    // ignore
-  }
+/**
+ * Безопасно деактивиране на служител (Soft Deactivation)
+ * Запазва всички исторически записи, авторство на задачи, коментари, файлове и членства.
+ */
+export async function deactivateSchoolUser(userId: string, reason?: string): Promise<void> {
+  const patch: Partial<SchoolUserRecord> = {
+    is_active: false,
+    deactivated_at: new Date().toISOString(),
+    deactivation_reason: reason || 'Напуснал / деактивиран служител',
+  };
+  await updateSchoolUser(userId, patch);
+}
 
-  const store = readLocalStore();
-  store.users = store.users.filter((u) => u.id !== userId);
-  writeLocalStore(store);
+/**
+ * Възстановяване / активиране на деактивиран служител
+ */
+export async function reactivateSchoolUser(userId: string): Promise<void> {
+  const patch: Partial<SchoolUserRecord> = {
+    is_active: true,
+    deactivated_at: null,
+    deactivation_reason: null,
+  };
+  await updateSchoolUser(userId, patch);
+}
+
+export async function deleteSchoolUser(userId: string): Promise<void> {
+  // Вместо деструктивно изтриване, извършваме сигурно деактивиране за запазване на релационната цялост
+  await deactivateSchoolUser(userId, 'Прекратен достъп / архивиран акаунт');
 }
 
 // =============================================================================
@@ -946,22 +981,29 @@ export async function authenticateSchoolPortalUser(
   let matchedUser: SchoolUserRecord | undefined;
 
   if (mode === 'pin') {
-    matchedUser = bundle.users.find(
-      (u) => u.is_active && u.pin_code && u.pin_code.trim() === cleanSecret
+    const candidate = bundle.users.find(
+      (u) => u.pin_code && u.pin_code.trim() === cleanSecret
     );
-    if (!matchedUser) {
-      return { error: 'Невалиден ПИН код или неактивен потребител.' };
+    if (candidate && candidate.is_active === false) {
+      return { error: 'Акаунтът на този служител е деактивиран. Моля, обърнете се към ръководството на училището.' };
     }
+    if (!candidate || !candidate.is_active) {
+      return { error: 'Невалиден ПИН код.' };
+    }
+    matchedUser = candidate;
   } else {
-    matchedUser = bundle.users.find(
+    const candidate = bundle.users.find(
       (u) =>
-        u.is_active &&
         u.email.trim().toLowerCase() === cleanId &&
         u.password_hash === cleanSecret
     );
-    if (!matchedUser) {
+    if (candidate && candidate.is_active === false) {
+      return { error: 'Акаунтът на този служител е деактивиран. Моля, обърнете се към ръководството на училището.' };
+    }
+    if (!candidate || !candidate.is_active) {
       return { error: 'Невалиден имейл/потребителско име или парола.' };
     }
+    matchedUser = candidate;
   }
 
   const session: SchoolPortalSession = {

@@ -103,8 +103,10 @@ export interface InventoryMovement {
   to_mol?: string | null;
   moved_by_name: string;
   moved_by_user_id?: string | null;
+  actor_name?: string | null; // alias / backward compatibility
   movement_date: string;
   reason?: string | null;
+  notes?: string | null;
   created_at: string;
 }
 
@@ -126,12 +128,14 @@ export interface InventoryAuditSession {
   target_room_ids: string[];
   target_category_ids: string[];
   committee_members: string[]; // Имената на членовете на комисията
+  committee?: string[]; // alias
   status: AuditStatus;
   started_at: string;
   completed_at?: string | null;
   summary_notes?: string | null;
   created_by_name: string;
   created_at: string;
+  items?: InventoryAuditItem[];
 }
 
 export interface InventoryAuditItem {
@@ -144,10 +148,55 @@ export interface InventoryAuditItem {
   expected_room_id: string | null;
   expected_room_name: string;
   found_room_id: string | null;
+  room_id?: string | null;
   status: AuditItemStatus;
   notes?: string | null;
   checked_by_name?: string | null;
   checked_at?: string | null;
+  verified_at?: string | null;
+}
+
+export interface CreateItemInput {
+  name: string;
+  inventory_code?: string;
+  tracking_type?: TrackingType;
+  category_id?: string | null;
+  room_id?: string | null;
+  manufacturer?: string | null;
+  model?: string | null;
+  brand_or_model?: string | null;
+  serial_number?: string | null;
+  quantity?: number;
+  condition?: ItemCondition;
+  assigned_to?: string | null;
+  purchase_date?: string | null;
+  warranty_until?: string | null;
+  purchase_price?: number | null;
+  notes?: string | null;
+  description?: string | null;
+  photos?: string[];
+  attachments?: ItemAttachment[];
+}
+
+export interface CreateRoomInput {
+  room_number?: string | null;
+  name: string;
+  room_type?: RoomType | null;
+  building?: string | null;
+  floor?: string | null;
+  building_or_floor?: string | null;
+  responsible_person?: string | null;
+  description?: string | null;
+}
+
+export interface InventoryNotification {
+  id: string;
+  type: 'warranty_expiring' | 'warranty_expired' | 'needs_repair' | 'missing' | 'audit_in_progress';
+  title: string;
+  message: string;
+  severity: 'critical' | 'warning' | 'info';
+  item_id?: string;
+  audit_id?: string;
 }
 
 export interface InventoryLog {
@@ -265,19 +314,22 @@ export const AUDIT_ITEM_STATUS_META: Record<
 
 export const AUDIT_STATUS_META: Record<
   AuditStatus,
-  { label: string; badge: string }
+  { label: string; badge: string; colorClass: string }
 > = {
   in_progress: {
     label: 'В процес на ревизия',
     badge: 'bg-blue-50 text-blue-700 border-blue-200',
+    colorClass: 'bg-blue-50 text-blue-700 border-blue-200',
   },
   completed: {
     label: 'Приключена (Заключена)',
     badge: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    colorClass: 'bg-emerald-50 text-emerald-700 border-emerald-200',
   },
   cancelled: {
     label: 'Анулирана',
     badge: 'bg-slate-100 text-slate-600 border-slate-300',
+    colorClass: 'bg-slate-100 text-slate-600 border-slate-300',
   },
 };
 

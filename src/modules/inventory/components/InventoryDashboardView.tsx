@@ -96,7 +96,7 @@ export function InventoryDashboardView({
 
     // Unverified items in active audit
     const unverifiedCount = activeAudit
-      ? activeAudit.items.filter((ai) => ai.status === 'unverified').length
+      ? (activeAudit.items || []).filter((ai) => ai.status === 'unverified').length
       : 0;
 
     return {

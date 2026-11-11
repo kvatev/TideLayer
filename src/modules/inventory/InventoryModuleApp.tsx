@@ -265,7 +265,7 @@ export function InventoryModuleApp() {
             categories={store.categories}
             movements={store.movements}
             schoolName={school.name}
-            onCreateItem={store.createItem}
+            onCreateItem={async (it) => (await store.createItem(it))!}
             onEditItem={store.editItem}
             onDeleteItem={store.deleteItem}
             onWriteOffItem={store.writeOffItem}
@@ -296,8 +296,12 @@ export function InventoryModuleApp() {
               setSelectedRoomId(r.id);
               setCurrentView('room_detail');
             }}
-            onCreateRoom={store.createRoom}
-            onEditRoom={store.editRoom}
+            onCreateRoom={async (r) => {
+              await store.createRoom(r);
+            }}
+            onEditRoom={async (id, patch) => {
+              await store.editRoom(id, patch as any);
+            }}
             onArchiveRoom={store.archiveRoom}
             onDeleteRoom={store.deleteRoom}
           />
@@ -318,7 +322,7 @@ export function InventoryModuleApp() {
               setCurrentView('items');
             }}
             onEditRoom={(r) => {
-              store.editRoom(r.id, r);
+              store.editRoom(r.id, r as any);
             }}
             onToggleArchiveRoom={async (id, archived) => {
               await store.archiveRoom(id, archived);

@@ -26,20 +26,37 @@ export type SchoolUserRole =
   | 'director'
   | 'school_admin'
   | 'deputy_director'
+  | 'department_manager'
   | 'administration'
   | 'teacher'
   | 'staff'
-  | 'technician';
+  | 'technician'
+  | 'observer';
 
 export const ROLE_HIERARCHY_LEVEL: Record<SchoolUserRole, number> = {
   director: 1,
   school_admin: 1,
   deputy_director: 2,
+  department_manager: 2,
   administration: 3,
   teacher: 4,
   staff: 4,
   technician: 4,
+  observer: 5,
 };
+
+export function isSchoolManagement(role: SchoolUserRole): boolean {
+  return (
+    role === 'director' ||
+    role === 'school_admin' ||
+    role === 'deputy_director' ||
+    role === 'department_manager'
+  );
+}
+
+export function isSystemAdminOrDirector(role: SchoolUserRole): boolean {
+  return role === 'director' || role === 'school_admin';
+}
 
 /**
  * Checks if a user role can assign tasks to a target role in school hierarchy.
@@ -168,10 +185,12 @@ export const ROLE_LABELS: Record<SchoolUserRole, string> = {
   director: 'Директор (Ниво 1)',
   school_admin: 'Училищен Админ / Директор (Ниво 1)',
   deputy_director: 'Заместник-директор (Ниво 2)',
+  department_manager: 'Ръководител направление (Ниво 2)',
   administration: 'Администрация / ЗАС / Счетоводство (Ниво 3)',
   teacher: 'Учител (Ниво 4)',
   staff: 'Служител / Персонал (Ниво 4)',
   technician: 'ИТ координатор / Техник (Ниво 4)',
+  observer: 'Наблюдател (Само за четене)',
 };
 
 // =============================================================================

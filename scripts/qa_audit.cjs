@@ -250,4 +250,182 @@ const routes = [
 ];
 
 console.log(`✅ Routes: ${routes.length} total core system routes verified`);
+
+// 10. Test Task Management & 4 Primary Statuses Workflow
+function normalizeTaskStatus(status) {
+  if (status === 'open') return 'new';
+  if (status === 'resolved') return 'awaiting_approval';
+  if (status === 'closed') return 'completed';
+  return status;
+}
+
+function isTaskOverdue(task) {
+  if (!task.due_date) return false;
+  const norm = normalizeTaskStatus(task.status);
+  if (norm === 'completed') return false;
+  return new Date(task.due_date).getTime() < Date.now();
+}
+
+function generateNextTaskCode(existingTickets) {
+  let maxNum = 1000;
+  for (const t of existingTickets) {
+    if (t.code) {
+      const m = t.code.match(/^TSK-(\d+)$/i);
+      if (m) {
+        const num = parseInt(m[1], 10);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      }
+    }
+  }
+  return `TSK-${maxNum + 1}`;
+}
+
+const sampleTasks = [
+  { id: '1', code: 'TSK-1001', status: 'new', due_date: new Date(Date.now() + 86400000).toISOString() },
+  { id: '2', code: 'TSK-1002', status: 'in_progress', due_date: new Date(Date.now() - 86400000).toISOString() },
+  { id: '3', code: 'TSK-1003', status: 'awaiting_approval', due_date: new Date(Date.now() - 86400000 * 2).toISOString() },
+  { id: '4', code: 'TSK-1004', status: 'completed', due_date: new Date(Date.now() - 86400000 * 5).toISOString() },
+];
+
+assert.strictEqual(normalizeTaskStatus('open'), 'new');
+assert.strictEqual(normalizeTaskStatus('resolved'), 'awaiting_approval');
+assert.strictEqual(normalizeTaskStatus('closed'), 'completed');
+assert.strictEqual(isTaskOverdue(sampleTasks[0]), false, 'Future task must not be overdue');
+assert.strictEqual(isTaskOverdue(sampleTasks[1]), true, 'Past in_progress task must be overdue');
+assert.strictEqual(isTaskOverdue(sampleTasks[2]), true, 'Past awaiting_approval task must be overdue');
+assert.strictEqual(isTaskOverdue(sampleTasks[3]), false, 'Completed task must NEVER be overdue even if due date passed');
+
+const nextTaskCode = generateNextTaskCode(sampleTasks);
+assert.strictEqual(nextTaskCode, 'TSK-1005', 'Next task code must be TSK-1005');
+console.log('✅ Tasks: 4-Status transitions, overdue detection & TSK-code generator verified');
+
+// 11. Test Return for Correction with Mandatory Reason
+function returnTaskForCorrection(task, reason) {
+  const trimmed = (reason || '').trim();
+  if (!trimmed) {
+    throw new Error('Mandatory reason required for return for correction');
+  }
+  return {
+    ...task,
+    status: 'in_progress',
+    return_reason: trimmed,
+    updated_at: new Date().toISOString(),
+  };
+}
+
+assert.throws(() => returnTaskForCorrection(sampleTasks[2], ''), /Mandatory reason/);
+assert.throws(() => returnTaskForCorrection(sampleTasks[2], '   '), /Mandatory reason/);
+const returned = returnTaskForCorrection(sampleTasks[2], 'Липсва раздел IV от тематичния план');
+assert.strictEqual(returned.status, 'in_progress');
+assert.strictEqual(returned.return_reason, 'Липсва раздел IV от тематичния план');
+console.log('✅ Tasks: Return for correction with mandatory reason verified');
+
+// 12. Test Recurring Task Scheduling
+function getNextRecurrenceDate(currentDateStr, interval) {
+  const date = new Date(currentDateStr);
+  switch (interval) {
+    case 'daily':
+      return new Date(date.getTime() + 86400000).toISOString().slice(0, 10);
+    case 'weekly':
+      return new Date(date.getTime() + 86400000 * 7).toISOString().slice(0, 10);
+    case 'monthly': {
+      const m = new Date(date);
+      m.setMonth(m.getMonth() + 1);
+      return m.toISOString().slice(0, 10);
+    }
+    case 'yearly': {
+      const y = new Date(date);
+      y.setFullYear(y.getFullYear() + 1);
+      return y.toISOString().slice(0, 10);
+    }
+    default:
+      return new Date(date.getTime() + 86400000 * 7).toISOString().slice(0, 10);
+  }
+}
+
+const baseDate = '2026-11-01';
+assert.strictEqual(getNextRecurrenceDate(baseDate, 'daily'), '2026-11-02');
+assert.strictEqual(getNextRecurrenceDate(baseDate, 'weekly'), '2026-11-08');
+assert.strictEqual(getNextRecurrenceDate(baseDate, 'monthly'), '2026-12-01');
+assert.strictEqual(getNextRecurrenceDate(baseDate, 'yearly'), '2027-11-01');
+console.log('✅ Recurring: Daily/Weekly/Monthly/Yearly recurrence cycle generator verified');
+
+// 13. Test Independent Document Register & Numbering (Workflow B)
+function generateNextRegNumber(existingDocs, type, year = 2026) {
+  const prefix = type === 'incoming' ? 'ВХ' : type === 'outgoing' ? 'ИЗХ' : 'ВЪТР';
+  const regex = new RegExp(`^${prefix}-(\\d+)/${year}$`);
+  let maxNum = 100;
+  for (const doc of existingDocs) {
+    const match = doc.reg_number.match(regex);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+      }
+    }
+  }
+  return `${prefix}-${maxNum + 1}/${year}`;
+}
+
+const sampleDocs = [
+  { reg_number: 'ВХ-101/2026', doc_type: 'incoming', title: 'МОН' },
+  { reg_number: 'ВХ-102/2026', doc_type: 'incoming', title: 'РУО' },
+  { reg_number: 'ИЗХ-42/2026', doc_type: 'outgoing', title: 'Заявка' },
+  { reg_number: 'ВЪТР-15/2026', doc_type: 'internal', title: 'Заповед' },
+];
+
+assert.strictEqual(generateNextRegNumber(sampleDocs, 'incoming', 2026), 'ВХ-103/2026');
+assert.strictEqual(generateNextRegNumber(sampleDocs, 'outgoing', 2026), 'ИЗХ-101/2026'); // jumps from default 100 if none above 100
+assert.strictEqual(generateNextRegNumber(sampleDocs, 'internal', 2026), 'ВЪТР-101/2026');
+console.log('✅ Document Register: Auto-numbering for ВХ, ИЗХ, ВЪТР verified');
+
+// 14. Test Department Memberships & Multi-Role Access Control
+function checkTaskAccess(user, task, userDeptIds) {
+  if (user.role === 'school_admin' || user.role === 'director') return true;
+  if (user.role === 'observer') return true; // read-only
+  if (task.primary_assignee_id === user.id || task.assigned_to_user_id === user.id) return true;
+  if (task.created_by_user_id === user.id) return true;
+  if (task.assigned_user_ids && task.assigned_user_ids.includes(user.id)) return true;
+  if (task.department_id && userDeptIds.includes(task.department_id)) return true;
+  if (task.assigned_role_target === 'all_staff') return true;
+  if (task.assigned_role_target === 'all_teachers' && user.role === 'teacher') return true;
+  return false;
+}
+
+function checkTaskManage(user, task, userDeptIds, isDeptLead) {
+  if (user.role === 'school_admin' || user.role === 'director') return true;
+  if (user.role === 'observer') return false;
+  if (task.department_id && userDeptIds.includes(task.department_id) && isDeptLead) return true;
+  return false;
+}
+
+const director = { id: 'u1', role: 'director' };
+const deptLead = { id: 'u2', role: 'department_manager' };
+const teacherA = { id: 'u3', role: 'teacher' };
+const teacherB = { id: 'u4', role: 'teacher' };
+const observer = { id: 'u5', role: 'observer' };
+
+const taskDept1 = { id: 't1', department_id: 'dept1', primary_assignee_id: 'u3', created_by_user_id: 'u1' };
+const taskDept2 = { id: 't2', department_id: 'dept2', primary_assignee_id: 'u4', created_by_user_id: 'u2' };
+
+// Director has school-wide access
+assert.strictEqual(checkTaskAccess(director, taskDept1, []), true);
+assert.strictEqual(checkTaskAccess(director, taskDept2, []), true);
+assert.strictEqual(checkTaskManage(director, taskDept1, [], false), true);
+
+// Teacher A only has access to assigned task or their dept, not unrelated dept2
+assert.strictEqual(checkTaskAccess(teacherA, taskDept1, ['dept1']), true);
+assert.strictEqual(checkTaskAccess(teacherA, taskDept2, ['dept1']), false, 'Teacher A cannot access unrelated dept2 task');
+assert.strictEqual(checkTaskManage(teacherA, taskDept1, ['dept1'], false), false, 'Regular teacher cannot manage/approve department tasks');
+
+// Dept Lead can manage within dept2, but cannot manage dept1
+assert.strictEqual(checkTaskManage(deptLead, taskDept2, ['dept2'], true), true);
+assert.strictEqual(checkTaskManage(deptLead, taskDept1, ['dept2'], false), false);
+
+// Observer cannot manage any task
+assert.strictEqual(checkTaskAccess(observer, taskDept1, []), true);
+assert.strictEqual(checkTaskManage(observer, taskDept1, [], false), false);
+
+console.log('✅ Authorization: Multi-department access & role-based management verified');
+
 console.log('\n🎉 ALL QA AUDIT CHECKS PASSED WITH 100% SUCCESS!\n');

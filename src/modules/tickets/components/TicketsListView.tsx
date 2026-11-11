@@ -10,6 +10,8 @@ import {
   X,
 } from 'lucide-react';
 import {
+  isTaskOverdue,
+  normalizeTaskStatus,
   PRIORITY_LABELS,
   STATUS_LABELS,
   type SchoolTicket,
@@ -42,14 +44,21 @@ export function TicketsListView({
   const filtered = useMemo(() => {
     return tickets.filter((t) => {
       if (tab === 'assigned_to_me') {
-        const isDirect = t.assigned_to_user_id === currentUserId;
+        const isDirect =
+          t.assigned_to_user_id === currentUserId || t.primary_assignee_id === currentUserId;
+        const isAssignedList = t.assigned_user_ids?.includes(currentUserId);
         const isGroup = Boolean(t.assigned_role_target);
-        if (!isDirect && !isGroup) return false;
+        if (!isDirect && !isAssignedList && !isGroup) return false;
       } else if (tab === 'created_by_me') {
         if (t.created_by_user_id !== currentUserId) return false;
       }
-      if (statusFilter !== 'all' && t.status !== statusFilter) {
-        return false;
+
+      if (statusFilter !== 'all') {
+        if (statusFilter === 'overdue') {
+          if (!isTaskOverdue(t)) return false;
+        } else {
+          if (normalizeTaskStatus(t.status) !== statusFilter) return false;
+        }
       }
       if (deptFilter !== 'all' && t.department_id !== deptFilter) {
         return false;
@@ -59,12 +68,13 @@ export function TicketsListView({
       }
       if (search.trim()) {
         const q = search.trim().toLowerCase();
+        const matchCode = (t.code || '').toLowerCase().includes(q);
         const matchTitle = t.title.toLowerCase().includes(q);
         const matchDesc = t.description.toLowerCase().includes(q);
         const matchRoom = (t.room_or_location || '').toLowerCase().includes(q);
         const matchCreator = (t.creator_name || '').toLowerCase().includes(q);
         const matchAssignee = (t.assignee_name || '').toLowerCase().includes(q);
-        if (!matchTitle && !matchDesc && !matchRoom && !matchCreator && !matchAssignee) {
+        if (!matchCode && !matchTitle && !matchDesc && !matchRoom && !matchCreator && !matchAssignee) {
           return false;
         }
       }
@@ -202,10 +212,11 @@ export function TicketsListView({
             className="w-full px-3 py-2 rounded-xl border border-slate-300 text-xs sm:text-sm bg-slate-50/60 font-medium text-navy-900 focus:bg-white focus:outline-none focus:border-blue-500"
           >
             <option value="all">Всички статуси</option>
-            <option value="open">Нова задача</option>
+            <option value="new">Нови задачи</option>
             <option value="in_progress">В процес</option>
-            <option value="resolved">Изпълнена / За преглед</option>
-            <option value="closed">Приключена / Одобрена</option>
+            <option value="awaiting_approval">Чакащи одобрение</option>
+            <option value="completed">Приключени / Одобрени</option>
+            <option value="overdue">⚠️ Просрочени задачи</option>
           </select>
 
           {/* Department Filter */}
@@ -246,8 +257,10 @@ export function TicketsListView({
       {/* Tickets List */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden divide-y divide-slate-100">
         {pagedTickets.map((t) => {
-          const st = STATUS_LABELS[t.status];
-          const pr = PRIORITY_LABELS[t.priority];
+          const normStatus = normalizeTaskStatus(t.status);
+          const st = STATUS_LABELS[normStatus] || STATUS_LABELS.new;
+          const pr = PRIORITY_LABELS[t.priority] || PRIORITY_LABELS.medium;
+          const isOverdue = isTaskOverdue(t);
 
           return (
             <div
@@ -257,10 +270,23 @@ export function TicketsListView({
             >
               <div className="min-w-0 flex-1 space-y-1.5">
                 <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-xs font-bold text-slate-800 bg-slate-100 border border-slate-300 px-2 py-0.5 rounded-md">
+                    {t.code || 'TSK'}
+                  </span>
                   <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-md text-xs font-semibold border ${st.bg}`}>
                     <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
                     {st.label}
                   </span>
+                  {isOverdue && (
+                    <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
+                      Просрочена
+                    </span>
+                  )}
+                  {t.return_reason && normStatus === 'in_progress' && (
+                    <span className="px-2 py-0.5 rounded-md text-xs font-bold bg-amber-100 text-amber-800 border border-amber-200">
+                      Върната за корекция
+                    </span>
+                  )}
                   <span className={`px-2 py-0.5 rounded-md text-xs font-semibold border ${pr.bg} ${pr.text} ${pr.border}`}>
                     {pr.label}
                   </span>

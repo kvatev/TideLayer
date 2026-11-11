@@ -1248,8 +1248,8 @@ export function InventoryAuditView({
               {/* Committee Members Block */}
               <div className="text-xs space-y-1 bg-slate-50 p-3 rounded-lg border border-slate-200">
                 <div className="font-bold">Комисия, назначена със заповед на Директора:</div>
-                {(protocolAudit.committee || ['Директор', 'Зам.-директор', 'Счетоводител']).map(
-                  (c, idx) => (
+                {(protocolAudit.committee || protocolAudit.committee_members || ['Директор', 'Зам.-директор', 'Счетоводител']).map(
+                  (c: string, idx: number) => (
                     <div key={idx}>• {c}</div>
                   )
                 )}
@@ -1264,20 +1264,20 @@ export function InventoryAuditView({
                   <tbody>
                     <tr className="border-b border-slate-300">
                       <td className="p-2 font-medium bg-slate-50">Общ брой проверени активи:</td>
-                      <td className="p-2 font-bold">{protocolAudit.items.length} бр.</td>
+                      <td className="p-2 font-bold">{(protocolAudit.items || []).length} бр.</td>
                       <td className="p-2 font-medium bg-slate-50">Налични в изправност:</td>
                       <td className="p-2 font-bold text-emerald-800">
-                        {protocolAudit.items.filter((i) => i.status === 'present').length} бр.
+                        {(protocolAudit.items || []).filter((i) => i.status === 'present').length} бр.
                       </td>
                     </tr>
                     <tr className="border-b border-slate-300">
                       <td className="p-2 font-medium bg-slate-50">Констатирани липси:</td>
                       <td className="p-2 font-bold text-rose-700">
-                        {protocolAudit.items.filter((i) => i.status === 'missing').length} бр.
+                        {(protocolAudit.items || []).filter((i) => i.status === 'missing').length} бр.
                       </td>
                       <td className="p-2 font-medium bg-slate-50">Повредени активи за сервиз:</td>
                       <td className="p-2 font-bold text-amber-800">
-                        {protocolAudit.items.filter((i) => i.status === 'damaged').length} бр.
+                        {(protocolAudit.items || []).filter((i) => i.status === 'damaged').length} бр.
                       </td>
                     </tr>
                   </tbody>
@@ -1290,7 +1290,7 @@ export function InventoryAuditView({
                   2. Опис на констатираните несъответствия, липси и повреди
                 </div>
 
-                {protocolAudit.items.filter((i) => i.status !== 'present').length === 0 ? (
+                {(protocolAudit.items || []).filter((i) => i.status !== 'present').length === 0 ? (
                   <div className="text-xs text-slate-500 italic p-3 bg-slate-50 rounded border border-slate-200">
                     Не са установени липси, повреди или несъответствия. Всички инвентарни активи са
                     налични по места.
@@ -1307,7 +1307,7 @@ export function InventoryAuditView({
                       </tr>
                     </thead>
                     <tbody>
-                      {protocolAudit.items
+                      {(protocolAudit.items || [])
                         .filter((i) => i.status !== 'present')
                         .map((ai) => {
                           const room = roomMap.get(ai.room_id || '');

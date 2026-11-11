@@ -4,12 +4,14 @@ import type {
   AuditItemStatus,
   AuditScope,
   AuditStatus,
+  CreateItemInput,
   InventoryAuditItem,
   InventoryAuditSession,
   InventoryCategory,
   InventoryItem,
   InventoryLog,
   InventoryMovement,
+  InventoryNotification,
   InventoryRoom,
   InventoryUserRole,
   ItemCondition,
@@ -37,26 +39,7 @@ interface LocalInventorySnapshot {
   logs: InventoryLog[];
 }
 
-export interface CreateItemInput {
-  name: string;
-  inventory_code?: string;
-  tracking_type?: TrackingType;
-  manufacturer?: string;
-  model?: string;
-  brand_or_model?: string;
-  serial_number?: string;
-  category_id?: string | null;
-  room_id?: string | null;
-  assigned_to?: string;
-  quantity?: number;
-  condition?: ItemCondition;
-  purchase_date?: string;
-  warranty_until?: string;
-  purchase_price?: number | null; // in EUR €
-  notes?: string;
-  description?: string;
-  photos?: string[];
-}
+export type { CreateItemInput };
 
 export interface CreateRoomInput {
   room_number?: string;
@@ -97,7 +80,7 @@ export function useInventoryStore(
     return 'viewer';
   }, [userSession.role]);
 
-  const pushToast = useCallback((type: 'success' | 'error' | 'info', message: string) => {
+  const pushToast = useCallback((type: 'success' | 'error' | 'info' | 'warning', message: string) => {
     const id = makeUuid();
     setToasts((prev) => [...prev, { id, type, message }]);
   }, []);
@@ -1393,7 +1376,7 @@ export function useInventoryStore(
   const nowMs = useMemo(() => Date.now(), []);
   const dayMs = 86400000;
 
-  const notifications = useMemo(() => {
+  const notifications = useMemo<InventoryNotification[]>(() => {
     const activeItems = items.filter((i) => !i.is_archived && !i.is_written_off);
 
     const expiringWarranties = activeItems.filter((it) => {
@@ -1413,14 +1396,56 @@ export function useInventoryStore(
     const missingItems = activeItems.filter((it) => it.condition === 'missing');
     const activeAudits = audits.filter((a) => a.status === 'in_progress');
 
-    return {
-      expiringWarranties,
-      expiredWarranties,
-      needsRepairItems,
-      missingItems,
-      activeAudits,
-    };
-  }, [items, audits, nowMs]);
+    const list: InventoryNotification[] = [];
+    if (activeAudits.length > 0) {
+      list.push({
+        id: `audit-${activeAudits[0].id}`,
+        type: 'audit_in_progress',
+        title: 'Текуща ревизия в ход',
+        message: `${activeAudits[0].title} — извършва се проверка на активите`,
+        severity: 'info',
+        audit_id: activeAudits[0].id,
+      });
+    }
+    if (missingItems.length > 0) {
+      list.push({
+        id: 'missing-items',
+        type: 'missing',
+        title: 'Установени липсващи активи',
+        message: `${missingItems.length} актива са отбелязани като "Липсва"`,
+        severity: 'critical',
+      });
+    }
+    if (needsRepairItems.length > 0) {
+      list.push({
+        id: 'repair-items',
+        type: 'needs_repair',
+        title: 'Активи за сервиз и ремонт',
+        message: `${needsRepairItems.length} актива се нуждаят от ремонт`,
+        severity: 'warning',
+      });
+    }
+    if (expiringWarranties.length > 0) {
+      list.push({
+        id: 'expiring-warranties',
+        type: 'warranty_expiring',
+        title: 'Изтичащи гаранции',
+        message: `${expiringWarranties.length} актива са с изтичаща гаранция в следващите 60 дни`,
+        severity: 'warning',
+      });
+    }
+    if (expiredWarranties.length > 0) {
+      list.push({
+        id: 'expired-warranties',
+        type: 'warranty_expired',
+        title: 'Изтекли гаранции',
+        message: `${expiredWarranties.length} актива са с изтекла гаранция`,
+        severity: 'info',
+      });
+    }
+
+    return list;
+  }, [items, audits, nowMs, dayMs]);
 
   // Cross-Module: create repair ticket
   const createRepairTicket = useCallback(

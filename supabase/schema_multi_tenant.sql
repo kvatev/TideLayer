@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS public.school_users (
   password_hash TEXT NOT NULL,
   pin_code TEXT NULL,
   full_name TEXT NOT NULL,
-  role TEXT NOT NULL CHECK (role IN ('director', 'school_admin', 'deputy_director', 'administration', 'teacher', 'staff', 'technician')),
+  role TEXT NOT NULL CHECK (role IN ('director', 'school_admin', 'deputy_director', 'department_manager', 'administration', 'teacher', 'staff', 'technician', 'observer')),
   allowed_modules TEXT[] DEFAULT ARRAY['duty', 'tickets', 'inventory'],
   is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now(),
@@ -127,15 +127,35 @@ CREATE TABLE IF NOT EXISTS public.ticket_departments (
   school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
   description TEXT,
+  color TEXT,
+  lead_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
+  is_active BOOLEAN DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Членство на служители в направления/отдели (много към много)
+CREATE TABLE IF NOT EXISTS public.department_memberships (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  department_id UUID NOT NULL REFERENCES public.ticket_departments(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.school_users(id) ON DELETE CASCADE,
+  is_lead BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(department_id, user_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_dept_memberships_school ON public.department_memberships(school_id);
+CREATE INDEX IF NOT EXISTS idx_dept_memberships_user ON public.department_memberships(user_id);
+CREATE INDEX IF NOT EXISTS idx_dept_memberships_dept ON public.department_memberships(department_id);
 
 CREATE TABLE IF NOT EXISTS public.tickets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  code TEXT, -- напр. "TSK-1001"
   department_id UUID REFERENCES public.ticket_departments(id) ON DELETE SET NULL,
   created_by_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
-  assigned_to_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
+  assigned_to_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL, -- главен отговорник
+  primary_assignee_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
   assigned_role_target TEXT NULL, -- напр. 'all_teachers', 'all_administration', 'all_staff'
   assigned_user_ids UUID[] NULL, -- множество изпълнители
   due_date TIMESTAMPTZ NULL, -- краен срок за изпълнение
@@ -143,10 +163,83 @@ CREATE TABLE IF NOT EXISTS public.tickets (
   description TEXT NOT NULL,
   room_or_location TEXT,
   priority TEXT DEFAULT 'medium' CHECK (priority IN ('low', 'medium', 'high', 'urgent')),
-  status TEXT DEFAULT 'open' CHECK (status IN ('open', 'in_progress', 'resolved', 'closed')),
+  status TEXT DEFAULT 'new' CHECK (status IN ('new', 'in_progress', 'awaiting_approval', 'completed', 'open', 'resolved', 'closed')),
+  return_reason TEXT NULL, -- причина при връщане за корекция
+  is_recurring BOOLEAN DEFAULT false,
+  recurrence_interval TEXT NULL CHECK (recurrence_interval IN ('daily', 'weekly', 'monthly', 'yearly')),
+  recurrence_next_date TIMESTAMPTZ NULL,
+  recurrence_is_active BOOLEAN DEFAULT true,
+  completed_at TIMESTAMPTZ NULL,
+  approved_by_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
   created_at TIMESTAMPTZ DEFAULT now(),
   updated_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Хронологичен журнал на действията по конкретна задача (Task Activity Log)
+CREATE TABLE IF NOT EXISTS public.task_activity_logs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  task_id UUID NOT NULL REFERENCES public.tickets(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
+  user_name TEXT NOT NULL,
+  action TEXT NOT NULL, -- 'created', 'started', 'submitted_for_approval', 'approved', 'returned_for_correction', 'reassigned', 'deadline_changed', 'comment_added', 'attachment_added'
+  from_status TEXT,
+  to_status TEXT,
+  notes TEXT,
+  details JSONB,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_task_activity_logs_task ON public.task_activity_logs(task_id, created_at DESC);
+
+-- Самостоятелен Деловоден регистър на документите (Входящи, Изходящи, Вътрешни)
+CREATE TABLE IF NOT EXISTS public.document_register (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  reg_number TEXT NOT NULL, -- напр. "104-ВХ/2026", "22-ИЗХ/2026", "15-ВЪТР/2026"
+  doc_type TEXT NOT NULL CHECK (doc_type IN ('incoming', 'outgoing', 'internal')),
+  title TEXT NOT NULL,
+  description TEXT,
+  reg_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  doc_date DATE NOT NULL DEFAULT CURRENT_DATE,
+  sender TEXT,
+  recipient TEXT,
+  department_id UUID REFERENCES public.ticket_departments(id) ON DELETE SET NULL,
+  responsible_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
+  responsible_user_name TEXT,
+  file_name TEXT,
+  file_url TEXT,
+  file_size_bytes BIGINT DEFAULT 0,
+  file_type TEXT,
+  linked_task_id UUID REFERENCES public.tickets(id) ON DELETE SET NULL,
+  is_archived BOOLEAN DEFAULT false,
+  archived_at TIMESTAMPTZ,
+  created_by_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL,
+  created_by_name TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(school_id, reg_number)
+);
+
+CREATE INDEX IF NOT EXISTS idx_doc_reg_school_type ON public.document_register(school_id, doc_type, reg_date DESC);
+CREATE INDEX IF NOT EXISTS idx_doc_reg_linked_task ON public.document_register(linked_task_id);
+
+-- Вътрешни известия в системата (In-App Notifications)
+CREATE TABLE IF NOT EXISTS public.in_app_notifications (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  school_id UUID NOT NULL REFERENCES public.schools(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES public.school_users(id) ON DELETE CASCADE,
+  title TEXT NOT NULL,
+  message TEXT NOT NULL,
+  type TEXT NOT NULL, -- 'task_assigned', 'task_status_changed', 'deadline_approaching', 'task_overdue', 'task_returned', 'task_approved', 'comment_added', 'document_assigned'
+  link_url TEXT,
+  task_id UUID REFERENCES public.tickets(id) ON DELETE CASCADE,
+  document_id UUID REFERENCES public.document_register(id) ON DELETE SET NULL,
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX IF NOT EXISTS idx_notifications_user_read ON public.in_app_notifications(user_id, is_read, created_at DESC);
 
 -- Прикачени учебни документи (PDF, Word, Excel, PowerPoint) с 1-годишна валидност (365 дни)
 CREATE TABLE IF NOT EXISTS public.task_document_attachments (
@@ -344,6 +437,20 @@ ALTER TABLE public.inventory_rooms ADD COLUMN IF NOT EXISTS description TEXT;
 ALTER TABLE public.inventory_rooms ADD COLUMN IF NOT EXISTS is_archived BOOLEAN DEFAULT false;
 
 ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS tracking_type TEXT DEFAULT 'individual';
+ALTER TABLE public.ticket_departments ADD COLUMN IF NOT EXISTS color TEXT;
+ALTER TABLE public.ticket_departments ADD COLUMN IF NOT EXISTS lead_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL;
+ALTER TABLE public.ticket_departments ADD COLUMN IF NOT EXISTS is_active BOOLEAN DEFAULT true;
+
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS code TEXT;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS primary_assignee_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS return_reason TEXT;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS is_recurring BOOLEAN DEFAULT false;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS recurrence_interval TEXT;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS recurrence_next_date TIMESTAMPTZ;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS recurrence_is_active BOOLEAN DEFAULT true;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS completed_at TIMESTAMPTZ;
+ALTER TABLE public.tickets ADD COLUMN IF NOT EXISTS approved_by_user_id UUID REFERENCES public.school_users(id) ON DELETE SET NULL;
+
 ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS manufacturer TEXT;
 ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS model TEXT;
 ALTER TABLE public.inventory_items ADD COLUMN IF NOT EXISTS brand_or_model TEXT;
@@ -409,7 +516,12 @@ BEGIN
     'duty_settings',
     'duty_broadcasts',
     'ticket_departments',
+    'department_memberships',
     'tickets',
+    'task_activity_logs',
+    'task_document_attachments',
+    'document_register',
+    'in_app_notifications',
     'ticket_messages',
     'ticket_channels',
     'ticket_announcements',

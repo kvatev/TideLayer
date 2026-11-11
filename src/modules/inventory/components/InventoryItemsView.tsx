@@ -294,7 +294,7 @@ export function InventoryItemsView({
     setModel(it.model || '');
     setSerial(it.serial_number || '');
     setRoomId(it.room_id || '');
-    setCategoryId(it.category_id);
+    setCategoryId(it.category_id || '');
     setAssignedTo(it.assigned_to || '');
     setQuantity(it.quantity || 1);
     setCondition(it.condition);
@@ -696,7 +696,7 @@ export function InventoryItemsView({
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filtered.map((it) => {
                   const condMeta = CONDITION_META[it.condition] || CONDITION_META.good;
-                  const cat = categoryMap.get(it.category_id);
+                  const cat = categoryMap.get(it.category_id || '');
                   const room = roomMap.get(it.room_id || '');
                   const isIndividual = it.tracking_type === 'individual' || !it.tracking_type;
                   const qty = it.quantity || 1;
@@ -1059,7 +1059,7 @@ export function InventoryItemsView({
                 </div>
                 <div className="flex justify-between">
                   <span className="text-slate-500">Категория:</span>
-                  <span className="font-semibold text-navy-900">{categoryMap.get(detailItem.category_id)?.name || '—'}</span>
+                  <span className="font-semibold text-navy-900">{categoryMap.get(detailItem.category_id || '')?.name || '—'}</span>
                 </div>
               </div>
 

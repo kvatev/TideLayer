@@ -24,6 +24,7 @@ import {
   type TicketDepartment,
   type TicketPriority,
 } from '../types';
+import { cn } from '../../../utils/helpers';
 
 interface PreparedFile {
   file_name: string;
@@ -45,9 +46,14 @@ interface TicketCreateViewProps {
     room_or_location?: string;
     department_id?: string | null;
     priority: TicketPriority;
+    primary_assignee_id?: string | null;
     assigned_to_user_id?: string | null;
     assigned_role_target?: string | null;
+    assigned_user_ids?: string[];
     due_date?: string | null;
+    is_recurring?: boolean;
+    recurrence_interval?: 'daily' | 'weekly' | 'monthly' | 'yearly' | null;
+    recurrence_next_date?: string | null;
     attachments?: PreparedFile[];
   }) => Promise<unknown>;
 }
@@ -67,8 +73,11 @@ export function TicketCreateView({
   const [priority, setPriority] = useState<TicketPriority>('medium');
   const [assignmentMode, setAssignmentMode] = useState<'individual' | 'group'>('individual');
   const [assigneeId, setAssigneeId] = useState<string>('');
+  const [additionalAssigneeIds, setAdditionalAssigneeIds] = useState<string[]>([]);
   const [groupTarget, setGroupTarget] = useState<string>('');
   const [dueDate, setDueDate] = useState<string>('');
+  const [isRecurring, setIsRecurring] = useState(false);
+  const [recurrenceInterval, setRecurrenceInterval] = useState<'daily' | 'weekly' | 'monthly' | 'yearly'>('weekly');
   const [preparedFiles, setPreparedFiles] = useState<PreparedFile[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
@@ -122,15 +131,25 @@ export function TicketCreateView({
 
     setIsSubmitting(true);
     try {
+      const primaryAssignee = assignmentMode === 'individual' && assigneeId ? assigneeId : null;
       await onCreate({
         title: title.trim(),
         description: description.trim(),
         room_or_location: room.trim() || undefined,
         department_id: departmentId || null,
         priority,
-        assigned_to_user_id: assignmentMode === 'individual' && assigneeId ? assigneeId : null,
+        primary_assignee_id: primaryAssignee,
+        assigned_to_user_id: primaryAssignee,
         assigned_role_target: assignmentMode === 'group' && groupTarget ? groupTarget : null,
+        assigned_user_ids: assignmentMode === 'individual' ? additionalAssigneeIds : [],
         due_date: dueDate ? new Date(dueDate).toISOString() : null,
+        is_recurring: isRecurring,
+        recurrence_interval: isRecurring ? recurrenceInterval : null,
+        recurrence_next_date: isRecurring
+          ? dueDate
+            ? new Date(dueDate).toISOString().slice(0, 10)
+            : new Date().toISOString().slice(0, 10)
+          : null,
         attachments: preparedFiles,
       });
       onBack();
@@ -265,6 +284,54 @@ export function TicketCreateView({
             </div>
           </div>
 
+          {/* Recurring Task Options */}
+          <div className="p-4 rounded-xl border border-slate-200 bg-slate-50/70 space-y-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isRecurring}
+                onChange={(e) => setIsRecurring(e.target.checked)}
+                className="w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"
+              />
+              <span className="text-xs sm:text-sm font-bold text-navy-900">
+                Периодична задача (автоматично генериране на нов екземпляр)
+              </span>
+            </label>
+
+            {isRecurring && (
+              <div className="pl-6 pt-1 space-y-2">
+                <label className="block text-xs font-semibold text-slate-600">
+                  Честота на повтаряне:
+                </label>
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {[
+                    { id: 'daily', label: 'Ежедневно' },
+                    { id: 'weekly', label: 'Ежеседмично' },
+                    { id: 'monthly', label: 'Ежемесечно' },
+                    { id: 'yearly', label: 'Ежегодно' },
+                  ].map((freq) => (
+                    <button
+                      key={freq.id}
+                      type="button"
+                      onClick={() => setRecurrenceInterval(freq.id as any)}
+                      className={cn(
+                        'py-1.5 px-3 rounded-lg text-xs font-semibold border transition-all cursor-pointer text-center',
+                        recurrenceInterval === freq.id
+                          ? 'bg-blue-600 text-white border-blue-600 shadow-2xs'
+                          : 'bg-white text-slate-700 border-slate-200 hover:border-slate-300'
+                      )}
+                    >
+                      {freq.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[11px] text-slate-500 mb-0">
+                  След изтичане на срока системата автоматично ще създаде нов екземпляр за следващия период.
+                </p>
+              </div>
+            )}
+          </div>
+
           {/* Hierarchy-based Assignee Selector */}
           <div className="bg-slate-50 rounded-xl p-4 border border-slate-200 space-y-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
@@ -314,9 +381,46 @@ export function TicketCreateView({
                     </option>
                   ))}
                 </select>
-                <p className="text-[11px] text-slate-500 mt-1 mb-0">
+                <p className="text-[11px] text-slate-500 mt-1 mb-2">
                   Списъкът е автоматично филтриран спрямо училищната йерархия на длъжността ви.
                 </p>
+
+                {/* Additional Assignees */}
+                {assigneeId && eligibleAssignees.filter((u) => u.id !== assigneeId).length > 0 && (
+                  <div className="pt-2 border-t border-slate-200">
+                    <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-1">
+                      Допълнителни съотговорници (по избор)
+                    </label>
+                    <div className="flex flex-wrap gap-1.5 max-h-28 overflow-y-auto pr-1">
+                      {eligibleAssignees
+                        .filter((u) => u.id !== assigneeId)
+                        .map((u) => {
+                          const isSelected = additionalAssigneeIds.includes(u.id);
+                          return (
+                            <button
+                              key={u.id}
+                              type="button"
+                              onClick={() => {
+                                if (isSelected) {
+                                  setAdditionalAssigneeIds(additionalAssigneeIds.filter((id) => id !== u.id));
+                                } else {
+                                  setAdditionalAssigneeIds([...additionalAssigneeIds, u.id]);
+                                }
+                              }}
+                              className={cn(
+                                'px-2 py-1 rounded-lg text-xs font-medium border transition-colors cursor-pointer',
+                                isSelected
+                                  ? 'bg-blue-600 text-white border-blue-600'
+                                  : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-100'
+                              )}
+                            >
+                              + {u.full_name}
+                            </button>
+                          );
+                        })}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div>

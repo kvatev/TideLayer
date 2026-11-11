@@ -10,8 +10,15 @@ import {
   isValidUuid,
   makeUuid,
   type ChannelMessage,
+  type DepartmentMembership,
   type DocumentFileType,
+  type DocumentRegisterItem,
+  type InAppNotification,
+  type NotificationType,
+  type RegisterDocType,
   type SchoolTicket,
+  type TaskActivityAction,
+  type TaskActivityLog,
   type TaskDocumentAttachment,
   type TicketAnnouncement,
   type TicketAuditLog,
@@ -26,6 +33,7 @@ import type { ToastMessage } from '../shared/ModulePrimitives';
 
 interface LocalTicketsSnapshot {
   departments: TicketDepartment[];
+  departmentMemberships?: DepartmentMembership[];
   tickets: SchoolTicket[];
   messages: TicketMessage[];
   orders: TicketOrder[];
@@ -34,11 +42,53 @@ interface LocalTicketsSnapshot {
   announcements: TicketAnnouncement[];
   auditLogs: TicketAuditLog[];
   attachments?: TaskDocumentAttachment[];
+  taskActivityLogs?: TaskActivityLog[];
+  documentRegister?: DocumentRegisterItem[];
+  notifications?: InAppNotification[];
   hasInitialized?: boolean;
 }
 
-function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord[]): LocalTicketsSnapshot {
+export function generateNextTaskCode(existingTickets: SchoolTicket[]): string {
+  let maxNum = 1000;
+  for (const t of existingTickets) {
+    if (t.code) {
+      const m = t.code.match(/^TSK-(\d+)$/i);
+      if (m) {
+        const num = parseInt(m[1], 10);
+        if (!isNaN(num) && num > maxNum) maxNum = num;
+      }
+    }
+  }
+  return `TSK-${maxNum + 1}`;
+}
+
+export function generateNextRegNumber(
+  existingDocs: DocumentRegisterItem[],
+  type: RegisterDocType,
+  year: number = new Date().getFullYear()
+): string {
+  const prefix = type === 'incoming' ? 'ВХ' : type === 'outgoing' ? 'ИЗХ' : 'ВЪТР';
+  const regex = new RegExp(`^${prefix}-(\\d+)/${year}$`);
+  let maxNum = 100;
+  for (const doc of existingDocs) {
+    const match = doc.reg_number.match(regex);
+    if (match) {
+      const num = parseInt(match[1], 10);
+      if (!isNaN(num) && num > maxNum) {
+        maxNum = num;
+      }
+    }
+  }
+  return `${prefix}-${maxNum + 1}/${year}`;
+}
+
+function buildStarterTicketsData(
+  schoolId: string,
+  schoolUsers: SchoolUserRecord[]
+): LocalTicketsSnapshot {
   const now = new Date();
+  const year = now.getFullYear();
+
   const dept1Id = makeUuid();
   const dept2Id = makeUuid();
   const dept3Id = makeUuid();
@@ -75,13 +125,97 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
     },
   ];
 
-  const directorUser = schoolUsers.find((u) => u.role === 'director' || u.role === 'school_admin') || schoolUsers[0];
-  const deputyUser = schoolUsers.find((u) => u.role === 'deputy_director') || schoolUsers[1] || schoolUsers[0];
-  const adminUser = schoolUsers.find((u) => u.role === 'administration') || schoolUsers[2] || schoolUsers[0];
-  const teacherUser = schoolUsers.find((u) => u.role === 'teacher') || schoolUsers[3] || schoolUsers[0];
+  const directorUser =
+    schoolUsers.find((u) => u.role === 'director' || u.role === 'school_admin') || schoolUsers[0];
+  const deputyUser =
+    schoolUsers.find((u) => u.role === 'deputy_director') || schoolUsers[1] || schoolUsers[0];
+  const adminUser =
+    schoolUsers.find((u) => u.role === 'administration') || schoolUsers[2] || schoolUsers[0];
+  const teacherUser =
+    schoolUsers.find((u) => u.role === 'teacher') || schoolUsers[3] || schoolUsers[0];
 
   const validCreatorId = directorUser ? directorUser.id : null;
-  const creatorName = directorUser ? directorUser.full_name : 'Директор';
+
+  // Department memberships
+  const departmentMemberships: DepartmentMembership[] = [];
+  if (directorUser) {
+    departmentMemberships.push({
+      id: makeUuid(),
+      school_id: schoolId,
+      department_id: dept1Id,
+      user_id: directorUser.id,
+      is_lead: true,
+      created_at: now.toISOString(),
+      user_name: directorUser.full_name,
+      user_role: directorUser.role,
+      department_name: 'Ръководство и Педагогически съвет',
+    });
+  }
+  if (deputyUser) {
+    departmentMemberships.push(
+      {
+        id: makeUuid(),
+        school_id: schoolId,
+        department_id: dept1Id,
+        user_id: deputyUser.id,
+        is_lead: false,
+        created_at: now.toISOString(),
+        user_name: deputyUser.full_name,
+        user_role: deputyUser.role,
+        department_name: 'Ръководство и Педагогически съвет',
+      },
+      {
+        id: makeUuid(),
+        school_id: schoolId,
+        department_id: dept2Id,
+        user_id: deputyUser.id,
+        is_lead: true,
+        created_at: now.toISOString(),
+        user_name: deputyUser.full_name,
+        user_role: deputyUser.role,
+        department_name: 'Учебна дейност и Класни ръководители',
+      }
+    );
+  }
+  if (teacherUser) {
+    departmentMemberships.push({
+      id: makeUuid(),
+      school_id: schoolId,
+      department_id: dept2Id,
+      user_id: teacherUser.id,
+      is_lead: false,
+      created_at: now.toISOString(),
+      user_name: teacherUser.full_name,
+      user_role: teacherUser.role,
+      department_name: 'Учебна дейност и Класни ръководители',
+    });
+  }
+  if (adminUser) {
+    departmentMemberships.push(
+      {
+        id: makeUuid(),
+        school_id: schoolId,
+        department_id: dept3Id,
+        user_id: adminUser.id,
+        is_lead: true,
+        created_at: now.toISOString(),
+        user_name: adminUser.full_name,
+        user_role: adminUser.role,
+        department_name: 'Администрация, ЗАС и Човешки ресурси',
+      },
+      {
+        id: makeUuid(),
+        school_id: schoolId,
+        department_id: dept4Id,
+        user_id: adminUser.id,
+        is_lead: true,
+        created_at: now.toISOString(),
+        user_name: adminUser.full_name,
+        user_role: adminUser.role,
+        department_name: 'ИТ инфраструктура и Техническа поддръжка',
+      }
+    );
+  }
 
   const tk1Id = makeUuid();
   const tk2Id = makeUuid();
@@ -96,61 +230,83 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
     {
       id: tk1Id,
       school_id: schoolId,
+      code: 'TSK-1001',
       department_id: dept1Id,
-      created_by_user_id: directorUser ? directorUser.id : null,
-      assigned_to_user_id: null,
+      created_by_user_id: validCreatorId,
+      primary_assignee_id: deputyUser ? deputyUser.id : null,
+      assigned_to_user_id: deputyUser ? deputyUser.id : null,
+      assigned_user_ids: teacherUser ? [teacherUser.id] : [],
       assigned_role_target: 'all_teachers',
       due_date: inFiveDays,
       title: 'Предаване на Годишен тематичен план и график за контролни работи (I срок)',
-      description: 'Колеги, моля всички учители и класни ръководители да попълнят и качат своите годишни тематични планове по приложения утвърден образец от МОН до указания краен срок.',
+      description:
+        'Колеги, моля всички учители и класни ръководители да попълнят и качат своите годишни тематични планове по приложения утвърден образец от МОН до указания краен срок.',
       room_or_location: 'Учителска стая / Дигитален портал',
       priority: 'high',
       status: 'in_progress',
+      is_recurring: false,
       created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
       updated_at: new Date(Date.now() - 3600000 * 6).toISOString(),
     },
     {
       id: tk2Id,
       school_id: schoolId,
+      code: 'TSK-1002',
       department_id: dept2Id,
       created_by_user_id: deputyUser ? deputyUser.id : null,
-      assigned_to_user_id: null,
+      primary_assignee_id: teacherUser ? teacherUser.id : null,
+      assigned_to_user_id: teacherUser ? teacherUser.id : null,
       assigned_role_target: 'all_teachers',
       due_date: inTwoDays,
       title: 'Месечна справка за отсъствия и неизвинени часове към МОН',
-      description: 'Изисква се въвеждане на обобщените данни за отсъствията за изминалия месец по паралелки с цел предаване на доклад към Регионалното управление на образованието.',
+      description:
+        'Изисква се въвеждане на обобщените данни за отсъствията за изминалия месец по паралелки с цел предаване на доклад към Регионалното управление на образованието.',
       room_or_location: 'Канцелария / Дигитален кабинет',
       priority: 'urgent',
-      status: 'open',
+      status: 'new',
+      is_recurring: true,
+      recurrence_interval: 'monthly',
+      recurrence_next_date: new Date(Date.now() + 86400000 * 30).toISOString().slice(0, 10),
+      recurrence_is_active: true,
       created_at: new Date(Date.now() - 3600000 * 14).toISOString(),
       updated_at: new Date(Date.now() - 3600000 * 14).toISOString(),
     },
     {
       id: tk3Id,
       school_id: schoolId,
+      code: 'TSK-1003',
       department_id: dept3Id,
       created_by_user_id: adminUser ? adminUser.id : null,
+      primary_assignee_id: teacherUser ? teacherUser.id : null,
       assigned_to_user_id: teacherUser ? teacherUser.id : null,
       due_date: pastThreeDays,
       title: 'Заверка на трудови досиета, декларации за квалификация и GDPR',
-      description: 'Счетоводството и ЗАС събират подписани декларации за придобити професионално-квалификационни степени (ПКС) и декларации за защита на личните данни.',
+      description:
+        'Счетоводството и ЗАС събират подписани декларации за придобити професионално-квалификационни степени (ПКС) и декларации за защита на личните данни.',
       room_or_location: 'Кабинет ЗАС (Етаж 1)',
       priority: 'medium',
-      status: 'resolved',
+      status: 'awaiting_approval',
+      is_recurring: false,
       created_at: new Date(Date.now() - 86400000 * 4).toISOString(),
       updated_at: new Date(Date.now() - 86400000 * 1).toISOString(),
     },
     {
       id: tk4Id,
       school_id: schoolId,
+      code: 'TSK-1004',
       department_id: dept4Id,
       created_by_user_id: teacherUser ? teacherUser.id : null,
-      assigned_to_user_id: null,
+      primary_assignee_id: adminUser ? adminUser.id : null,
+      assigned_to_user_id: adminUser ? adminUser.id : null,
       title: 'Инсталиране на софтуерни симулации за STEM кабинет 302',
-      description: 'Необходимо е инсталиране на актуализирани софтуерни пакети за физика и химия на интерактивния дисплей и 15-те работни станции.',
+      description:
+        'Необходимо е инсталиране на актуализирани софтуерни пакети за физика и химия на интерактивния дисплей и 15-те работни станции.',
       room_or_location: 'STEM Кабинет 302',
       priority: 'low',
-      status: 'closed',
+      status: 'completed',
+      completed_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+      approved_by_user_id: directorUser ? directorUser.id : null,
+      is_recurring: false,
       created_at: new Date(Date.now() - 86400000 * 8).toISOString(),
       updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     },
@@ -202,20 +358,6 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
     {
       id: makeUuid(),
       school_id: schoolId,
-      task_id: tk1Id,
-      file_name: 'Презентация_Педагогически_съвет.pptx',
-      file_size_bytes: 3614720,
-      file_type: 'powerpoint',
-      mime_type: 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-      file_url: '#',
-      uploaded_by_user_id: deputyUser?.id || null,
-      uploaded_by_name: deputyUser?.full_name || 'Мария Тодорова',
-      uploaded_by_role: 'Зам.-директор УД',
-      uploaded_at: new Date(Date.now() - 3600000 * 4).toISOString(),
-    },
-    {
-      id: makeUuid(),
-      school_id: schoolId,
       task_id: tk2Id,
       file_name: 'Таблица_отсъствия_по_паралелки.xlsx',
       file_size_bytes: 98304,
@@ -227,47 +369,182 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
       uploaded_by_role: 'Зам.-директор УД',
       uploaded_at: new Date(Date.now() - 3600000 * 14).toISOString(),
     },
+  ];
+
+  // Document Register Starter Entries (Workflow B)
+  const documentRegister: DocumentRegisterItem[] = [
     {
       id: makeUuid(),
       school_id: schoolId,
+      reg_number: `ВХ-101/${year}`,
+      reg_date: new Date(Date.now() - 86400000 * 5).toISOString().slice(0, 10),
+      doc_type: 'incoming',
+      title: 'Указания от МОН относно провеждането на Национално външно оценяване (НВО)',
+      sender: 'Министерство на образованието и науката (МОН)',
+      recipient: null,
+      department_id: dept1Id,
+      responsible_user_id: directorUser ? directorUser.id : null,
+      file_name: 'Ukazaniya_MON_NVO_2026.pdf',
+      file_url: '#',
+      file_size_bytes: 654320,
+      file_type: 'pdf',
+      mime_type: 'application/pdf',
+      linked_task_id: tk1Id,
+      is_archived: false,
+      notes: 'Свързано със задача за подготовка на графиците за I срок.',
+      created_by_user_id: directorUser ? directorUser.id : null,
+      created_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+      updated_at: new Date(Date.now() - 86400000 * 5).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      reg_number: `ИЗХ-42/${year}`,
+      reg_date: new Date(Date.now() - 86400000 * 3).toISOString().slice(0, 10),
+      doc_type: 'outgoing',
+      title: 'Заявка за осигуряване на безплатни учебници и учебни комплекти',
+      sender: null,
+      recipient: 'Регионално управление на образованието (РУО)',
+      department_id: dept3Id,
+      responsible_user_id: adminUser ? adminUser.id : null,
+      file_name: 'Zayavka_Uchebnitsi_RUO.xlsx',
+      file_url: '#',
+      file_size_bytes: 142000,
+      file_type: 'excel',
+      mime_type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      linked_task_id: null,
+      is_archived: false,
+      notes: 'Изпратено официално по електронен път с КЕП.',
+      created_by_user_id: adminUser ? adminUser.id : null,
+      created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+      updated_at: new Date(Date.now() - 86400000 * 3).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      reg_number: `ВЪТР-15/${year}`,
+      reg_date: new Date(Date.now() - 86400000 * 2).toISOString().slice(0, 10),
+      doc_type: 'internal',
+      title: 'Заповед № РД-09-114 за определяне на комисия за инвентаризация на ДМА и МЗ',
+      sender: 'Директор на училището',
+      recipient: 'Членовете на комисията по инвентаризация',
+      department_id: dept1Id,
+      responsible_user_id: directorUser ? directorUser.id : null,
+      file_name: 'Zapoved_RD09_114_Inventarizatsiya.pdf',
+      file_url: '#',
+      file_size_bytes: 388000,
+      file_type: 'pdf',
+      mime_type: 'application/pdf',
+      linked_task_id: null,
+      is_archived: false,
+      notes: 'Вътрешна заповед в изпълнение на Закона за счетоводството.',
+      created_by_user_id: directorUser ? directorUser.id : null,
+      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+      updated_at: new Date(Date.now() - 86400000 * 2).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      reg_number: `ВХ-102/${year}`,
+      reg_date: new Date(Date.now() - 86400000 * 1).toISOString().slice(0, 10),
+      doc_type: 'incoming',
+      title: 'Предложение от Училищното настоятелство за спортен празник и турнир по волейбол',
+      sender: 'Училищно настоятелство "Христо Ботев"',
+      recipient: null,
+      department_id: dept2Id,
+      responsible_user_id: deputyUser ? deputyUser.id : null,
+      file_name: 'Predlozhenie_Nastoyatelstvo_Turnir.pdf',
+      file_url: '#',
+      file_size_bytes: 295000,
+      file_type: 'pdf',
+      mime_type: 'application/pdf',
+      linked_task_id: null,
+      is_archived: false,
+      notes: 'Предложение за организиране на патронен турнир през ноември.',
+      created_by_user_id: deputyUser ? deputyUser.id : null,
+      created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+      updated_at: new Date(Date.now() - 86400000 * 1).toISOString(),
+    },
+  ];
+
+  // In-App Notifications
+  const notifications: InAppNotification[] = [];
+  if (deputyUser) {
+    notifications.push({
+      id: makeUuid(),
+      school_id: schoolId,
+      user_id: deputyUser.id,
+      type: 'task_assigned',
+      title: 'Възложена задача: Предаване на Годишен план',
+      message: 'Директорът ви възложи задача "Предаване на Годишен тематичен план".',
+      task_id: tk1Id,
+      document_id: null,
+      is_read: false,
+      created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
+    });
+  }
+  if (teacherUser) {
+    notifications.push({
+      id: makeUuid(),
+      school_id: schoolId,
+      user_id: teacherUser.id,
+      type: 'deadline_approaching',
+      title: 'Приближаващ краен срок',
+      message: 'Остават по-малко от 48 часа за задача "Месечна справка за отсъствия".',
       task_id: tk2Id,
-      file_name: 'Инструкция_за_попълване_на_отсъствия.pdf',
-      file_size_bytes: 317440,
-      file_type: 'pdf',
-      mime_type: 'application/pdf',
-      file_url: '#',
-      uploaded_by_user_id: deputyUser?.id || null,
-      uploaded_by_name: deputyUser?.full_name || 'Мария Тодорова',
-      uploaded_by_role: 'Зам.-директор УД',
-      uploaded_at: new Date(Date.now() - 3600000 * 13).toISOString(),
+      document_id: null,
+      is_read: false,
+      created_at: new Date(Date.now() - 3600000 * 2).toISOString(),
+    });
+  }
+
+  // Task Activity Logs
+  const taskActivityLogs: TaskActivityLog[] = [
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      task_id: tk1Id,
+      actor_user_id: directorUser?.id || null,
+      actor_name: directorUser?.full_name || 'Директор',
+      action: 'created',
+      details: 'Създадена задача TSK-1001',
+      created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
+    },
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      task_id: tk1Id,
+      actor_user_id: deputyUser?.id || null,
+      actor_name: deputyUser?.full_name || 'Зам.-директор',
+      action: 'started',
+      details: 'Започната работа по задачата',
+      previous_value: 'new',
+      new_value: 'in_progress',
+      created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
     },
     {
       id: makeUuid(),
       school_id: schoolId,
       task_id: tk3Id,
-      file_name: 'Декларация_придобита_ПКС_образец.docx',
-      file_size_bytes: 122880,
-      file_type: 'word',
-      mime_type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-      file_url: '#',
-      uploaded_by_user_id: adminUser?.id || null,
-      uploaded_by_name: adminUser?.full_name || 'Силвия Николова',
-      uploaded_by_role: 'ЗАС / Администрация',
-      uploaded_at: new Date(Date.now() - 86400000 * 4).toISOString(),
+      actor_user_id: teacherUser?.id || null,
+      actor_name: teacherUser?.full_name || 'Учител',
+      action: 'submitted_for_approval',
+      details: 'Предадена за одобрение от ръководството',
+      previous_value: 'in_progress',
+      new_value: 'awaiting_approval',
+      created_at: new Date(Date.now() - 86400000 * 1).toISOString(),
     },
     {
       id: makeUuid(),
       school_id: schoolId,
-      task_id: tk3Id,
-      file_name: 'Формуляр_съгласие_GDPR_персонал.pdf',
-      file_size_bytes: 194560,
-      file_type: 'pdf',
-      mime_type: 'application/pdf',
-      file_url: '#',
-      uploaded_by_user_id: adminUser?.id || null,
-      uploaded_by_name: adminUser?.full_name || 'Силвия Николова',
-      uploaded_by_role: 'ЗАС / Администрация',
-      uploaded_at: new Date(Date.now() - 86400000 * 4).toISOString(),
+      task_id: tk4Id,
+      actor_user_id: directorUser?.id || null,
+      actor_name: directorUser?.full_name || 'Директор',
+      action: 'approved',
+      details: 'Одобрена и финализирана от Директора',
+      previous_value: 'awaiting_approval',
+      new_value: 'completed',
+      created_at: new Date(Date.now() - 86400000 * 2).toISOString(),
     },
   ];
 
@@ -276,29 +553,42 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
       id: makeUuid(),
       school_id: schoolId,
       ticket_id: tk1Id,
-      sender_user_id: validCreatorId,
-      sender_name: creatorName,
-      message: 'Заявката е регистрирана. Моля техникът да прегледа USB кабела за калибрация на тъча.',
-      created_at: new Date(Date.now() - 3600000 * 3).toISOString(),
+      sender_user_id: directorUser?.id || null,
+      sender_name: directorUser?.full_name || 'д-р Валентина Каменова',
+      message:
+        'Колеги, качил съм образеца за 2026 г. Моля да спазвате формата при изготвяне на тематичните планове.',
+      created_at: new Date(Date.now() - 3600000 * 5).toISOString(),
     },
     {
       id: makeUuid(),
       school_id: schoolId,
-      ticket_id: tk2Id,
-      sender_user_id: validCreatorId,
-      sender_name: 'Техник ИТ',
-      message: 'Заявена е нова тонер касета от ИТ координатора. Очаквана доставка до петък.',
-      created_at: new Date(Date.now() - 3600000 * 18).toISOString(),
+      ticket_id: tk1Id,
+      sender_user_id: deputyUser?.id || null,
+      sender_name: deputyUser?.full_name || 'Мария Тодорова',
+      message:
+        'Прието. Започваме събирането на плановете от методическите обединения в срок.',
+      created_at: new Date(Date.now() - 3600000 * 4).toISOString(),
     },
   ];
 
-  const orders: TicketOrder[] = [];
+  const orders: TicketOrder[] = [
+    {
+      id: makeUuid(),
+      school_id: schoolId,
+      ticket_id: tk4Id,
+      item_name: 'Лицензи за образователен софтуер STEM симулации (15 работни места)',
+      quantity: 15,
+      estimated_price: 450,
+      status: 'approved',
+      created_at: new Date(Date.now() - 86400000 * 6).toISOString(),
+    },
+  ];
 
   const channels: TicketChannel[] = [
     {
       id: makeUuid(),
       school_id: schoolId,
-      name: 'Общи технически въпроси',
+      name: 'Общ педагогически канал',
       channel_type: 'general',
       is_active: true,
       created_at: now.toISOString(),
@@ -306,8 +596,8 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
     {
       id: makeUuid(),
       school_id: schoolId,
-      name: 'STEM Оборудване и софтуер',
-      channel_type: 'stem',
+      name: 'Методическо обединение по Природни науки',
+      channel_type: 'department',
       is_active: true,
       created_at: now.toISOString(),
     },
@@ -318,10 +608,11 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
       id: makeUuid(),
       school_id: schoolId,
       channel_id: channels[0].id,
-      sender_name: creatorName,
-      sender_role: directorUser?.role || 'director',
-      content: 'Добре дошли в училищната система за задачи и документи на TideLayer!',
-      created_at: now.toISOString(),
+      sender_name: directorUser?.full_name || 'Директор',
+      sender_role: 'Директор',
+      content:
+        'Добре дошли в обновения модул за управление на задачи и документи на училището. Всички графици и официални формуляри се разпределят тук.',
+      created_at: new Date(Date.now() - 3600000 * 20).toISOString(),
     },
   ];
 
@@ -329,10 +620,11 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
     {
       id: makeUuid(),
       school_id: schoolId,
-      title: 'График за качване на планове и документи за новия срок',
-      content: 'Всички преподаватели могат да предават своите годишни планове и отчети през системата. Разменените файлове се пазят в 1-годишния архив.',
+      title: 'Заповед за откриване на новата учебна сесия и задължителни инструктажи',
+      content:
+        'Напомняме на целия педагогически и непедагогически персонал да подпише протоколите за проведен начален инструктаж по безопасност и трудова хигиена в канцеларията на ЗАС.',
       is_pinned: true,
-      created_at: now.toISOString(),
+      created_at: new Date(Date.now() - 86400000 * 3).toISOString(),
     },
   ];
 
@@ -341,24 +633,16 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
       id: makeUuid(),
       school_id: schoolId,
       ticket_id: tk1Id,
-      actor_name: creatorName,
-      action: 'Възложена задача',
-      details: { title: tickets[0].title, priority: 'high' },
-      created_at: tickets[0].created_at,
-    },
-    {
-      id: makeUuid(),
-      school_id: schoolId,
-      ticket_id: tk2Id,
-      actor_name: creatorName,
-      action: 'Възложена задача',
-      details: { title: tickets[1].title, priority: 'urgent' },
-      created_at: tickets[1].created_at,
+      actor_name: directorUser?.full_name || 'Директор',
+      action: 'Създадена задача TSK-1001: Годишен тематичен план',
+      details: { code: 'TSK-1001' },
+      created_at: new Date(Date.now() - 3600000 * 6).toISOString(),
     },
   ];
 
   return {
     departments,
+    departmentMemberships,
     tickets,
     messages,
     orders,
@@ -367,6 +651,9 @@ function buildStarterTicketsData(schoolId: string, schoolUsers: SchoolUserRecord
     announcements,
     auditLogs,
     attachments,
+    taskActivityLogs,
+    documentRegister,
+    notifications,
     hasInitialized: true,
   };
 }
@@ -375,8 +662,7 @@ function readLocalSnapshot(schoolId: string): LocalTicketsSnapshot | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(`tl_tickets_saas_v2_${schoolId}`);
-    if (!raw) return null;
-    return JSON.parse(raw) as LocalTicketsSnapshot;
+    return raw ? JSON.parse(raw) : null;
   } catch {
     return null;
   }
@@ -402,6 +688,7 @@ export function useTicketsStore(
   const [usingSupabase, setUsingSupabase] = useState(false);
 
   const [departments, setDepartments] = useState<TicketDepartment[]>([]);
+  const [departmentMemberships, setDepartmentMemberships] = useState<DepartmentMembership[]>([]);
   const [tickets, setTickets] = useState<SchoolTicket[]>([]);
   const [messages, setMessages] = useState<TicketMessage[]>([]);
   const [orders, setOrders] = useState<TicketOrder[]>([]);
@@ -410,6 +697,9 @@ export function useTicketsStore(
   const [announcements, setAnnouncements] = useState<TicketAnnouncement[]>([]);
   const [auditLogs, setAuditLogs] = useState<TicketAuditLog[]>([]);
   const [attachments, setAttachments] = useState<TaskDocumentAttachment[]>([]);
+  const [taskActivityLogs, setTaskActivityLogs] = useState<TaskActivityLog[]>([]);
+  const [documentRegister, setDocumentRegister] = useState<DocumentRegisterItem[]>([]);
+  const [notifications, setNotifications] = useState<InAppNotification[]>([]);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
   const pushToast = useCallback((type: ToastMessage['type'], message: string) => {
@@ -428,6 +718,7 @@ export function useTicketsStore(
     (patch: Partial<LocalTicketsSnapshot>) => {
       const prev = readLocalSnapshot(schoolId) ?? {
         departments: [],
+        departmentMemberships: [],
         tickets: [],
         messages: [],
         orders: [],
@@ -436,6 +727,9 @@ export function useTicketsStore(
         announcements: [],
         auditLogs: [],
         attachments: [],
+        taskActivityLogs: [],
+        documentRegister: [],
+        notifications: [],
         hasInitialized: true,
       };
       writeLocalSnapshot(schoolId, { ...prev, ...patch, hasInitialized: true });
@@ -450,43 +744,75 @@ export function useTicketsStore(
     const loadAll = async () => {
       const localSnap = readLocalSnapshot(schoolId);
 
-      const [dRes, tRes, mRes, oRes, cRes, aRes, lRes, attRes] = await Promise.all([
-        supabase.from('ticket_departments').select('*').eq('school_id', schoolId).order('name'),
-        supabase
-          .from('tickets')
-          .select('*')
-          .eq('school_id', schoolId)
-          .order('created_at', { ascending: false }),
-        supabase.from('ticket_messages').select('*').eq('school_id', schoolId).order('created_at', { ascending: true }),
-        supabase
-          .from('ticket_orders')
-          .select('*')
-          .eq('school_id', schoolId)
-          .order('created_at', { ascending: false }),
-        supabase.from('ticket_channels').select('*').eq('school_id', schoolId).order('created_at', { ascending: true }),
-        supabase
-          .from('ticket_announcements')
-          .select('*')
-          .eq('school_id', schoolId)
-          .order('is_pinned', { ascending: false })
-          .order('created_at', { ascending: false }),
-        supabase
-          .from('ticket_audit_logs')
-          .select('*')
-          .eq('school_id', schoolId)
-          .order('created_at', { ascending: false })
-          .limit(100),
-        supabase
-          .from('task_document_attachments')
-          .select('*')
-          .eq('school_id', schoolId)
-          .order('uploaded_at', { ascending: false }),
-      ]);
+      const [dRes, tRes, mRes, oRes, cRes, aRes, lRes, attRes, memRes, actRes, docRes, notifRes] =
+        await Promise.all([
+          supabase.from('ticket_departments').select('*').eq('school_id', schoolId).order('name'),
+          supabase
+            .from('tickets')
+            .select('*')
+            .eq('school_id', schoolId)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('ticket_messages')
+            .select('*')
+            .eq('school_id', schoolId)
+            .order('created_at', { ascending: true }),
+          supabase
+            .from('ticket_orders')
+            .select('*')
+            .eq('school_id', schoolId)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('ticket_channels')
+            .select('*')
+            .eq('school_id', schoolId)
+            .order('created_at', { ascending: true }),
+          supabase
+            .from('ticket_announcements')
+            .select('*')
+            .eq('school_id', schoolId)
+            .order('is_pinned', { ascending: false })
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('ticket_audit_logs')
+            .select('*')
+            .eq('school_id', schoolId)
+            .order('created_at', { ascending: false })
+            .limit(100),
+          supabase
+            .from('task_document_attachments')
+            .select('*')
+            .eq('school_id', schoolId)
+            .order('uploaded_at', { ascending: false }),
+          supabase.from('department_memberships').select('*').eq('school_id', schoolId),
+          supabase
+            .from('task_activity_logs')
+            .select('*')
+            .eq('school_id', schoolId)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('document_register')
+            .select('*')
+            .eq('school_id', schoolId)
+            .order('created_at', { ascending: false }),
+          supabase
+            .from('in_app_notifications')
+            .select('*')
+            .eq('school_id', schoolId)
+            .order('created_at', { ascending: false })
+            .limit(50),
+        ]);
 
       if (!active) return;
 
       const supabaseReady =
-        !dRes.error && !tRes.error && !mRes.error && !oRes.error && !cRes.error && !aRes.error && !lRes.error;
+        !dRes.error &&
+        !tRes.error &&
+        !mRes.error &&
+        !oRes.error &&
+        !cRes.error &&
+        !aRes.error &&
+        !lRes.error;
 
       if (supabaseReady) {
         setUsingSupabase(true);
@@ -497,7 +823,21 @@ export function useTicketsStore(
         let dbChannels = (cRes.data || []) as TicketChannel[];
         let dbAnnouncements = (aRes.data || []) as TicketAnnouncement[];
         let dbLogs = (lRes.data || []) as TicketAuditLog[];
-        let dbAttachments = (!attRes.error && attRes.data ? attRes.data : []) as TaskDocumentAttachment[];
+        let dbAttachments = (!attRes.error && attRes.data
+          ? attRes.data
+          : []) as TaskDocumentAttachment[];
+        let dbMemberships = (!memRes.error && memRes.data
+          ? memRes.data
+          : []) as DepartmentMembership[];
+        let dbActivityLogs = (!actRes.error && actRes.data
+          ? actRes.data
+          : []) as TaskActivityLog[];
+        let dbDocRegister = (!docRes.error && docRes.data
+          ? docRes.data
+          : []) as DocumentRegisterItem[];
+        let dbNotifications = (!notifRes.error && notifRes.data
+          ? notifRes.data
+          : []) as InAppNotification[];
 
         // If fresh school in Supabase with zero departments and zero tickets, bootstrap starter data
         if (dbDepts.length === 0 && dbTickets.length === 0 && !localSnap?.hasInitialized) {
@@ -508,16 +848,23 @@ export function useTicketsStore(
               starter.tickets.map((t) => ({
                 id: t.id,
                 school_id: schoolId,
+                code: t.code,
                 department_id: t.department_id,
                 created_by_user_id: t.created_by_user_id,
+                primary_assignee_id: t.primary_assignee_id,
                 assigned_to_user_id: t.assigned_to_user_id,
                 assigned_role_target: t.assigned_role_target || null,
+                assigned_user_ids: t.assigned_user_ids || [],
                 due_date: t.due_date || null,
                 title: t.title,
                 description: t.description,
                 room_or_location: t.room_or_location,
                 priority: t.priority,
                 status: t.status,
+                is_recurring: t.is_recurring || false,
+                recurrence_interval: t.recurrence_interval || null,
+                recurrence_next_date: t.recurrence_next_date || null,
+                recurrence_is_active: t.recurrence_is_active ?? true,
               }))
             ),
             supabase.from('ticket_messages').insert(starter.messages),
@@ -527,6 +874,26 @@ export function useTicketsStore(
             supabase.from('ticket_audit_logs').insert(starter.auditLogs),
             starter.attachments && starter.attachments.length > 0
               ? supabase.from('task_document_attachments').insert(starter.attachments)
+              : Promise.resolve(),
+            starter.departmentMemberships && starter.departmentMemberships.length > 0
+              ? supabase.from('department_memberships').insert(
+                  starter.departmentMemberships.map((m) => ({
+                    id: m.id,
+                    school_id: schoolId,
+                    department_id: m.department_id,
+                    user_id: m.user_id,
+                    is_lead: m.is_lead || false,
+                  }))
+                )
+              : Promise.resolve(),
+            starter.documentRegister && starter.documentRegister.length > 0
+              ? supabase.from('document_register').insert(starter.documentRegister)
+              : Promise.resolve(),
+            starter.notifications && starter.notifications.length > 0
+              ? supabase.from('in_app_notifications').insert(starter.notifications)
+              : Promise.resolve(),
+            starter.taskActivityLogs && starter.taskActivityLogs.length > 0
+              ? supabase.from('task_activity_logs').insert(starter.taskActivityLogs)
               : Promise.resolve(),
           ]);
 
@@ -538,10 +905,17 @@ export function useTicketsStore(
           dbAnnouncements = starter.announcements;
           dbLogs = starter.auditLogs;
           dbAttachments = starter.attachments || [];
+          dbMemberships = starter.departmentMemberships || [];
+          dbActivityLogs = starter.taskActivityLogs || [];
+          dbDocRegister = starter.documentRegister || [];
+          dbNotifications = starter.notifications || [];
         }
 
         if (!active) return;
         setDepartments(dbDepts);
+        setDepartmentMemberships(
+          dbMemberships.length > 0 ? dbMemberships : localSnap?.departmentMemberships || []
+        );
         setTickets(dbTickets);
         setMessages(dbMessages);
         setOrders(dbOrders);
@@ -549,9 +923,21 @@ export function useTicketsStore(
         setChannelMessages(localSnap?.channelMessages || []);
         setAnnouncements(dbAnnouncements);
         setAuditLogs(dbLogs);
-        setAttachments(dbAttachments.length > 0 ? dbAttachments : (localSnap?.attachments || []));
+        setAttachments(dbAttachments.length > 0 ? dbAttachments : localSnap?.attachments || []);
+        setTaskActivityLogs(
+          dbActivityLogs.length > 0 ? dbActivityLogs : localSnap?.taskActivityLogs || []
+        );
+        setDocumentRegister(
+          dbDocRegister.length > 0 ? dbDocRegister : localSnap?.documentRegister || []
+        );
+        setNotifications(
+          dbNotifications.length > 0 ? dbNotifications : localSnap?.notifications || []
+        );
+
         writeLocalSnapshot(schoolId, {
           departments: dbDepts,
+          departmentMemberships:
+            dbMemberships.length > 0 ? dbMemberships : localSnap?.departmentMemberships || [],
           tickets: dbTickets,
           messages: dbMessages,
           orders: dbOrders,
@@ -559,7 +945,13 @@ export function useTicketsStore(
           channelMessages: localSnap?.channelMessages || [],
           announcements: dbAnnouncements,
           auditLogs: dbLogs,
-          attachments: dbAttachments.length > 0 ? dbAttachments : (localSnap?.attachments || []),
+          attachments: dbAttachments.length > 0 ? dbAttachments : localSnap?.attachments || [],
+          taskActivityLogs:
+            dbActivityLogs.length > 0 ? dbActivityLogs : localSnap?.taskActivityLogs || [],
+          documentRegister:
+            dbDocRegister.length > 0 ? dbDocRegister : localSnap?.documentRegister || [],
+          notifications:
+            dbNotifications.length > 0 ? dbNotifications : localSnap?.notifications || [],
           hasInitialized: true,
         });
         setIsLoading(false);
@@ -570,6 +962,7 @@ export function useTicketsStore(
       setUsingSupabase(false);
       if (localSnap && localSnap.hasInitialized) {
         setDepartments(localSnap.departments || []);
+        setDepartmentMemberships(localSnap.departmentMemberships || []);
         setTickets(localSnap.tickets || []);
         setMessages(localSnap.messages || []);
         setOrders(localSnap.orders || []);
@@ -578,12 +971,17 @@ export function useTicketsStore(
         setAnnouncements(localSnap.announcements || []);
         setAuditLogs(localSnap.auditLogs || []);
         setAttachments(localSnap.attachments || []);
+        setTaskActivityLogs(localSnap.taskActivityLogs || []);
+        setDocumentRegister(localSnap.documentRegister || []);
+        setNotifications(localSnap.notifications || []);
         setIsLoading(false);
         return;
       }
 
+      // Fresh local bootstrap
       const starter = buildStarterTicketsData(schoolId, schoolUsers);
       setDepartments(starter.departments);
+      setDepartmentMemberships(starter.departmentMemberships || []);
       setTickets(starter.tickets);
       setMessages(starter.messages);
       setOrders(starter.orders);
@@ -592,6 +990,9 @@ export function useTicketsStore(
       setAnnouncements(starter.announcements);
       setAuditLogs(starter.auditLogs);
       setAttachments(starter.attachments || []);
+      setTaskActivityLogs(starter.taskActivityLogs || []);
+      setDocumentRegister(starter.documentRegister || []);
+      setNotifications(starter.notifications || []);
       writeLocalSnapshot(schoolId, starter);
       setIsLoading(false);
     };
@@ -618,27 +1019,57 @@ export function useTicketsStore(
     [schoolUsers]
   );
 
+  // Enriched department memberships
+  const enrichedMemberships = useMemo(() => {
+    return departmentMemberships.map((m) => {
+      const u = schoolUsers.find((user) => user.id === m.user_id);
+      const d = departments.find((dept) => dept.id === m.department_id);
+      return {
+        ...m,
+        user_name: u?.full_name || m.user_name || 'Служител',
+        user_role: u?.role || m.user_role || 'Служител',
+        department_name: d?.name || m.department_name || 'Направление',
+      };
+    });
+  }, [departmentMemberships, schoolUsers, departments]);
+
+  // Current user's department IDs
+  const currentUserDepartmentIds = useMemo(() => {
+    return departmentMemberships
+      .filter((m) => m.user_id === session.userId)
+      .map((m) => m.department_id);
+  }, [departmentMemberships, session.userId]);
+
   // Enriched tickets
   const enrichedTickets = useMemo(() => {
-    return tickets.map((t) => {
+    return tickets.map((t, idx) => {
       const msgCount = messages.filter((m) => m.ticket_id === t.id).length;
       const taskAttachments = attachments.filter((a) => a.task_id === t.id);
+      const logs = taskActivityLogs.filter((l) => l.task_id === t.id);
       const creatorRole = t.created_by_user_id ? userRoleMap.get(t.created_by_user_id) : undefined;
       const assigneeRole = t.assigned_to_user_id ? userRoleMap.get(t.assigned_to_user_id) : undefined;
 
       let assigneeLabel = 'Неразпределена';
       if (t.assigned_role_target) {
         if (t.assigned_role_target === 'all_teachers') assigneeLabel = 'Всички учители';
-        else if (t.assigned_role_target === 'all_administration') assigneeLabel = 'Всички в администрацията';
+        else if (t.assigned_role_target === 'all_administration')
+          assigneeLabel = 'Всички в администрацията';
         else if (t.assigned_role_target === 'all_staff') assigneeLabel = 'Целия персонал';
         else assigneeLabel = t.assigned_role_target;
+      } else if (t.primary_assignee_id) {
+        assigneeLabel = userMap.get(t.primary_assignee_id) || 'Служител';
       } else if (t.assigned_to_user_id) {
         assigneeLabel = userMap.get(t.assigned_to_user_id) || 'Служител';
       }
 
+      const guaranteedCode = t.code || `TSK-${1000 + idx + 1}`;
+
       return {
         ...t,
-        department_name: t.department_id ? departmentMap.get(t.department_id) || 'Общо направление' : 'Общо направление',
+        code: guaranteedCode,
+        department_name: t.department_id
+          ? departmentMap.get(t.department_id) || 'Общо направление'
+          : 'Общо направление',
         creator_name: t.created_by_user_id
           ? userMap.get(t.created_by_user_id) || 'Потребител'
           : session.isSuperAdminPreview
@@ -647,12 +1078,24 @@ export function useTicketsStore(
         creator_role: creatorRole ? ROLE_LABELS[creatorRole] || creatorRole : undefined,
         assignee_name: assigneeLabel,
         assignee_role: assigneeRole ? ROLE_LABELS[assigneeRole] || assigneeRole : undefined,
+        primary_assignee_name: t.primary_assignee_id ? userMap.get(t.primary_assignee_id) : undefined,
+        approved_by_name: t.approved_by_user_id ? userMap.get(t.approved_by_user_id) : undefined,
         messages_count: msgCount,
         attachments_count: taskAttachments.length,
         attachments: taskAttachments,
+        activity_logs: logs,
       };
     });
-  }, [tickets, messages, attachments, departmentMap, userMap, userRoleMap, session.isSuperAdminPreview]);
+  }, [
+    tickets,
+    messages,
+    attachments,
+    taskActivityLogs,
+    departmentMap,
+    userMap,
+    userRoleMap,
+    session.isSuperAdminPreview,
+  ]);
 
   // All documents for 365-day history
   const allDocuments = useMemo(() => {
@@ -661,9 +1104,18 @@ export function useTicketsStore(
     );
   }, [attachments]);
 
+  // Unread notifications count
+  const unreadNotificationsCount = useMemo(() => {
+    return notifications.filter((n) => !n.is_read).length;
+  }, [notifications]);
+
   // Record audit log helper
   const addAuditLog = useCallback(
-    async (action: string, ticketId: string | null = null, details: Record<string, unknown> | null = null) => {
+    async (
+      action: string,
+      ticketId: string | null = null,
+      details: Record<string, unknown> | null = null
+    ) => {
       const logItem: TicketAuditLog = {
         id: makeUuid(),
         school_id: schoolId,
@@ -691,7 +1143,197 @@ export function useTicketsStore(
     [schoolId, session.fullName, auditLogs, usingSupabase, saveLocalMirror]
   );
 
-  // Ticket CRUD
+  // Log task activity
+  const logTaskActivity = useCallback(
+    async (
+      taskId: string,
+      action: TaskActivityAction,
+      details?: string,
+      previousValue?: string,
+      newValue?: string
+    ) => {
+      const newLog: TaskActivityLog = {
+        id: makeUuid(),
+        school_id: schoolId,
+        task_id: taskId,
+        actor_user_id: isValidUuid(session.userId) ? session.userId : null,
+        actor_name: session.fullName,
+        action,
+        details: details || null,
+        previous_value: previousValue || null,
+        new_value: newValue || null,
+        created_at: new Date().toISOString(),
+      };
+      const next = [newLog, ...taskActivityLogs];
+      setTaskActivityLogs(next);
+      saveLocalMirror({ taskActivityLogs: next });
+
+      if (usingSupabase) {
+        await supabase.from('task_activity_logs').insert(newLog);
+      }
+      return newLog;
+    },
+    [schoolId, session.userId, session.fullName, taskActivityLogs, usingSupabase, saveLocalMirror]
+  );
+
+  // In-app Notifications
+  const createNotification = useCallback(
+    async (input: {
+      user_id: string;
+      type: NotificationType;
+      title: string;
+      message: string;
+      task_id?: string;
+      document_id?: string;
+    }) => {
+      const newNotif: InAppNotification = {
+        id: makeUuid(),
+        school_id: schoolId,
+        user_id: input.user_id,
+        type: input.type,
+        title: input.title,
+        message: input.message,
+        task_id: input.task_id || null,
+        document_id: input.document_id || null,
+        is_read: false,
+        created_at: new Date().toISOString(),
+      };
+      const next = [newNotif, ...notifications];
+      setNotifications(next);
+      saveLocalMirror({ notifications: next });
+
+      if (usingSupabase) {
+        await supabase.from('in_app_notifications').insert(newNotif);
+      }
+    },
+    [schoolId, notifications, usingSupabase, saveLocalMirror]
+  );
+
+  const markNotificationAsRead = useCallback(
+    async (id: string) => {
+      const next = notifications.map((n) => (n.id === id ? { ...n, is_read: true } : n));
+      setNotifications(next);
+      saveLocalMirror({ notifications: next });
+
+      if (usingSupabase) {
+        await supabase
+          .from('in_app_notifications')
+          .update({ is_read: true })
+          .eq('id', id)
+          ;
+      }
+    },
+    [notifications, usingSupabase, saveLocalMirror]
+  );
+
+  const markAllNotificationsAsRead = useCallback(async () => {
+    const next = notifications.map((n) => ({ ...n, is_read: true }));
+    setNotifications(next);
+    saveLocalMirror({ notifications: next });
+
+    if (usingSupabase) {
+      await supabase
+        .from('in_app_notifications')
+        .update({ is_read: true })
+        .eq('school_id', schoolId)
+        ;
+    }
+    pushToast('info', 'Всички известия са маркирани като прочетени.');
+  }, [notifications, schoolId, usingSupabase, saveLocalMirror, pushToast]);
+
+  const deleteNotification = useCallback(
+    async (id: string) => {
+      const next = notifications.filter((n) => n.id !== id);
+      setNotifications(next);
+      saveLocalMirror({ notifications: next });
+
+      if (usingSupabase) {
+        await supabase
+          .from('in_app_notifications')
+          .delete()
+          .eq('id', id)
+          ;
+      }
+    },
+    [notifications, usingSupabase, saveLocalMirror]
+  );
+
+  // Access Control & Permission Helpers
+  const isDirectorOrAdmin =
+    session.isSuperAdminPreview ||
+    session.role === 'director' ||
+    session.role === 'school_admin';
+
+  const canUserAccessTask = useCallback(
+    (task: SchoolTicket): boolean => {
+      if (isDirectorOrAdmin) return true;
+      if (session.role === 'observer') return true; // read-only access
+      if (task.primary_assignee_id === session.userId || task.assigned_to_user_id === session.userId)
+        return true;
+      if (task.created_by_user_id === session.userId) return true;
+      if (task.assigned_user_ids?.includes(session.userId)) return true;
+      if (task.department_id && currentUserDepartmentIds.includes(task.department_id)) return true;
+      if (task.assigned_role_target === 'all_staff') return true;
+      if (task.assigned_role_target === 'all_teachers' && session.role === 'teacher') return true;
+      if (
+        task.assigned_role_target === 'all_administration' &&
+        (session.role === 'administration' || session.role === 'staff')
+      )
+        return true;
+      return false;
+    },
+    [isDirectorOrAdmin, session.role, session.userId, currentUserDepartmentIds]
+  );
+
+  const canUserManageTask = useCallback(
+    (task: SchoolTicket): boolean => {
+      if (isDirectorOrAdmin) return true;
+      if (session.role === 'observer') return false;
+      if (task.department_id && currentUserDepartmentIds.includes(task.department_id)) {
+        const isLead = departmentMemberships.some(
+          (m) =>
+            m.department_id === task.department_id && m.user_id === session.userId && m.is_lead
+        );
+        if (isLead || session.role === 'department_manager') return true;
+      }
+      return false;
+    },
+    [isDirectorOrAdmin, session.role, session.userId, currentUserDepartmentIds, departmentMemberships]
+  );
+
+  const canUserApproveTask = useCallback(
+    (task: SchoolTicket): boolean => {
+      if (isDirectorOrAdmin) return true;
+      if (
+        session.role === 'department_manager' &&
+        task.department_id &&
+        currentUserDepartmentIds.includes(task.department_id)
+      )
+        return true;
+      const isLead =
+        task.department_id &&
+        departmentMemberships.some(
+          (m) =>
+            m.department_id === task.department_id && m.user_id === session.userId && m.is_lead
+        );
+      return !!isLead;
+    },
+    [isDirectorOrAdmin, session.role, session.userId, currentUserDepartmentIds, departmentMemberships]
+  );
+
+  const canUserAccessDocument = useCallback(
+    (doc: DocumentRegisterItem): boolean => {
+      if (isDirectorOrAdmin) return true;
+      if (session.role === 'observer') return true;
+      if (doc.responsible_user_id === session.userId) return true;
+      if (doc.created_by_user_id === session.userId) return true;
+      if (doc.department_id && currentUserDepartmentIds.includes(doc.department_id)) return true;
+      return false;
+    },
+    [isDirectorOrAdmin, session.role, session.userId, currentUserDepartmentIds]
+  );
+
+  // Task Creation
   const createTicket = useCallback(
     async (input: {
       title: string;
@@ -699,10 +1341,14 @@ export function useTicketsStore(
       room_or_location?: string;
       department_id?: string | null;
       priority: TicketPriority;
+      primary_assignee_id?: string | null;
       assigned_to_user_id?: string | null;
       assigned_role_target?: string | null;
       assigned_user_ids?: string[];
       due_date?: string | null;
+      is_recurring?: boolean;
+      recurrence_interval?: 'daily' | 'weekly' | 'monthly' | 'yearly' | null;
+      recurrence_next_date?: string | null;
       attachments?: {
         file_name: string;
         file_size_bytes: number;
@@ -713,16 +1359,22 @@ export function useTicketsStore(
     }): Promise<SchoolTicket> => {
       const now = new Date().toISOString();
       const validCreatorId: string | null = isValidUuid(session.userId) ? session.userId : null;
+      const primaryAssignee =
+        input.primary_assignee_id || input.assigned_to_user_id;
       const validAssigneeId: string | null =
-        input.assigned_to_user_id && isValidUuid(input.assigned_to_user_id) ? input.assigned_to_user_id : null;
+        primaryAssignee && isValidUuid(primaryAssignee) ? primaryAssignee : null;
       const validDeptId: string | null =
         input.department_id && isValidUuid(input.department_id) ? input.department_id : null;
+
+      const code = generateNextTaskCode(tickets);
 
       const newTicket: SchoolTicket = {
         id: makeUuid(),
         school_id: schoolId,
+        code,
         department_id: validDeptId,
         created_by_user_id: validCreatorId,
+        primary_assignee_id: validAssigneeId,
         assigned_to_user_id: validAssigneeId,
         assigned_role_target: input.assigned_role_target || null,
         assigned_user_ids: input.assigned_user_ids || [],
@@ -731,7 +1383,11 @@ export function useTicketsStore(
         description: input.description.trim(),
         room_or_location: input.room_or_location?.trim() || null,
         priority: input.priority,
-        status: 'open',
+        status: 'new',
+        is_recurring: input.is_recurring || false,
+        recurrence_interval: input.recurrence_interval || null,
+        recurrence_next_date: input.recurrence_next_date || null,
+        recurrence_is_active: input.is_recurring ? true : false,
         created_at: now,
         updated_at: now,
       };
@@ -764,50 +1420,903 @@ export function useTicketsStore(
         await supabase.from('tickets').insert({
           id: newTicket.id,
           school_id: schoolId,
+          code: newTicket.code,
           department_id: newTicket.department_id,
           created_by_user_id: newTicket.created_by_user_id,
+          primary_assignee_id: newTicket.primary_assignee_id,
           assigned_to_user_id: newTicket.assigned_to_user_id,
           assigned_role_target: newTicket.assigned_role_target,
+          assigned_user_ids: newTicket.assigned_user_ids,
           due_date: newTicket.due_date,
           title: newTicket.title,
           description: newTicket.description,
           room_or_location: newTicket.room_or_location,
           priority: newTicket.priority,
           status: newTicket.status,
+          is_recurring: newTicket.is_recurring,
+          recurrence_interval: newTicket.recurrence_interval,
+          recurrence_next_date: newTicket.recurrence_next_date,
+          recurrence_is_active: newTicket.recurrence_is_active,
         });
 
         if (newAttachments.length > 0) {
-          await supabase.from('task_document_attachments').insert(
-            newAttachments.map((a) => ({
-              id: a.id,
-              school_id: schoolId,
-              task_id: a.task_id,
-              file_name: a.file_name,
-              file_size_bytes: a.file_size_bytes,
-              file_type: a.file_type,
-              mime_type: a.mime_type,
-              file_url: a.file_url,
-              uploaded_by_user_id: a.uploaded_by_user_id,
-              uploaded_by_name: a.uploaded_by_name,
-              uploaded_by_role: a.uploaded_by_role,
-              uploaded_at: a.uploaded_at,
-            }))
-          );
+          await supabase.from('task_document_attachments').insert(newAttachments);
         }
       }
 
+      await logTaskActivity(newTicket.id, 'created', `Създадена задача ${newTicket.code}: ${newTicket.title}`);
       await addAuditLog(`Създадена нова задача: ${newTicket.title}`, newTicket.id, {
+        code: newTicket.code,
         title: newTicket.title,
         priority: newTicket.priority,
-        attachments_count: newAttachments.length,
       });
 
-      pushToast('success', 'Задачата е възложена успешно!');
+      // Notify assigned user if specified
+      if (validAssigneeId && validAssigneeId !== session.userId) {
+        await createNotification({
+          user_id: validAssigneeId,
+          type: 'task_assigned',
+          title: `Възложена ви е нова задача (${newTicket.code})`,
+          message: `${session.fullName} ви възложи задача: "${newTicket.title}".`,
+          task_id: newTicket.id,
+        });
+      }
+
+      pushToast('success', `Задачата ${newTicket.code} е възложена успешно!`);
       return newTicket;
     },
-    [schoolId, session, tickets, attachments, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+    [
+      schoolId,
+      session,
+      tickets,
+      attachments,
+      usingSupabase,
+      saveLocalMirror,
+      addAuditLog,
+      logTaskActivity,
+      createNotification,
+      pushToast,
+    ]
   );
 
+  // Task Lifecycle: Start Work
+  const startWork = useCallback(
+    async (taskId: string) => {
+      const t = tickets.find((item) => item.id === taskId);
+      if (!t) return;
+      const nowIso = new Date().toISOString();
+      const updatedTickets = tickets.map((item) =>
+        item.id === taskId ? { ...item, status: 'in_progress' as const, updated_at: nowIso } : item
+      );
+      setTickets(updatedTickets);
+      saveLocalMirror({ tickets: updatedTickets });
+
+      if (usingSupabase && isValidUuid(taskId)) {
+        await supabase
+          .from('tickets')
+          .update({ status: 'in_progress', updated_at: nowIso })
+          .eq('id', taskId)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      await logTaskActivity(taskId, 'started', 'Започната работа по задачата', t.status, 'in_progress');
+      await addAuditLog(`Започната работа по задача: ${t.title}`, taskId);
+      pushToast('info', 'Статусът на задачата е променен на "В процес".');
+    },
+    [tickets, schoolId, usingSupabase, saveLocalMirror, logTaskActivity, addAuditLog, pushToast]
+  );
+
+  // Task Lifecycle: Submit for Approval
+  const submitForApproval = useCallback(
+    async (taskId: string) => {
+      const t = tickets.find((item) => item.id === taskId);
+      if (!t) return;
+      const nowIso = new Date().toISOString();
+      const updatedTickets = tickets.map((item) =>
+        item.id === taskId
+          ? { ...item, status: 'awaiting_approval' as const, updated_at: nowIso }
+          : item
+      );
+      setTickets(updatedTickets);
+      saveLocalMirror({ tickets: updatedTickets });
+
+      if (usingSupabase && isValidUuid(taskId)) {
+        await supabase
+          .from('tickets')
+          .update({ status: 'awaiting_approval', updated_at: nowIso })
+          .eq('id', taskId)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      await logTaskActivity(
+        taskId,
+        'submitted_for_approval',
+        'Предадена за одобрение от ръководството',
+        t.status,
+        'awaiting_approval'
+      );
+      await addAuditLog(`Предадена за одобрение: ${t.title}`, taskId);
+
+      // Notify creator or director
+      const targetUserId =
+        t.created_by_user_id || schoolUsers.find((u) => u.role === 'director')?.id;
+      if (targetUserId && targetUserId !== session.userId) {
+        await createNotification({
+          user_id: targetUserId,
+          type: 'task_submitted_for_approval',
+          title: `Задача очаква одобрение (${t.code || 'TSK'})`,
+          message: `${session.fullName} предаде задача "${t.title}" за финално одобрение.`,
+          task_id: taskId,
+        });
+      }
+
+      pushToast('info', 'Задачата е предадена за финално одобрение.');
+    },
+    [
+      tickets,
+      schoolId,
+      schoolUsers,
+      session.userId,
+      session.fullName,
+      usingSupabase,
+      saveLocalMirror,
+      logTaskActivity,
+      addAuditLog,
+      createNotification,
+      pushToast,
+    ]
+  );
+
+  // Task Lifecycle: Approve Completion
+  const approveTask = useCallback(
+    async (taskId: string) => {
+      const t = tickets.find((item) => item.id === taskId);
+      if (!t) return;
+      const nowIso = new Date().toISOString();
+      const updatedTickets = tickets.map((item) =>
+        item.id === taskId
+          ? {
+              ...item,
+              status: 'completed' as const,
+              completed_at: nowIso,
+              approved_by_user_id: session.userId || null,
+              return_reason: null,
+              updated_at: nowIso,
+            }
+          : item
+      );
+      setTickets(updatedTickets);
+      saveLocalMirror({ tickets: updatedTickets });
+
+      if (usingSupabase && isValidUuid(taskId)) {
+        await supabase
+          .from('tickets')
+          .update({
+            status: 'completed',
+            completed_at: nowIso,
+            approved_by_user_id: session.userId || null,
+            return_reason: null,
+            updated_at: nowIso,
+          })
+          .eq('id', taskId)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      await logTaskActivity(
+        taskId,
+        'approved',
+        `Одобрена от ${session.fullName}`,
+        t.status,
+        'completed'
+      );
+      await addAuditLog(`Одобрена задача: ${t.title}`, taskId);
+
+      // Notify primary assignee
+      const assigneeId = t.primary_assignee_id || t.assigned_to_user_id;
+      if (assigneeId && assigneeId !== session.userId) {
+        await createNotification({
+          user_id: assigneeId,
+          type: 'task_approved',
+          title: `Задачата ви е одобрена! (${t.code || 'TSK'})`,
+          message: `Ръководството одобри изпълнението на задача "${t.title}".`,
+          task_id: taskId,
+        });
+      }
+
+      pushToast('success', 'Задачата е успешно одобрена и приключена.');
+    },
+    [
+      tickets,
+      schoolId,
+      session.userId,
+      session.fullName,
+      usingSupabase,
+      saveLocalMirror,
+      logTaskActivity,
+      addAuditLog,
+      createNotification,
+      pushToast,
+    ]
+  );
+
+  // Task Lifecycle: Return for Correction
+  const returnForCorrection = useCallback(
+    async (taskId: string, reason: string): Promise<boolean> => {
+      const trimmedReason = reason.trim();
+      if (!trimmedReason) {
+        pushToast('error', 'Моля, посочете задължителна причина за връщане на задачата.');
+        return false;
+      }
+      const t = tickets.find((item) => item.id === taskId);
+      if (!t) return false;
+      const nowIso = new Date().toISOString();
+      const updatedTickets = tickets.map((item) =>
+        item.id === taskId
+          ? {
+              ...item,
+              status: 'in_progress' as const,
+              return_reason: trimmedReason,
+              updated_at: nowIso,
+            }
+          : item
+      );
+      setTickets(updatedTickets);
+      saveLocalMirror({ tickets: updatedTickets });
+
+      if (usingSupabase && isValidUuid(taskId)) {
+        await supabase
+          .from('tickets')
+          .update({
+            status: 'in_progress',
+            return_reason: trimmedReason,
+            updated_at: nowIso,
+          })
+          .eq('id', taskId)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      await logTaskActivity(
+        taskId,
+        'returned_for_correction',
+        `Върната за корекция: ${trimmedReason}`,
+        t.status,
+        'in_progress'
+      );
+      await addAuditLog(`Върната за корекция: ${t.title}. Причина: ${trimmedReason}`, taskId);
+
+      // Notify primary assignee
+      const assigneeId = t.primary_assignee_id || t.assigned_to_user_id;
+      if (assigneeId && assigneeId !== session.userId) {
+        await createNotification({
+          user_id: assigneeId,
+          type: 'task_returned',
+          title: `Задача върната за корекция (${t.code || 'TSK'})`,
+          message: `Задача "${t.title}" беше върната от ${session.fullName}. Забележки: ${trimmedReason}`,
+          task_id: taskId,
+        });
+      }
+
+      pushToast('warning', 'Задачата е върната за корекция с посочените указания.');
+      return true;
+    },
+    [
+      tickets,
+      schoolId,
+      session.userId,
+      session.fullName,
+      usingSupabase,
+      saveLocalMirror,
+      logTaskActivity,
+      addAuditLog,
+      createNotification,
+      pushToast,
+    ]
+  );
+
+  // Update Task Deadline
+  const updateTaskDeadline = useCallback(
+    async (taskId: string, newDueDate: string | null) => {
+      const t = tickets.find((item) => item.id === taskId);
+      if (!t) return;
+      const nowIso = new Date().toISOString();
+      const updatedTickets = tickets.map((item) =>
+        item.id === taskId ? { ...item, due_date: newDueDate, updated_at: nowIso } : item
+      );
+      setTickets(updatedTickets);
+      saveLocalMirror({ tickets: updatedTickets });
+
+      if (usingSupabase && isValidUuid(taskId)) {
+        await supabase
+          .from('tickets')
+          .update({ due_date: newDueDate, updated_at: nowIso })
+          .eq('id', taskId)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      await logTaskActivity(
+        taskId,
+        'deadline_changed',
+        `Краен срок променен на: ${newDueDate ? new Date(newDueDate).toLocaleString('bg-BG') : 'Няма'}`,
+        t.due_date || 'Няма',
+        newDueDate || 'Няма'
+      );
+      await addAuditLog(`Променен краен срок на задача: ${t.title}`, taskId);
+
+      const assigneeId = t.primary_assignee_id || t.assigned_to_user_id;
+      if (assigneeId && assigneeId !== session.userId) {
+        await createNotification({
+          user_id: assigneeId,
+          type: 'deadline_changed',
+          title: `Променен краен срок (${t.code || 'TSK'})`,
+          message: `Крайният срок на задача "${t.title}" беше променен от ${session.fullName}.`,
+          task_id: taskId,
+        });
+      }
+
+      pushToast('info', 'Крайният срок е обновен успешно.');
+    },
+    [
+      tickets,
+      schoolId,
+      session.userId,
+      session.fullName,
+      usingSupabase,
+      saveLocalMirror,
+      logTaskActivity,
+      addAuditLog,
+      createNotification,
+      pushToast,
+    ]
+  );
+
+  // Reassign Task
+  const reassignTask = useCallback(
+    async (taskId: string, primaryAssigneeId: string | null, additionalAssigneeIds: string[] = []) => {
+      const t = tickets.find((item) => item.id === taskId);
+      if (!t) return;
+      const nowIso = new Date().toISOString();
+      const validPrimaryId = isValidUuid(primaryAssigneeId) ? primaryAssigneeId : null;
+
+      const updatedTickets = tickets.map((item) =>
+        item.id === taskId
+          ? {
+              ...item,
+              primary_assignee_id: validPrimaryId,
+              assigned_to_user_id: validPrimaryId,
+              assigned_user_ids: additionalAssigneeIds,
+              updated_at: nowIso,
+            }
+          : item
+      );
+      setTickets(updatedTickets);
+      saveLocalMirror({ tickets: updatedTickets });
+
+      if (usingSupabase && isValidUuid(taskId)) {
+        await supabase
+          .from('tickets')
+          .update({
+            primary_assignee_id: validPrimaryId,
+            assigned_to_user_id: validPrimaryId,
+            assigned_user_ids: additionalAssigneeIds,
+            updated_at: nowIso,
+          })
+          .eq('id', taskId)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      const newAssigneeName = validPrimaryId ? userMap.get(validPrimaryId) || 'Служител' : 'Няма';
+      await logTaskActivity(taskId, 'reassigned', `Преразпределена към ${newAssigneeName}`);
+      await addAuditLog(`Преразпределена задача ${t.title} към ${newAssigneeName}`, taskId);
+
+      if (validPrimaryId && validPrimaryId !== session.userId) {
+        await createNotification({
+          user_id: validPrimaryId,
+          type: 'task_assigned',
+          title: `Възложена ви е задача (${t.code || 'TSK'})`,
+          message: `${session.fullName} ви определи като отговорник за задача "${t.title}".`,
+          task_id: taskId,
+        });
+      }
+
+      pushToast('success', `Отговорникът е обновен: ${newAssigneeName}`);
+    },
+    [
+      tickets,
+      schoolId,
+      userMap,
+      session.userId,
+      session.fullName,
+      usingSupabase,
+      saveLocalMirror,
+      logTaskActivity,
+      addAuditLog,
+      createNotification,
+      pushToast,
+    ]
+  );
+
+  // Toggle Recurrence
+  const toggleRecurrence = useCallback(
+    async (taskId: string, isActive: boolean) => {
+      const nowIso = new Date().toISOString();
+      const updatedTickets = tickets.map((t) =>
+        t.id === taskId ? { ...t, recurrence_is_active: isActive, updated_at: nowIso } : t
+      );
+      setTickets(updatedTickets);
+      saveLocalMirror({ tickets: updatedTickets });
+
+      if (usingSupabase && isValidUuid(taskId)) {
+        await supabase
+          .from('tickets')
+          .update({ recurrence_is_active: isActive, updated_at: nowIso })
+          .eq('id', taskId)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      pushToast('info', isActive ? 'Периодичността е активирана.' : 'Периодичността е паузирана.');
+    },
+    [tickets, schoolId, usingSupabase, saveLocalMirror, pushToast]
+  );
+
+  // Process Recurring Tasks (automatic generation of next instances)
+  const processRecurringTasks = useCallback(async () => {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const tasksToRecur = tickets.filter(
+      (t) =>
+        t.is_recurring &&
+        t.recurrence_is_active &&
+        t.recurrence_next_date &&
+        t.recurrence_next_date <= todayStr
+    );
+
+    if (tasksToRecur.length === 0) return 0;
+
+    const newInstances: SchoolTicket[] = [];
+    const updatedOriginals = [...tickets];
+
+    for (const orig of tasksToRecur) {
+      const nextCode = generateNextTaskCode([...updatedOriginals, ...newInstances]);
+      const nextDate = new Date(orig.recurrence_next_date!);
+      let nextRecurrenceDate: Date;
+      switch (orig.recurrence_interval) {
+        case 'daily':
+          nextRecurrenceDate = new Date(nextDate.getTime() + 86400000);
+          break;
+        case 'weekly':
+          nextRecurrenceDate = new Date(nextDate.getTime() + 86400000 * 7);
+          break;
+        case 'monthly': {
+          const mDate = new Date(nextDate);
+          mDate.setMonth(mDate.getMonth() + 1);
+          nextRecurrenceDate = mDate;
+          break;
+        }
+        case 'yearly': {
+          const yDate = new Date(nextDate);
+          yDate.setFullYear(yDate.getFullYear() + 1);
+          nextRecurrenceDate = yDate;
+          break;
+        }
+        default:
+          nextRecurrenceDate = new Date(nextDate.getTime() + 86400000 * 7);
+      }
+
+      const newInst: SchoolTicket = {
+        id: makeUuid(),
+        school_id: schoolId,
+        code: nextCode,
+        department_id: orig.department_id,
+        created_by_user_id: orig.created_by_user_id,
+        primary_assignee_id: orig.primary_assignee_id,
+        assigned_to_user_id: orig.assigned_to_user_id,
+        assigned_role_target: orig.assigned_role_target,
+        assigned_user_ids: orig.assigned_user_ids || [],
+        due_date: new Date(Date.now() + 86400000 * 3).toISOString(),
+        title: `${orig.title} (Периодично)`,
+        description: orig.description,
+        room_or_location: orig.room_or_location,
+        priority: orig.priority,
+        status: 'new',
+        is_recurring: false,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+      newInstances.push(newInst);
+
+      const origIdx = updatedOriginals.findIndex((item) => item.id === orig.id);
+      if (origIdx >= 0) {
+        updatedOriginals[origIdx] = {
+          ...updatedOriginals[origIdx],
+          recurrence_next_date: nextRecurrenceDate.toISOString().slice(0, 10),
+        };
+      }
+    }
+
+    const finalTickets = [...newInstances, ...updatedOriginals];
+    setTickets(finalTickets);
+    saveLocalMirror({ tickets: finalTickets });
+
+    if (usingSupabase) {
+      for (const inst of newInstances) {
+        await supabase.from('tickets').insert(inst);
+      }
+      for (const orig of tasksToRecur) {
+        const updated = updatedOriginals.find((t) => t.id === orig.id);
+        if (updated) {
+          await supabase
+            .from('tickets')
+            .update({ recurrence_next_date: updated.recurrence_next_date })
+            .eq('id', orig.id)
+            ;
+        }
+      }
+    }
+
+    pushToast('info', `Генерирани са ${newInstances.length} нови периодични задачи.`);
+    return newInstances.length;
+  }, [tickets, schoolId, usingSupabase, saveLocalMirror, pushToast]);
+
+  // Document Register: Register Document
+  const registerDocument = useCallback(
+    async (input: {
+      doc_type: RegisterDocType;
+      reg_number?: string;
+      reg_date?: string;
+      title: string;
+      sender?: string;
+      recipient?: string;
+      department_id?: string | null;
+      responsible_user_id?: string | null;
+      file_name?: string;
+      file_url?: string;
+      file_size_bytes?: number;
+      file_type?: DocumentFileType;
+      mime_type?: string;
+      linked_task_id?: string | null;
+      notes?: string;
+    }): Promise<DocumentRegisterItem> => {
+      const regNumber =
+        input.reg_number?.trim() ||
+        generateNextRegNumber(documentRegister, input.doc_type);
+
+      const newDoc: DocumentRegisterItem = {
+        id: makeUuid(),
+        school_id: schoolId,
+        reg_number: regNumber,
+        reg_date: input.reg_date || new Date().toISOString().slice(0, 10),
+        doc_type: input.doc_type,
+        title: input.title.trim(),
+        sender: input.sender?.trim() || null,
+        recipient: input.recipient?.trim() || null,
+        department_id: input.department_id || null,
+        responsible_user_id: input.responsible_user_id || null,
+        file_name: input.file_name || null,
+        file_url: input.file_url || null,
+        file_size_bytes: input.file_size_bytes || 0,
+        file_type: input.file_type || null,
+        mime_type: input.mime_type || null,
+        linked_task_id: input.linked_task_id || null,
+        is_archived: false,
+        notes: input.notes?.trim() || null,
+        created_by_user_id: isValidUuid(session.userId) ? session.userId : null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      const next = [newDoc, ...documentRegister];
+      setDocumentRegister(next);
+      saveLocalMirror({ documentRegister: next });
+
+      if (usingSupabase) {
+        await supabase.from('document_register').insert(newDoc);
+      }
+
+      await addAuditLog(`Регистриран документ: ${newDoc.reg_number} - ${newDoc.title}`, newDoc.linked_task_id, {
+        reg_number: newDoc.reg_number,
+        doc_type: newDoc.doc_type,
+      });
+
+      if (input.responsible_user_id && input.responsible_user_id !== session.userId) {
+        await createNotification({
+          user_id: input.responsible_user_id,
+          type: 'document_registered',
+          title: `Нов документ в деловодния регистър (${newDoc.reg_number})`,
+          message: `Във вашето направление е регистриран документ: "${newDoc.title}".`,
+          document_id: newDoc.id,
+          task_id: newDoc.linked_task_id || undefined,
+        });
+      }
+
+      pushToast('success', `Документът ${newDoc.reg_number} е регистриран успешно.`);
+      return newDoc;
+    },
+    [
+      documentRegister,
+      schoolId,
+      session.userId,
+      usingSupabase,
+      saveLocalMirror,
+      addAuditLog,
+      createNotification,
+      pushToast,
+    ]
+  );
+
+  // Document Register: Update Document
+  const updateRegisterDocument = useCallback(
+    async (
+      id: string,
+      patch: Partial<{
+        title: string;
+        sender: string | null;
+        recipient: string | null;
+        department_id: string | null;
+        responsible_user_id: string | null;
+        linked_task_id: string | null;
+        notes: string | null;
+        reg_date: string;
+      }>
+    ) => {
+      const nowIso = new Date().toISOString();
+      const next = documentRegister.map((d) => (d.id === id ? { ...d, ...patch, updated_at: nowIso } : d));
+      setDocumentRegister(next);
+      saveLocalMirror({ documentRegister: next });
+
+      if (usingSupabase && isValidUuid(id)) {
+        await supabase
+          .from('document_register')
+          .update({ ...patch, updated_at: nowIso })
+          .eq('id', id)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      pushToast('success', 'Документът е обновен.');
+    },
+    [documentRegister, schoolId, usingSupabase, saveLocalMirror, pushToast]
+  );
+
+  // Document Register: Delete Document
+  const deleteRegisterDocument = useCallback(
+    async (id: string) => {
+      const doc = documentRegister.find((d) => d.id === id);
+      const next = documentRegister.filter((d) => d.id !== id);
+      setDocumentRegister(next);
+      saveLocalMirror({ documentRegister: next });
+
+      if (usingSupabase && isValidUuid(id)) {
+        await supabase
+          .from('document_register')
+          .delete()
+          .eq('id', id)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      if (doc) {
+        await addAuditLog(`Изтрит документ от регистъра: ${doc.reg_number}`);
+      }
+      pushToast('info', 'Документът е изтрит от регистъра.');
+    },
+    [documentRegister, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+  );
+
+  // Document Register: Toggle Archive
+  const toggleArchiveRegisterDocument = useCallback(
+    async (id: string, isArchived: boolean) => {
+      const nowIso = new Date().toISOString();
+      const next = documentRegister.map((d) =>
+        d.id === id ? { ...d, is_archived: isArchived, updated_at: nowIso } : d
+      );
+      setDocumentRegister(next);
+      saveLocalMirror({ documentRegister: next });
+
+      if (usingSupabase && isValidUuid(id)) {
+        await supabase
+          .from('document_register')
+          .update({ is_archived: isArchived, updated_at: nowIso })
+          .eq('id', id)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      pushToast('info', isArchived ? 'Документът е архивиран.' : 'Документът е възстановен от архива.');
+    },
+    [documentRegister, schoolId, usingSupabase, saveLocalMirror, pushToast]
+  );
+
+  // Document Register: Link Document to Task
+  const linkRegisterDocumentToTask = useCallback(
+    async (docId: string, taskId: string | null) => {
+      const nowIso = new Date().toISOString();
+      const next = documentRegister.map((d) =>
+        d.id === docId ? { ...d, linked_task_id: taskId, updated_at: nowIso } : d
+      );
+      setDocumentRegister(next);
+      saveLocalMirror({ documentRegister: next });
+
+      if (usingSupabase && isValidUuid(docId)) {
+        await supabase
+          .from('document_register')
+          .update({ linked_task_id: taskId, updated_at: nowIso })
+          .eq('id', docId)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      pushToast('success', taskId ? 'Документът е свързан със задачата.' : 'Връзката със задачата е премахната.');
+    },
+    [documentRegister, schoolId, usingSupabase, saveLocalMirror, pushToast]
+  );
+
+  // Document Register: Export CSV
+  const exportDocumentRegisterCsv = useCallback(() => {
+    const headers = [
+      'Регистрационен номер',
+      'Дата',
+      'Вид документ',
+      'Относно / Заглавие',
+      'Подател / Кореспондент',
+      'Получател',
+      'Направление',
+      'Отговорник',
+      'Статус',
+      'Бележки',
+    ];
+
+    const rows = documentRegister.map((doc) => {
+      const typeLabel =
+        doc.doc_type === 'incoming' ? 'Входящ' : doc.doc_type === 'outgoing' ? 'Изходящ' : 'Вътрешен';
+      const deptName = doc.department_id ? departmentMap.get(doc.department_id) || '' : '';
+      const respName = doc.responsible_user_id ? userMap.get(doc.responsible_user_id) || '' : '';
+      const statusLabel = doc.is_archived ? 'Архивиран' : 'Действащ';
+
+      return [
+        `"${doc.reg_number}"`,
+        `"${doc.reg_date}"`,
+        `"${typeLabel}"`,
+        `"${(doc.title || '').replace(/"/g, '""')}"`,
+        `"${(doc.sender || '').replace(/"/g, '""')}"`,
+        `"${(doc.recipient || '').replace(/"/g, '""')}"`,
+        `"${deptName.replace(/"/g, '""')}"`,
+        `"${respName.replace(/"/g, '""')}"`,
+        `"${statusLabel}"`,
+        `"${(doc.notes || '').replace(/"/g, '""')}"`,
+      ];
+    });
+
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `delovoden-registar-${school.slug}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    pushToast('success', 'Деловодният регистър е експортиран в CSV.');
+  }, [documentRegister, departmentMap, userMap, school.slug, pushToast]);
+
+  // Department Memberships: Add Member
+  const addDepartmentMember = useCallback(
+    async (departmentId: string, userId: string, isLead: boolean = false) => {
+      const exists = departmentMemberships.some(
+        (m) => m.department_id === departmentId && m.user_id === userId
+      );
+      if (exists) {
+        pushToast('warning', 'Този служител вече е зачислен към това направление.');
+        return;
+      }
+
+      const targetUser = schoolUsers.find((u) => u.id === userId);
+      const targetDept = departments.find((d) => d.id === departmentId);
+
+      const newMembership: DepartmentMembership = {
+        id: makeUuid(),
+        school_id: schoolId,
+        department_id: departmentId,
+        user_id: userId,
+        is_lead: isLead,
+        created_at: new Date().toISOString(),
+        user_name: targetUser?.full_name,
+        user_role: targetUser?.role,
+        department_name: targetDept?.name,
+      };
+
+      const next = [...departmentMemberships, newMembership];
+      setDepartmentMemberships(next);
+      saveLocalMirror({ departmentMemberships: next });
+
+      if (usingSupabase) {
+        await supabase
+          .from('department_memberships')
+          .insert({
+            id: newMembership.id,
+            school_id: schoolId,
+            department_id: newMembership.department_id,
+            user_id: newMembership.user_id,
+            is_lead: newMembership.is_lead,
+          });
+      }
+
+      await addAuditLog(
+        `Зачислен служител ${targetUser?.full_name || userId} към ${targetDept?.name || departmentId}`,
+        null,
+        { is_lead: isLead }
+      );
+      pushToast('success', 'Служителят е зачислен към направлението.');
+    },
+    [
+      departmentMemberships,
+      schoolUsers,
+      departments,
+      schoolId,
+      usingSupabase,
+      saveLocalMirror,
+      addAuditLog,
+      pushToast,
+    ]
+  );
+
+  // Department Memberships: Remove Member
+  const removeDepartmentMember = useCallback(
+    async (membershipId: string) => {
+      const mem = departmentMemberships.find((m) => m.id === membershipId);
+      const next = departmentMemberships.filter((m) => m.id !== membershipId);
+      setDepartmentMemberships(next);
+      saveLocalMirror({ departmentMemberships: next });
+
+      if (usingSupabase && isValidUuid(membershipId)) {
+        await supabase
+          .from('department_memberships')
+          .delete()
+          .eq('id', membershipId)
+          .eq('school_id', schoolId)
+          ;
+      }
+
+      if (mem) {
+        await addAuditLog(`Премахнато членство в направление (ID: ${mem.id})`);
+      }
+      pushToast('info', 'Членството в направлението е прекратено.');
+    },
+    [departmentMemberships, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+  );
+
+  // Department Memberships: Toggle Lead
+  const toggleDepartmentMemberLead = useCallback(
+    async (membershipId: string, isLead: boolean) => {
+      const next = departmentMemberships.map((m) =>
+        m.id === membershipId ? { ...m, is_lead: isLead } : m
+      );
+      setDepartmentMemberships(next);
+      saveLocalMirror({ departmentMemberships: next });
+
+      if (usingSupabase && isValidUuid(membershipId)) {
+        await supabase
+          .from('department_memberships')
+          .update({ is_lead: isLead })
+          .eq('id', membershipId)
+          .eq('school_id', schoolId)
+          ;
+      }
+      pushToast(
+        'success',
+        isLead ? 'Зададен като отговорник на направлението.' : 'Премахнат статут на ръководител.'
+      );
+    },
+    [departmentMemberships, schoolId, usingSupabase, saveLocalMirror, pushToast]
+  );
+
+  // Attachments
   const addAttachmentToTask = useCallback(
     async (
       taskId: string,
@@ -840,11 +2349,11 @@ export function useTicketsStore(
       setAttachments(next);
       saveLocalMirror({ attachments: next });
 
-      if (usingSupabase) {
+      if (usingSupabase && isValidUuid(taskId)) {
         await supabase.from('task_document_attachments').insert({
           id: item.id,
           school_id: schoolId,
-          task_id: item.task_id,
+          task_id: taskId,
           file_name: item.file_name,
           file_size_bytes: item.file_size_bytes,
           file_type: item.file_type,
@@ -853,15 +2362,28 @@ export function useTicketsStore(
           uploaded_by_user_id: item.uploaded_by_user_id,
           uploaded_by_name: item.uploaded_by_name,
           uploaded_by_role: item.uploaded_by_role,
-          uploaded_at: item.uploaded_at,
         });
       }
 
-      await addAuditLog(`Прикачен документ „${item.file_name}“`, taskId);
+      await logTaskActivity(taskId, 'attachment_added', `Прикачен файл: ${item.file_name}`);
+      await addAuditLog(`Прикачен документ към задача: ${item.file_name}`, taskId, {
+        file_name: item.file_name,
+        file_size_bytes: item.file_size_bytes,
+      });
+
       pushToast('success', `Документът „${item.file_name}“ е прикачен.`);
       return item;
     },
-    [schoolId, session, attachments, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+    [
+      schoolId,
+      session,
+      attachments,
+      usingSupabase,
+      saveLocalMirror,
+      logTaskActivity,
+      addAuditLog,
+      pushToast,
+    ]
   );
 
   const deleteAttachment = useCallback(
@@ -887,6 +2409,7 @@ export function useTicketsStore(
     [attachments, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
   );
 
+  // Status & Priority updates
   const updateTicketStatus = useCallback(
     async (ticketId: string, status: TicketStatus) => {
       const now = new Date().toISOString();
@@ -902,10 +2425,11 @@ export function useTicketsStore(
           .eq('school_id', schoolId);
       }
 
+      await logTaskActivity(ticketId, 'status_changed', `Статусът е променен на „${status}“`);
       await addAuditLog(`Сменен статус на „${status}“`, ticketId, { status });
       pushToast('success', `Статусът е обновен.`);
     },
-    [tickets, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+    [tickets, schoolId, usingSupabase, saveLocalMirror, logTaskActivity, addAuditLog, pushToast]
   );
 
   const updateTicketPriority = useCallback(
@@ -923,10 +2447,11 @@ export function useTicketsStore(
           .eq('school_id', schoolId);
       }
 
+      await logTaskActivity(ticketId, 'priority_changed', `Приоритетът е променен на „${priority}“`);
       await addAuditLog(`Сменен приоритет на „${priority}“`, ticketId, { priority });
       pushToast('info', 'Приоритетът е обновен.');
     },
-    [tickets, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+    [tickets, schoolId, usingSupabase, saveLocalMirror, logTaskActivity, addAuditLog, pushToast]
   );
 
   const updateTicketAssignee = useCallback(
@@ -934,7 +2459,14 @@ export function useTicketsStore(
       const validAssigneeId = isValidUuid(assigneeUserId) ? assigneeUserId : null;
       const now = new Date().toISOString();
       const next = tickets.map((t) =>
-        t.id === ticketId ? { ...t, assigned_to_user_id: validAssigneeId, updated_at: now } : t
+        t.id === ticketId
+          ? {
+              ...t,
+              primary_assignee_id: validAssigneeId,
+              assigned_to_user_id: validAssigneeId,
+              updated_at: now,
+            }
+          : t
       );
       setTickets(next);
       saveLocalMirror({ tickets: next });
@@ -942,18 +2474,32 @@ export function useTicketsStore(
       if (usingSupabase && isValidUuid(ticketId)) {
         await supabase
           .from('tickets')
-          .update({ assigned_to_user_id: validAssigneeId, updated_at: now })
+          .update({
+            primary_assignee_id: validAssigneeId,
+            assigned_to_user_id: validAssigneeId,
+            updated_at: now,
+          })
           .eq('id', ticketId)
           .eq('school_id', schoolId);
       }
 
       const assigneeName = validAssigneeId ? userMap.get(validAssigneeId) || 'Служител' : 'Няма';
-      await addAuditLog(`Заявката е разпределена към ${assigneeName}`, ticketId, {
+      await logTaskActivity(ticketId, 'reassigned', `Разпределена към ${assigneeName}`);
+      await addAuditLog(`Задачата е разпределена към ${assigneeName}`, ticketId, {
         assigned_to_user_id: validAssigneeId,
       });
       pushToast('success', `Отговорникът е обновен: ${assigneeName}`);
     },
-    [tickets, schoolId, usingSupabase, userMap, saveLocalMirror, addAuditLog, pushToast]
+    [
+      tickets,
+      schoolId,
+      usingSupabase,
+      userMap,
+      saveLocalMirror,
+      logTaskActivity,
+      addAuditLog,
+      pushToast,
+    ]
   );
 
   const editTicket = useCallback(
@@ -964,6 +2510,8 @@ export function useTicketsStore(
         description: string;
         room_or_location?: string | null;
         department_id?: string | null;
+        due_date?: string | null;
+        priority?: TicketPriority;
       }
     ) => {
       const validDeptId: string | null =
@@ -977,6 +2525,8 @@ export function useTicketsStore(
               description: patch.description.trim(),
               room_or_location: patch.room_or_location?.trim() || null,
               department_id: validDeptId,
+              due_date: patch.due_date !== undefined ? patch.due_date : t.due_date,
+              priority: patch.priority !== undefined ? patch.priority : t.priority,
               updated_at: now,
             }
           : t
@@ -992,16 +2542,19 @@ export function useTicketsStore(
             description: patch.description.trim(),
             room_or_location: patch.room_or_location?.trim() || null,
             department_id: validDeptId,
+            due_date: patch.due_date !== undefined ? patch.due_date : undefined,
+            priority: patch.priority !== undefined ? patch.priority : undefined,
             updated_at: now,
           })
           .eq('id', ticketId)
           .eq('school_id', schoolId);
       }
 
-      await addAuditLog('Редактирани детайли на заявка', ticketId, { title: patch.title });
-      pushToast('success', 'Заявката е обновена.');
+      await logTaskActivity(ticketId, 'edited', 'Редактирани детайли на задачата');
+      await addAuditLog('Редактирани детайли на задача', ticketId, { title: patch.title });
+      pushToast('success', 'Задачата е обновена.');
     },
-    [tickets, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+    [tickets, schoolId, usingSupabase, saveLocalMirror, logTaskActivity, addAuditLog, pushToast]
   );
 
   const deleteTicket = useCallback(
@@ -1021,18 +2574,30 @@ export function useTicketsStore(
       });
 
       if (usingSupabase && isValidUuid(ticketId)) {
-        await supabase.from('tickets').delete().eq('id', ticketId).eq('school_id', schoolId);
+        await Promise.all([
+          supabase.from('tickets').delete().eq('id', ticketId).eq('school_id', schoolId),
+          supabase.from('ticket_messages').delete().eq('ticket_id', ticketId).eq('school_id', schoolId),
+          supabase.from('ticket_orders').delete().eq('ticket_id', ticketId).eq('school_id', schoolId),
+          supabase
+            .from('task_document_attachments')
+            .delete()
+            .eq('task_id', ticketId)
+            .eq('school_id', schoolId),
+        ]);
       }
 
-      await addAuditLog(`Изтрита заявка „${target?.title || ticketId}“`, null, {
-        deletedTicketId: ticketId,
-      });
-      pushToast('info', 'Заявката беше изтрита.');
+      if (target) {
+        await addAuditLog(`Изтрита задача: ${target.title}`, null, {
+          title: target.title,
+          code: target.code,
+        });
+      }
+      pushToast('info', 'Задачата е изтрита успешно.');
     },
     [tickets, messages, orders, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
   );
 
-  // Message Thread
+  // Message / Comment Thread
   const sendMessage = useCallback(
     async (ticketId: string, messageText: string) => {
       const clean = messageText.trim();
@@ -1064,10 +2629,47 @@ export function useTicketsStore(
         });
       }
 
-      await addAuditLog('Добавен коментар към заявка', ticketId, { messagePreview: clean.slice(0, 60) });
+      await logTaskActivity(ticketId, 'comment_added', `Коментар: ${clean.slice(0, 60)}`);
+      await addAuditLog('Добавен коментар към задача', ticketId, {
+        messagePreview: clean.slice(0, 60),
+      });
+
+      // Notify task assignee or creator
+      const currentTask = tickets.find((t) => t.id === ticketId);
+      if (currentTask) {
+        const notifyTargetId =
+          currentTask.primary_assignee_id && currentTask.primary_assignee_id !== session.userId
+            ? currentTask.primary_assignee_id
+            : currentTask.created_by_user_id && currentTask.created_by_user_id !== session.userId
+              ? currentTask.created_by_user_id
+              : null;
+
+        if (notifyTargetId) {
+          await createNotification({
+            user_id: notifyTargetId,
+            type: 'comment_added',
+            title: `Нов коментар към задача (${currentTask.code || 'TSK'})`,
+            message: `${session.fullName}: "${clean.slice(0, 80)}"`,
+            task_id: ticketId,
+          });
+        }
+      }
+
       pushToast('success', 'Съобщението е изпратено.');
     },
-    [messages, schoolId, session.fullName, session.userId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+    [
+      messages,
+      tickets,
+      schoolId,
+      session.fullName,
+      session.userId,
+      usingSupabase,
+      saveLocalMirror,
+      logTaskActivity,
+      addAuditLog,
+      createNotification,
+      pushToast,
+    ]
   );
 
   // Channels & Channel Messages
@@ -1090,16 +2692,10 @@ export function useTicketsStore(
       saveLocalMirror({ channels: next });
 
       if (usingSupabase) {
-        await supabase.from('ticket_channels').insert({
-          id: item.id,
-          school_id: schoolId,
-          name: item.name,
-          channel_type: item.channel_type,
-          is_active: true,
-        });
+        await supabase.from('ticket_channels').insert(item);
       }
 
-      await addAuditLog(`Създаден канал „${clean}“`, null, { channelName: clean });
+      await addAuditLog(`Създаден комуникационен канал: ${clean}`, null, { name: clean });
       pushToast('success', `Каналът „${clean}“ е създаден.`);
     },
     [channels, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
@@ -1118,39 +2714,49 @@ export function useTicketsStore(
           .eq('id', channelId)
           .eq('school_id', schoolId);
       }
+      pushToast('info', isActive ? 'Каналът е активиран.' : 'Каналът е архивиран.');
     },
-    [channels, schoolId, usingSupabase, saveLocalMirror]
+    [channels, schoolId, usingSupabase, saveLocalMirror, pushToast]
   );
 
   const deleteChannel = useCallback(
     async (channelId: string) => {
+      const target = channels.find((c) => c.id === channelId);
       const nextChannels = channels.filter((c) => c.id !== channelId);
-      const nextMsgs = channelMessages.filter((m) => m.channel_id !== channelId);
+      const nextMessages = channelMessages.filter((m) => m.channel_id !== channelId);
+
       setChannels(nextChannels);
-      setChannelMessages(nextMsgs);
-      saveLocalMirror({ channels: nextChannels, channelMessages: nextMsgs });
+      setChannelMessages(nextMessages);
+      saveLocalMirror({ channels: nextChannels, channelMessages: nextMessages });
 
       if (usingSupabase && isValidUuid(channelId)) {
-        await supabase.from('ticket_channels').delete().eq('id', channelId).eq('school_id', schoolId);
+        await supabase
+          .from('ticket_channels')
+          .delete()
+          .eq('id', channelId)
+          .eq('school_id', schoolId);
       }
 
-      await addAuditLog('Изтрит комуникационен канал', null, { channelId });
+      if (target) {
+        await addAuditLog(`Изтрит канал: ${target.name}`);
+      }
       pushToast('info', 'Каналът е изтрит.');
     },
     [channels, channelMessages, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
   );
 
   const sendChannelMessage = useCallback(
-    (channelId: string, content: string) => {
-      const clean = content.trim();
+    async (channelId: string, messageText: string) => {
+      const clean = messageText.trim();
       if (!clean) return;
 
+      const validSenderId = isValidUuid(session.userId) ? session.userId : null;
       const item: ChannelMessage = {
         id: makeUuid(),
         school_id: schoolId,
         channel_id: channelId,
         sender_name: session.fullName,
-        sender_role: session.role,
+        sender_role: session.role ? ROLE_LABELS[session.role] || session.role : 'Служител',
         content: clean,
         created_at: new Date().toISOString(),
       };
@@ -1158,11 +2764,12 @@ export function useTicketsStore(
       const next = [...channelMessages, item];
       setChannelMessages(next);
       saveLocalMirror({ channelMessages: next });
+      pushToast('success', 'Съобщението е изпратено в канала.');
     },
-    [channelMessages, schoolId, session.fullName, session.role, saveLocalMirror]
+    [channelMessages, schoolId, session, saveLocalMirror, pushToast]
   );
 
-  // Announcements CRUD
+  // Announcements
   const createAnnouncement = useCallback(
     async (title: string, content: string, isPinned: boolean = false) => {
       const cleanTitle = title.trim();
@@ -1178,111 +2785,110 @@ export function useTicketsStore(
         created_at: new Date().toISOString(),
       };
 
-      const next = [item, ...announcements].sort((a, b) =>
-        a.is_pinned === b.is_pinned ? 0 : a.is_pinned ? -1 : 1
+      const next = [item, ...announcements];
+      setAnnouncements(next);
+      saveLocalMirror({ announcements: next });
+
+      if (usingSupabase) {
+        await supabase.from('ticket_announcements').insert(item);
+      }
+
+      await addAuditLog(`Публикувано официално съобщение: ${cleanTitle}`, null, {
+        title: cleanTitle,
+        isPinned,
+      });
+      pushToast('success', 'Съобщението е публикувано.');
+    },
+    [announcements, schoolId, session, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+  );
+
+  const togglePinAnnouncement = useCallback(
+    async (announcementId: string, isPinned: boolean) => {
+      const next = announcements.map((a) =>
+        a.id === announcementId ? { ...a, is_pinned: isPinned } : a
       );
       setAnnouncements(next);
       saveLocalMirror({ announcements: next });
 
-      if (usingSupabase) {
-        await supabase.from('ticket_announcements').insert({
-          id: item.id,
-          school_id: schoolId,
-          title: item.title,
-          content: item.content,
-          is_pinned: item.is_pinned,
-        });
-      }
-
-      await addAuditLog(`Публикувано съобщение „${cleanTitle}“`, null, { title: cleanTitle });
-      pushToast('success', 'Съобщението е публикувано.');
-    },
-    [announcements, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
-  );
-
-  const togglePinAnnouncement = useCallback(
-    async (id: string, isPinned: boolean) => {
-      const next = announcements
-        .map((a) => (a.id === id ? { ...a, is_pinned: isPinned } : a))
-        .sort((a, b) => (a.is_pinned === b.is_pinned ? 0 : a.is_pinned ? -1 : 1));
-      setAnnouncements(next);
-      saveLocalMirror({ announcements: next });
-
-      if (usingSupabase && isValidUuid(id)) {
+      if (usingSupabase && isValidUuid(announcementId)) {
         await supabase
           .from('ticket_announcements')
           .update({ is_pinned: isPinned })
-          .eq('id', id)
+          .eq('id', announcementId)
           .eq('school_id', schoolId);
       }
+      pushToast('info', isPinned ? 'Съобщението е закачено.' : 'Съобщението е откачено.');
     },
-    [announcements, schoolId, usingSupabase, saveLocalMirror]
+    [announcements, schoolId, usingSupabase, saveLocalMirror, pushToast]
   );
 
   const deleteAnnouncement = useCallback(
-    async (id: string) => {
-      const next = announcements.filter((a) => a.id !== id);
+    async (announcementId: string) => {
+      const next = announcements.filter((a) => a.id !== announcementId);
       setAnnouncements(next);
       saveLocalMirror({ announcements: next });
 
-      if (usingSupabase && isValidUuid(id)) {
-        await supabase.from('ticket_announcements').delete().eq('id', id).eq('school_id', schoolId);
+      if (usingSupabase && isValidUuid(announcementId)) {
+        await supabase
+          .from('ticket_announcements')
+          .delete()
+          .eq('id', announcementId)
+          .eq('school_id', schoolId);
       }
-
-      await addAuditLog('Изтрито съобщение', null, { id });
-      pushToast('info', 'Съобщението е изтрито.');
+      pushToast('info', 'Съобщението е премахнато.');
     },
-    [announcements, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
+    [announcements, schoolId, usingSupabase, saveLocalMirror, pushToast]
   );
 
   // Departments CRUD
   const createDepartment = useCallback(
-    async (name: string, description?: string, color?: string, manager_name?: string) => {
-      const cleanName = name.trim();
-      if (!cleanName) return;
+    async (name: string, description?: string, color?: string, managerName?: string) => {
+      const clean = name.trim();
+      if (!clean) return;
 
-      const dept: TicketDepartment = {
+      const item: TicketDepartment = {
         id: makeUuid(),
         school_id: schoolId,
-        name: cleanName,
+        name: clean,
         description: description?.trim() || null,
-        color: color?.trim() || 'blue',
-        manager_name: manager_name?.trim() || null,
+        color: color || 'blue',
+        manager_name: managerName?.trim() || null,
         created_at: new Date().toISOString(),
       };
 
-      const next = [...departments, dept];
+      const next = [...departments, item];
       setDepartments(next);
       saveLocalMirror({ departments: next });
 
       if (usingSupabase) {
-        await supabase.from('ticket_departments').insert({
-          id: dept.id,
-          school_id: schoolId,
-          name: dept.name,
-          description: dept.description,
-        });
+        await supabase.from('ticket_departments').insert(item);
       }
 
-      await addAuditLog(`Създаден отдел „${cleanName}“`, null, { deptName: cleanName });
-      pushToast('success', `Отделът „${cleanName}“ е създаден.`);
+      await addAuditLog(`Създадено направление: ${clean}`, null, { name: clean });
+      pushToast('success', `Направлението „${clean}“ е създадено.`);
     },
     [departments, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
   );
 
   const updateDepartment = useCallback(
-    async (id: string, name: string, description?: string, color?: string, manager_name?: string) => {
-      const cleanName = name.trim();
-      if (!cleanName) return;
+    async (
+      id: string,
+      name: string,
+      description?: string,
+      color?: string,
+      managerName?: string
+    ) => {
+      const clean = name.trim();
+      if (!clean) return;
 
       const next = departments.map((d) =>
         d.id === id
           ? {
               ...d,
-              name: cleanName,
+              name: clean,
               description: description?.trim() || null,
-              color: color !== undefined ? color : d.color,
-              manager_name: manager_name !== undefined ? manager_name?.trim() || null : d.manager_name,
+              color: color || d.color,
+              manager_name: managerName?.trim() || null,
             }
           : d
       );
@@ -1292,55 +2898,69 @@ export function useTicketsStore(
       if (usingSupabase && isValidUuid(id)) {
         await supabase
           .from('ticket_departments')
-          .update({ name: cleanName, description: description?.trim() || null })
+          .update({
+            name: clean,
+            description: description?.trim() || null,
+            color: color || 'blue',
+            manager_name: managerName?.trim() || null,
+          })
           .eq('id', id)
           .eq('school_id', schoolId);
       }
 
-      await addAuditLog(`Редактиран отдел „${cleanName}“`, null, { id, cleanName });
-      pushToast('success', 'Отделът е обновен.');
+      await addAuditLog(`Обновено направление: ${clean}`, null, { name: clean });
+      pushToast('success', `Направлението „${clean}“ е обновено.`);
     },
     [departments, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
   );
 
   const deleteDepartment = useCallback(
     async (id: string): Promise<boolean> => {
-      const linkedTicketsCount = tickets.filter((t) => t.department_id === id).length;
-      if (linkedTicketsCount > 0) {
-        pushToast(
-          'error',
-          `Този отдел не може да се изтрие, защото съдържа ${linkedTicketsCount} свързани заявки.`
-        );
+      const hasTickets = tickets.some((t) => t.department_id === id);
+      if (hasTickets) {
+        pushToast('error', 'Направлението не може да бъде изтрито, защото съдържа активни задачи.');
         return false;
       }
 
+      const dept = departments.find((d) => d.id === id);
       const next = departments.filter((d) => d.id !== id);
       setDepartments(next);
       saveLocalMirror({ departments: next });
 
       if (usingSupabase && isValidUuid(id)) {
-        await supabase.from('ticket_departments').delete().eq('id', id).eq('school_id', schoolId);
+        await supabase
+          .from('ticket_departments')
+          .delete()
+          .eq('id', id)
+          .eq('school_id', schoolId);
       }
 
-      await addAuditLog('Изтрит отдел', null, { id });
-      pushToast('info', 'Отделът е изтрит.');
+      if (dept) {
+        await addAuditLog(`Изтрито направление: ${dept.name}`);
+      }
+      pushToast('info', 'Направлението е изтрито.');
       return true;
     },
     [tickets, departments, schoolId, usingSupabase, saveLocalMirror, addAuditLog, pushToast]
   );
 
-  // Audit Logs Management
+  // Administrative Journal CRUD
   const deleteAuditLog = useCallback(
-    async (id: string) => {
-      const next = auditLogs.filter((l) => l.id !== id);
+    async (logId: string) => {
+      const next = auditLogs.filter((l) => l.id !== logId);
       setAuditLogs(next);
       saveLocalMirror({ auditLogs: next });
 
-      if (usingSupabase && isValidUuid(id)) {
-        await supabase.from('ticket_audit_logs').delete().eq('id', id).eq('school_id', schoolId);
+      if (usingSupabase && isValidUuid(logId)) {
+        await supabase
+          .from('ticket_audit_logs')
+          .delete()
+          .eq('id', logId)
+          .eq('school_id', schoolId);
       }
+      pushToast('info', 'Записът от журнала е изтрит.');
     },
-    [auditLogs, schoolId, usingSupabase, saveLocalMirror]
+    [auditLogs, schoolId, usingSupabase, saveLocalMirror, pushToast]
   );
 
   const clearAuditLogs = useCallback(async () => {
@@ -1350,25 +2970,26 @@ export function useTicketsStore(
     if (usingSupabase) {
       await supabase.from('ticket_audit_logs').delete().eq('school_id', schoolId);
     }
-    pushToast('info', 'Журналът с действия беше изчистен.');
+    pushToast('info', 'Журналът на събитията е изчистен.');
   }, [schoolId, usingSupabase, saveLocalMirror, pushToast]);
 
-  // CSV Export for Excel/Numbers
+  // Export Tasks to CSV
   const exportTicketsCsv = useCallback(() => {
     const headers = [
-      'ID',
+      'Код',
       'Заглавие',
-      'Отдел',
-      'Помещение/Кабинет',
+      'Направление',
+      'Локация / Кабинет',
       'Приоритет',
       'Статус',
       'Създател',
       'Отговорник',
+      'Краен срок',
       'Дата на създаване',
     ];
 
     const rows = enrichedTickets.map((t) => [
-      t.id,
+      t.code || t.id,
       `"${t.title.replace(/"/g, '""')}"`,
       `"${(t.department_name || '').replace(/"/g, '""')}"`,
       `"${(t.room_or_location || '').replace(/"/g, '""')}"`,
@@ -1376,21 +2997,21 @@ export function useTicketsStore(
       t.status,
       `"${(t.creator_name || '').replace(/"/g, '""')}"`,
       `"${(t.assignee_name || '').replace(/"/g, '""')}"`,
+      t.due_date ? new Date(t.due_date).toLocaleDateString('bg-BG') : 'Няма',
       new Date(t.created_at).toLocaleString('bg-BG'),
     ]);
 
-    // Prepend UTF-8 BOM so Excel opens Bulgarian Cyrillic characters properly
     const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((r) => r.join(','))].join('\r\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `tickets-report-${school.slug}-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.download = `tasks-report-${school.slug}-${new Date().toISOString().slice(0, 10)}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    pushToast('success', 'Справката е експортирана в CSV.');
+    pushToast('success', 'Справката за задачите е експортирана в CSV.');
   }, [enrichedTickets, school.slug, pushToast]);
 
   return {
@@ -1401,39 +3022,85 @@ export function useTicketsStore(
     dismissToast,
 
     departments,
+    departmentMemberships: enrichedMemberships,
+    currentUserDepartmentIds,
     tickets: enrichedTickets,
     messages,
+    orders,
     channels,
     channelMessages,
     announcements,
     auditLogs,
     attachments: allDocuments,
     allDocuments,
+    taskActivityLogs,
+    documentRegister,
+    notifications,
+    unreadNotificationsCount,
 
+    // Access control helpers
+    isDirectorOrAdmin,
+    canUserAccessTask,
+    canUserManageTask,
+    canUserApproveTask,
+    canUserAccessDocument,
+
+    // Task workflow
     createTicket,
+    startWork,
+    submitForApproval,
+    approveTask,
+    returnForCorrection,
     updateTicketStatus,
     updateTicketPriority,
     updateTicketAssignee,
+    updateTaskDeadline,
+    reassignTask,
     editTicket,
     deleteTicket,
+    toggleRecurrence,
+    processRecurringTasks,
+    logTaskActivity,
     addAttachmentToTask,
     deleteAttachment,
 
+    // Messages
     sendMessage,
 
+    // Document Register
+    registerDocument,
+    updateRegisterDocument,
+    deleteRegisterDocument,
+    toggleArchiveRegisterDocument,
+    linkRegisterDocumentToTask,
+    exportDocumentRegisterCsv,
+
+    // Department Memberships
+    addDepartmentMember,
+    removeDepartmentMember,
+    toggleDepartmentMemberLead,
+
+    // In-App Notifications
+    createNotification,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    deleteNotification,
+
+    // Channels & Announcements
     createChannel,
     toggleChannelActive,
     deleteChannel,
     sendChannelMessage,
-
     createAnnouncement,
     togglePinAnnouncement,
     deleteAnnouncement,
 
+    // Departments CRUD
     createDepartment,
     updateDepartment,
     deleteDepartment,
 
+    // Audit logs & Export
     deleteAuditLog,
     clearAuditLogs,
     exportTicketsCsv,

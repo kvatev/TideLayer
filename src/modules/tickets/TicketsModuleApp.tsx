@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import {
   BarChart3,
   Building2,
+  ChevronDown,
   ClipboardList,
   FileText,
   Hash,
@@ -10,6 +11,7 @@ import {
   LayoutDashboard,
   Megaphone,
   Plus,
+  Settings,
 } from 'lucide-react';
 import { useSchoolPortal } from '../../components/layout/schoolPortalContext';
 import { useTicketsStore } from './useTicketsStore';
@@ -17,7 +19,9 @@ import { TicketsDashboardView } from './components/TicketsDashboardView';
 import { TicketsListView } from './components/TicketsListView';
 import { TicketCreateView } from './components/TicketCreateView';
 import { TicketDetailView } from './components/TicketDetailView';
+import { DocumentRegisterView } from './components/DocumentRegisterView';
 import { DocumentsHistoryView } from './components/DocumentsHistoryView';
+import { InAppNotificationsPopover } from './components/InAppNotificationsPopover';
 import { ChannelsView } from './components/ChannelsView';
 import { AnnouncementsView } from './components/AnnouncementsView';
 import { DepartmentsAdminView } from './components/DepartmentsAdminView';
@@ -31,12 +35,12 @@ export type TicketsSubView =
   | 'list'
   | 'create'
   | 'detail'
-  | 'documents_history'
-  | 'channels'
-  | 'announcements'
-  | 'departments'
+  | 'documents'
   | 'reports'
-  | 'audit';
+  | 'departments'
+  | 'audit'
+  | 'channels'
+  | 'announcements';
 
 export function TicketsModuleApp() {
   const { bundle, session } = useSchoolPortal();
@@ -55,6 +59,8 @@ export function TicketsModuleApp() {
 
   const [currentView, setCurrentView] = useState<TicketsSubView>('dashboard');
   const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
+  const [documentsSubTab, setDocumentsSubTab] = useState<'register' | 'history'>('register');
+  const [adminMenuOpen, setAdminMenuOpen] = useState(false);
 
   const handleNavigate = (view: string, params?: { ticketId?: string }) => {
     if (params?.ticketId) {
@@ -99,8 +105,8 @@ export function TicketsModuleApp() {
           {currentView === 'detail' && selectedTicket && (
             <>
               <span>/</span>
-              <span className="text-slate-400 truncate max-w-[180px] sm:max-w-xs">
-                {selectedTicket.title}
+              <span className="text-slate-400 truncate max-w-[180px] sm:max-w-xs font-mono font-bold">
+                {selectedTicket.code || selectedTicket.title}
               </span>
             </>
           )}
@@ -124,7 +130,7 @@ export function TicketsModuleApp() {
         </div>
       </div>
 
-      {/* Module Title & Sub-navigation bar */}
+      {/* Module Title & Navigation Header */}
       <div className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs space-y-4">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
           <div className="flex items-center gap-3">
@@ -142,7 +148,22 @@ export function TicketsModuleApp() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* In-App Notifications Bell */}
+            <InAppNotificationsPopover
+              notifications={store.notifications}
+              unreadCount={store.unreadNotificationsCount}
+              onMarkAsRead={store.markNotificationAsRead}
+              onMarkAllAsRead={store.markAllNotificationsAsRead}
+              onDeleteNotification={store.deleteNotification}
+              onNavigateToTask={(taskId) => handleNavigate('detail', { ticketId: taskId })}
+              onNavigateToDocument={() => {
+                setDocumentsSubTab('register');
+                setCurrentView('documents');
+              }}
+            />
+
+            {/* Quick Action: Create Task */}
             <button
               type="button"
               onClick={() => setCurrentView('create')}
@@ -151,10 +172,95 @@ export function TicketsModuleApp() {
               <Plus className="w-4 h-4" />
               <span>+ Възложи задача</span>
             </button>
+
+            {/* Administrator Settings Dropdown */}
+            {store.isDirectorOrAdmin && (
+              <div className="relative">
+                <button
+                  type="button"
+                  onClick={() => setAdminMenuOpen(!adminMenuOpen)}
+                  className={cn(
+                    'inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border text-xs sm:text-sm font-semibold transition-colors cursor-pointer',
+                    currentView === 'departments' || currentView === 'audit' || currentView === 'channels' || currentView === 'announcements'
+                      ? 'bg-slate-900 text-white border-slate-900'
+                      : 'border-slate-200 text-slate-700 hover:bg-slate-50'
+                  )}
+                >
+                  <Settings className="w-4 h-4" />
+                  <span className="hidden sm:inline">Администрация</span>
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+
+                {adminMenuOpen && (
+                  <div
+                    className="absolute right-0 mt-2 w-56 rounded-2xl bg-white border border-slate-200 shadow-xl z-50 p-1.5 space-y-1"
+                    onClick={() => setAdminMenuOpen(false)}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => setCurrentView('departments')}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer',
+                        currentView === 'departments'
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      )}
+                    >
+                      <Building2 className="w-4 h-4 text-blue-600" />
+                      <span>Направления и Отдели</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={() => setCurrentView('audit')}
+                      className={cn(
+                        'w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer',
+                        currentView === 'audit'
+                          ? 'bg-blue-50 text-blue-700'
+                          : 'text-slate-700 hover:bg-slate-50'
+                      )}
+                    >
+                      <History className="w-4 h-4 text-emerald-600" />
+                      <span>Журнал на събитията</span>
+                    </button>
+
+                    <div className="border-t border-slate-100 my-1 pt-1">
+                      <button
+                        type="button"
+                        onClick={() => setCurrentView('channels')}
+                        className={cn(
+                          'w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer',
+                          currentView === 'channels'
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-slate-700 hover:bg-slate-50'
+                        )}
+                      >
+                        <Hash className="w-4 h-4 text-slate-500" />
+                        <span>Комуникационни канали</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setCurrentView('announcements')}
+                        className={cn(
+                          'w-full flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold text-left transition-colors cursor-pointer',
+                          currentView === 'announcements'
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'text-slate-700 hover:bg-slate-50'
+                        )}
+                      >
+                        <Megaphone className="w-4 h-4 text-amber-500" />
+                        <span>Официални съобщения</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Tab Switcher */}
+        {/* 4 Primary Navigation Tabs */}
         <nav
           aria-label="Навигация в модул Задачи и Документи"
           className="flex items-center gap-1 overflow-x-auto pb-1 pt-1 border-t border-slate-100 scrollbar-none"
@@ -162,16 +268,8 @@ export function TicketsModuleApp() {
           {[
             { id: 'dashboard', label: 'Табло', icon: LayoutDashboard },
             { id: 'list', label: 'Задачи', icon: ClipboardList },
-            { id: 'documents_history', label: 'История на документите (1 г.)', icon: FileText },
-            { id: 'channels', label: 'Канали', icon: Hash },
-            { id: 'announcements', label: 'Съобщения', icon: Megaphone },
-            ...(isStaffOrAdmin
-              ? [
-                  { id: 'departments', label: 'Направления', icon: Building2 },
-                  { id: 'reports', label: 'Справки', icon: BarChart3 },
-                  { id: 'audit', label: 'Журнал', icon: History },
-                ]
-              : []),
+            { id: 'documents', label: 'Документи', icon: FileText },
+            { id: 'reports', label: 'Справки', icon: BarChart3 },
           ].map((tab) => {
             const IconEl = tab.icon;
             const isCurrent =
@@ -189,7 +287,7 @@ export function TicketsModuleApp() {
                   }
                 }}
                 className={cn(
-                  'px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer',
+                  'px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-semibold whitespace-nowrap transition-all flex items-center gap-1.5 cursor-pointer',
                   isCurrent
                     ? 'bg-navy-900 text-white shadow-2xs'
                     : 'text-slate-600 hover:text-navy-900 hover:bg-slate-100'
@@ -205,17 +303,24 @@ export function TicketsModuleApp() {
 
       {/* Main View Render */}
       <div>
+        {/* 1. Dashboard View */}
         {currentView === 'dashboard' && (
           <TicketsDashboardView
             tickets={store.tickets}
             departments={store.departments}
             announcements={store.announcements}
             allDocuments={store.allDocuments}
+            taskActivityLogs={store.taskActivityLogs}
+            notifications={store.notifications}
+            currentUserId={session.userId}
+            userRole={session.role}
+            isDirectorOrAdmin={store.isDirectorOrAdmin}
             onNavigate={handleNavigate}
             canCreateTicket={true}
           />
         )}
 
+        {/* 2. Tasks List View */}
         {currentView === 'list' && (
           <TicketsListView
             tickets={store.tickets}
@@ -226,15 +331,81 @@ export function TicketsModuleApp() {
           />
         )}
 
-        {currentView === 'documents_history' && (
-          <DocumentsHistoryView
-            documents={store.allDocuments}
+        {/* 3. Documents View (with sub-view toggle: Register vs Attachments History) */}
+        {currentView === 'documents' && (
+          <div className="space-y-4">
+            {/* Sub-view switcher */}
+            <div className="flex items-center gap-1 bg-white p-1 rounded-2xl border border-slate-200 shadow-2xs w-fit">
+              <button
+                type="button"
+                onClick={() => setDocumentsSubTab('register')}
+                className={cn(
+                  'px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-1.5',
+                  documentsSubTab === 'register'
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-navy-900'
+                )}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                <span>Деловоден регистър (ВХ / ИЗХ / ВЪТР)</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDocumentsSubTab('history')}
+                className={cn(
+                  'px-3.5 py-1.5 rounded-xl text-xs sm:text-sm font-bold transition-all cursor-pointer flex items-center gap-1.5',
+                  documentsSubTab === 'history'
+                    ? 'bg-blue-600 text-white shadow-2xs'
+                    : 'text-slate-600 hover:text-navy-900'
+                )}
+              >
+                <ClipboardList className="w-3.5 h-3.5" />
+                <span>Прикачени към задачи (1 г. архив)</span>
+              </button>
+            </div>
+
+            {documentsSubTab === 'register' ? (
+              <DocumentRegisterView
+                documents={store.documentRegister}
+                departments={store.departments}
+                schoolUsers={bundle.users}
+                tickets={store.tickets}
+                currentUserId={session.userId}
+                isStaffOrAdmin={isStaffOrAdmin}
+                onRegisterDocument={store.registerDocument}
+                onUpdateDocument={store.updateRegisterDocument}
+                onDeleteDocument={store.deleteRegisterDocument}
+                onToggleArchive={store.toggleArchiveRegisterDocument}
+                onLinkToTask={store.linkRegisterDocumentToTask}
+                onExportCsv={store.exportDocumentRegisterCsv}
+                onNavigateToTask={(taskId) => handleNavigate('detail', { ticketId: taskId })}
+              />
+            ) : (
+              <DocumentsHistoryView
+                documents={store.allDocuments}
+                tickets={store.tickets}
+                currentUserId={session.userId}
+                onNavigateToTask={(ticketId) => handleNavigate('detail', { ticketId })}
+              />
+            )}
+          </div>
+        )}
+
+        {/* 4. Reports View */}
+        {currentView === 'reports' && (
+          <ReportsView
             tickets={store.tickets}
-            currentUserId={session.userId}
-            onNavigateToTask={(ticketId) => handleNavigate('detail', { ticketId })}
+            departments={store.departments}
+            allDocuments={store.allDocuments}
+            documentRegister={store.documentRegister}
+            schoolUsers={bundle.users}
+            onExportCsv={store.exportTicketsCsv}
+            onExportDocumentRegisterCsv={store.exportDocumentRegisterCsv}
           />
         )}
 
+        {/* 5. Create Task View */}
         {currentView === 'create' && (
           <TicketCreateView
             session={session}
@@ -246,6 +417,7 @@ export function TicketsModuleApp() {
           />
         )}
 
+        {/* 6. Task Detail View */}
         {currentView === 'detail' && selectedTicket && (
           <TicketDetailView
             ticket={selectedTicket}
@@ -253,12 +425,21 @@ export function TicketsModuleApp() {
             schoolUsers={bundle.users}
             messages={store.messages}
             auditLogs={store.auditLogs}
+            taskActivityLogs={store.taskActivityLogs}
             isStaffOrAdmin={isStaffOrAdmin}
+            canApprove={store.canUserApproveTask(selectedTicket)}
+            canManage={store.canUserManageTask(selectedTicket)}
+            currentUserId={session.userId}
             onBack={() => setCurrentView('list')}
             onStatusChange={store.updateTicketStatus}
             onPriorityChange={store.updateTicketPriority}
             onAssigneeChange={store.updateTicketAssignee}
             onSendMessage={store.sendMessage}
+            onStartWork={store.startWork}
+            onSubmitForApproval={store.submitForApproval}
+            onApproveTask={store.approveTask}
+            onReturnForCorrection={store.returnForCorrection}
+            onUpdateDeadline={store.updateTaskDeadline}
             onAddAttachment={store.addAttachmentToTask}
             onDeleteAttachment={store.deleteAttachment}
             onEditTicket={store.editTicket}
@@ -266,6 +447,32 @@ export function TicketsModuleApp() {
           />
         )}
 
+        {/* 7. Departments & Members Admin View */}
+        {currentView === 'departments' && store.isDirectorOrAdmin && (
+          <DepartmentsAdminView
+            departments={store.departments}
+            tickets={store.tickets}
+            schoolUsers={bundle.users}
+            departmentMemberships={store.departmentMemberships}
+            onCreateDepartment={store.createDepartment}
+            onUpdateDepartment={store.updateDepartment}
+            onDeleteDepartment={store.deleteDepartment}
+            onAddMember={store.addDepartmentMember}
+            onRemoveMember={store.removeDepartmentMember}
+            onToggleLead={store.toggleDepartmentMemberLead}
+          />
+        )}
+
+        {/* 8. Administrative Protected Journal View */}
+        {currentView === 'audit' && store.isDirectorOrAdmin && (
+          <AuditLogsView
+            logs={store.auditLogs}
+            onDeleteLog={store.deleteAuditLog}
+            onClearAll={store.clearAuditLogs}
+          />
+        )}
+
+        {/* 9. Channels View */}
         {currentView === 'channels' && (
           <ChannelsView
             channels={store.channels}
@@ -278,6 +485,7 @@ export function TicketsModuleApp() {
           />
         )}
 
+        {/* 10. Announcements View */}
         {currentView === 'announcements' && (
           <AnnouncementsView
             announcements={store.announcements}
@@ -285,33 +493,6 @@ export function TicketsModuleApp() {
             onCreateAnnouncement={store.createAnnouncement}
             onTogglePin={store.togglePinAnnouncement}
             onDeleteAnnouncement={store.deleteAnnouncement}
-          />
-        )}
-
-        {currentView === 'departments' && isStaffOrAdmin && (
-          <DepartmentsAdminView
-            departments={store.departments}
-            tickets={store.tickets}
-            onCreateDepartment={store.createDepartment}
-            onUpdateDepartment={store.updateDepartment}
-            onDeleteDepartment={store.deleteDepartment}
-          />
-        )}
-
-        {currentView === 'reports' && isStaffOrAdmin && (
-          <ReportsView
-            tickets={store.tickets}
-            departments={store.departments}
-            allDocuments={store.allDocuments}
-            onExportCsv={store.exportTicketsCsv}
-          />
-        )}
-
-        {currentView === 'audit' && isStaffOrAdmin && (
-          <AuditLogsView
-            logs={store.auditLogs}
-            onDeleteLog={store.deleteAuditLog}
-            onClearAll={store.clearAuditLogs}
           />
         )}
       </div>

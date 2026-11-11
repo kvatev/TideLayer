@@ -1,30 +1,41 @@
+import { useState, useMemo } from 'react';
 import {
+  AlertCircle,
+  AlertTriangle,
   ArrowRight,
+  Building2,
   Calendar,
   CheckCircle2,
   Clock,
-  FileText,
   Inbox,
-  Megaphone,
-  Paperclip,
-  Pin,
   Plus,
-  Users,
+  TrendingUp,
+  User,
 } from 'lucide-react';
 import {
-  PRIORITY_LABELS,
+  isTaskOverdue,
+  normalizeTaskStatus,
   STATUS_LABELS,
+  type InAppNotification,
   type SchoolTicket,
+  type TaskActivityLog,
   type TaskDocumentAttachment,
   type TicketAnnouncement,
   type TicketDepartment,
 } from '../types';
+import type { SchoolUserRole } from '../../../lib/supabase';
+import { cn } from '../../../utils/helpers';
 
 interface TicketsDashboardViewProps {
   tickets: SchoolTicket[];
   departments: TicketDepartment[];
   announcements: TicketAnnouncement[];
   allDocuments?: TaskDocumentAttachment[];
+  taskActivityLogs?: TaskActivityLog[];
+  notifications?: InAppNotification[];
+  currentUserId?: string;
+  userRole?: SchoolUserRole;
+  isDirectorOrAdmin?: boolean;
   onNavigate: (view: string, params?: { ticketId?: string }) => void;
   canCreateTicket: boolean;
 }
@@ -32,307 +43,534 @@ interface TicketsDashboardViewProps {
 export function TicketsDashboardView({
   tickets,
   departments,
-  announcements,
-  allDocuments = [],
+  announcements: _announcements,
+  allDocuments: _allDocuments = [],
+  taskActivityLogs = [],
+  notifications: _notifications = [],
+  currentUserId,
+  userRole,
+  isDirectorOrAdmin = false,
   onNavigate,
   canCreateTicket,
 }: TicketsDashboardViewProps) {
-  const total = tickets.length;
-  const inProgressCount = tickets.filter((t) => t.status === 'in_progress').length;
-  const reviewCount = tickets.filter((t) => t.status === 'resolved').length;
-  const docsCount = allDocuments.length;
+  // Determine if default view should be Management or Employee
+  const isManagement =
+    isDirectorOrAdmin ||
+    userRole === 'director' ||
+    userRole === 'school_admin' ||
+    userRole === 'department_manager' ||
+    userRole === 'deputy_director';
 
-  const pinnedAnnouncements = announcements.filter((a) => a.is_pinned);
-  const recentTickets = tickets.slice(0, 6);
+  const [dashboardMode, setDashboardMode] = useState<'management' | 'employee'>(
+    isManagement ? 'management' : 'employee'
+  );
 
-  const statCards = [
-    {
-      label: 'Всички задачи',
-      value: total,
-      icon: Inbox,
-      bg: 'bg-blue-50 text-blue-600 border-blue-200',
-    },
-    {
-      label: 'В процес на работа',
-      value: inProgressCount,
-      icon: Clock,
-      bg: 'bg-purple-50 text-purple-700 border-purple-200',
-    },
-    {
-      label: 'За преглед / Одобрение',
-      value: reviewCount,
-      icon: CheckCircle2,
-      bg: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    },
-    {
-      label: 'Документи в архива (1 г.)',
-      value: docsCount,
-      icon: FileText,
-      bg: 'bg-amber-50 text-amber-700 border-amber-200',
-    },
-  ];
+  // My tasks
+  const myTasks = useMemo(() => {
+    if (!currentUserId) return [];
+    return tickets.filter(
+      (t) =>
+        t.primary_assignee_id === currentUserId ||
+        t.assigned_to_user_id === currentUserId ||
+        t.assigned_user_ids?.includes(currentUserId)
+    );
+  }, [tickets, currentUserId]);
+
+  // Management KPIs
+  const totalActive = tickets.filter((t) => normalizeTaskStatus(t.status) !== 'completed').length;
+  const inProgressCount = tickets.filter(
+    (t) => normalizeTaskStatus(t.status) === 'in_progress'
+  ).length;
+  const awaitingApprovalCount = tickets.filter(
+    (t) => normalizeTaskStatus(t.status) === 'awaiting_approval'
+  ).length;
+  const _completedCount = tickets.filter(
+    (t) => normalizeTaskStatus(t.status) === 'completed'
+  ).length;
+  const overdueCount = tickets.filter((t) => isTaskOverdue(t)).length;
+
+  // Employee KPIs
+  const myActiveTasks = myTasks.filter((t) => normalizeTaskStatus(t.status) !== 'completed');
+  const myRequiresAction = myTasks.filter(
+    (t) =>
+      (normalizeTaskStatus(t.status) === 'new' && !t.completed_at) ||
+      Boolean(t.return_reason && normalizeTaskStatus(t.status) === 'in_progress')
+  );
+  const myOverdueTasks = myTasks.filter((t) => isTaskOverdue(t));
+
+  // Upcoming deadlines (next 7 days, active tasks)
+  const upcomingDeadlines = useMemo(() => {
+    const list = dashboardMode === 'employee' ? myActiveTasks : tickets.filter((t) => normalizeTaskStatus(t.status) !== 'completed');
+    return list
+      .filter((t) => t.due_date && new Date(t.due_date).getTime() >= Date.now())
+      .sort((a, b) => new Date(a.due_date!).getTime() - new Date(b.due_date!).getTime())
+      .slice(0, 5);
+  }, [dashboardMode, myActiveTasks, tickets]);
+
+  // Overdue list
+  const overdueList = useMemo(() => {
+    const list = dashboardMode === 'employee' ? myTasks : tickets;
+    return list
+      .filter((t) => isTaskOverdue(t))
+      .sort((a, b) => (new Date(a.due_date || 0).getTime() - new Date(b.due_date || 0).getTime()))
+      .slice(0, 5);
+  }, [dashboardMode, myTasks, tickets]);
+
+  // Tasks by department breakdown
+  const deptBreakdown = useMemo(() => {
+    return departments.map((d) => {
+      const deptTasks = tickets.filter((t) => t.department_id === d.id);
+      const done = deptTasks.filter((t) => normalizeTaskStatus(t.status) === 'completed').length;
+      const active = deptTasks.length - done;
+      const rate = deptTasks.length > 0 ? Math.round((done / deptTasks.length) * 100) : 0;
+      return {
+        id: d.id,
+        name: d.name,
+        color: d.color || 'blue',
+        total: deptTasks.length,
+        active,
+        done,
+        rate,
+      };
+    });
+  }, [departments, tickets]);
+
+  // Recent task activity logs (last 6)
+  const recentActivity = useMemo(() => {
+    return taskActivityLogs.slice(0, 6);
+  }, [taskActivityLogs]);
 
   return (
     <div className="space-y-6">
-      {/* Pinned Announcement Banner if any */}
-      {pinnedAnnouncements.length > 0 && (
-        <div className="space-y-2.5">
-          {pinnedAnnouncements.map((ann) => (
-            <div
-              key={ann.id}
-              className="rounded-2xl border border-blue-200 bg-blue-50/70 p-4 sm:p-5 flex items-start gap-3 shadow-2xs"
+      {/* View Switcher Header (Management vs Employee) */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
+        <div>
+          <h2 className="text-base sm:text-lg font-bold font-heading text-navy-900 mb-0.5">
+            {dashboardMode === 'management'
+              ? 'Ръководно табло на училището'
+              : 'Моето индивидуално работно табло'}
+          </h2>
+          <p className="text-xs text-slate-500 mb-0">
+            {dashboardMode === 'management'
+              ? 'Цялостен преглед на активните задачи, сроковете и натовареността по направления.'
+              : 'Преглед на вашите възложени задачи, изискващи действие и наближаващи срокове.'}
+          </p>
+        </div>
+
+        {/* Mode Toggle Button */}
+        <div className="flex items-center gap-2 self-start sm:self-auto">
+          <div className="inline-flex rounded-xl bg-slate-100 p-1 border border-slate-200 text-xs font-semibold">
+            <button
+              type="button"
+              onClick={() => setDashboardMode('management')}
+              className={cn(
+                'px-3 py-1.5 rounded-lg transition-all cursor-pointer',
+                dashboardMode === 'management'
+                  ? 'bg-white text-navy-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-navy-900'
+              )}
             >
-              <div className="w-9 h-9 rounded-xl bg-blue-600 text-white flex items-center justify-center shrink-0">
-                <Pin className="w-4 h-4" />
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-blue-800">
-                    Забодено съобщение
-                  </span>
-                  <span className="text-[11px] text-slate-500">
-                    • {new Date(ann.created_at).toLocaleDateString('bg-BG')}
-                  </span>
-                </div>
-                <h4 className="text-sm sm:text-base font-heading font-bold text-navy-900 mb-1">
-                  {ann.title}
-                </h4>
-                <p className="text-xs sm:text-sm text-slate-700 leading-relaxed whitespace-pre-wrap mb-0">
-                  {ann.content}
-                </p>
+              Училищен обзор
+            </button>
+            <button
+              type="button"
+              onClick={() => setDashboardMode('employee')}
+              className={cn(
+                'px-3 py-1.5 rounded-lg transition-all cursor-pointer flex items-center gap-1',
+                dashboardMode === 'employee'
+                  ? 'bg-white text-navy-900 shadow-2xs'
+                  : 'text-slate-600 hover:text-navy-900'
+              )}
+            >
+              <span>Моите задачи</span>
+              {myRequiresAction.length > 0 && (
+                <span className="w-2 h-2 rounded-full bg-rose-500" />
+              )}
+            </button>
+          </div>
+
+          {canCreateTicket && (
+            <button
+              type="button"
+              onClick={() => onNavigate('create')}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold shadow-2xs transition-colors cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span className="hidden sm:inline">Възложи задача</span>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {/* KPI Cards Section */}
+      {dashboardMode === 'management' ? (
+        /* Management KPIs */
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+              <span>Активни задачи</span>
+              <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <Inbox className="w-3.5 h-3.5" />
               </div>
             </div>
-          ))}
+            <div className="text-2xl font-bold font-heading text-navy-900">{totalActive}</div>
+            <p className="text-[11px] text-slate-400 mt-1 mb-0">от общо {tickets.length} задачи</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+              <span>В процес</span>
+              <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                <Clock className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-heading text-amber-600">{inProgressCount}</div>
+            <p className="text-[11px] text-slate-400 mt-1 mb-0">активно изпълнение</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+              <span>Чакащи одобрение</span>
+              <div className="w-7 h-7 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
+                <AlertCircle className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-heading text-purple-600">
+              {awaitingApprovalCount}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1 mb-0">изискват преглед</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+              <span>Просрочени</span>
+              <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                <AlertTriangle className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-heading text-rose-600">{overdueCount}</div>
+            <p className="text-[11px] text-rose-500 font-medium mt-1 mb-0">
+              {overdueCount > 0 ? 'Изискват внимание' : 'Няма просрочени'}
+            </p>
+          </div>
+        </div>
+      ) : (
+        /* Employee KPIs */
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+              <span>Моите задачи</span>
+              <div className="w-7 h-7 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
+                <User className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-heading text-navy-900">{myTasks.length}</div>
+            <p className="text-[11px] text-slate-400 mt-1 mb-0">{myActiveTasks.length} активни</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+              <span>Изискващи действие</span>
+              <div className="w-7 h-7 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
+                <AlertCircle className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-heading text-amber-600">
+              {myRequiresAction.length}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1 mb-0">нови или за корекция</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+              <span>Предстоящи срокове</span>
+              <div className="w-7 h-7 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
+                <Calendar className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-heading text-emerald-600">
+              {upcomingDeadlines.length}
+            </div>
+            <p className="text-[11px] text-slate-400 mt-1 mb-0">в следващите 7 дни</p>
+          </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200 p-4 shadow-xs">
+            <div className="flex items-center justify-between text-slate-500 text-xs font-semibold mb-1">
+              <span>Просрочени за мен</span>
+              <div className="w-7 h-7 rounded-lg bg-rose-50 text-rose-600 flex items-center justify-center">
+                <AlertTriangle className="w-3.5 h-3.5" />
+              </div>
+            </div>
+            <div className="text-2xl font-bold font-heading text-rose-600">
+              {myOverdueTasks.length}
+            </div>
+            <p className="text-[11px] text-rose-500 font-medium mt-1 mb-0">
+              {myOverdueTasks.length > 0 ? 'Спешно предаване' : 'Всичко е в срок'}
+            </p>
+          </div>
         </div>
       )}
 
-      {/* Top Stat Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-        {statCards.map((stat) => {
-          const IconEl = stat.icon;
-          return (
-            <div
-              key={stat.label}
-              className="bg-white rounded-2xl border border-slate-200 p-4 sm:p-5 shadow-xs flex items-center gap-3.5"
-            >
-              <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border ${stat.bg}`}>
-                <IconEl className="w-5 h-5 sm:w-6 sm:h-6" />
+      {/* Main Content Split: Tasks List / Upcoming / Department Progress */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Left 2 Cols: Priority Tasks & Deadlines */}
+        <div className="lg:col-span-2 space-y-6">
+          {/* Overdue Alert banner if any */}
+          {overdueList.length > 0 && (
+            <div className="bg-rose-50 border border-rose-200 rounded-2xl p-4">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 text-rose-800 font-bold text-xs sm:text-sm">
+                  <AlertTriangle className="w-4 h-4 text-rose-600 shrink-0" />
+                  <span>Просрочени задачи, изискващи спешно изпълнение</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 text-[10px] font-bold">
+                  {overdueList.length} задачи
+                </span>
               </div>
-              <div className="min-w-0">
-                <div className="text-2xl sm:text-3xl font-heading font-bold text-navy-900 leading-none">
-                  {stat.value}
-                </div>
-                <div className="text-xs sm:text-sm text-slate-500 mt-1 truncate">
-                  {stat.label}
-                </div>
+              <div className="divide-y divide-rose-100">
+                {overdueList.map((t) => (
+                  <div
+                    key={t.id}
+                    onClick={() => onNavigate('detail', { ticketId: t.id })}
+                    className="py-2 flex items-center justify-between hover:bg-rose-100/50 px-2 rounded-lg transition-colors cursor-pointer"
+                  >
+                    <div className="min-w-0 pr-3">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[11px] font-mono font-bold text-rose-700">
+                          {t.code}
+                        </span>
+                        <span className="text-xs font-semibold text-rose-950 truncate">
+                          {t.title}
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-rose-600 mb-0">
+                        Краен срок:{' '}
+                        {t.due_date ? new Date(t.due_date).toLocaleString('bg-BG') : '—'} • Отговорник:{' '}
+                        {t.assignee_name}
+                      </p>
+                    </div>
+                    <ArrowRight className="w-4 h-4 text-rose-400 shrink-0" />
+                  </div>
+                ))}
               </div>
             </div>
-          );
-        })}
-      </div>
+          )}
 
-      {/* Quick Actions & Recent Tickets */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Recent Tickets (8 cols) */}
-        <div className="lg:col-span-8 bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
-          <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between gap-3">
-            <div>
-              <h3 className="text-base sm:text-lg font-heading font-bold text-navy-900 mb-0.5">
-                Последни възложени задачи
-              </h3>
-              <p className="text-xs text-slate-500 mb-0">
-                Най-новите активни задачи, срокове и прикачени файлове
-              </p>
+          {/* Active Tasks Table / List */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-sm sm:text-base font-bold font-heading text-navy-900 mb-0.5">
+                  {dashboardMode === 'management' ? 'Текущи активни задачи' : 'Моите активни задачи'}
+                </h3>
+                <p className="text-xs text-slate-500 mb-0">
+                  {dashboardMode === 'management'
+                    ? 'Списък на най-актуалните училищни задачи в процес'
+                    : 'Задачи, по които сте определени като главен или съотговорник'}
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => onNavigate('list')}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-blue-600 hover:text-blue-700 hover:underline cursor-pointer"
+              >
+                <span>Виж всички</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </button>
             </div>
-            <button
-              type="button"
-              onClick={() => onNavigate('list')}
-              className="text-xs sm:text-sm font-semibold text-blue-600 hover:text-blue-700 flex items-center gap-1 cursor-pointer"
-            >
-              <span>Виж всички</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
 
-          <div className="divide-y divide-slate-100">
-            {recentTickets.map((t) => {
-              const st = STATUS_LABELS[t.status];
-              const pr = PRIORITY_LABELS[t.priority];
+            {/* List */}
+            <div className="space-y-2.5">
+              {(dashboardMode === 'employee' ? myActiveTasks : tickets.filter((t) => normalizeTaskStatus(t.status) !== 'completed'))
+                .slice(0, 6)
+                .map((task) => {
+                  const normStatus = normalizeTaskStatus(task.status);
+                  const isOverdue = isTaskOverdue(task);
 
-              return (
-                <div
-                  key={t.id}
-                  onClick={() => onNavigate('detail', { ticketId: t.id })}
-                  className="p-4 sm:p-5 hover:bg-slate-50/80 transition-colors cursor-pointer flex flex-col sm:flex-row sm:items-center justify-between gap-3"
-                >
-                  <div className="min-w-0 flex-1 space-y-1.5">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-xs font-semibold border ${st.bg}`}>
-                        <span className={`w-1.5 h-1.5 rounded-full ${st.dot}`} />
-                        {st.label}
-                      </span>
-                      <span className={`px-2 py-0.5 rounded-md text-xs font-semibold border ${pr.bg} ${pr.text} ${pr.border}`}>
-                        {pr.label}
-                      </span>
-                      {t.due_date && (() => {
-                        const due = new Date(t.due_date);
-                        const now = new Date();
-                        const diffDays = Math.ceil((due.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-                        const isOverdue = diffDays < 0;
-                        const isUrgentDue = diffDays >= 0 && diffDays <= 1;
-
-                        return (
+                  return (
+                    <div
+                      key={task.id}
+                      onClick={() => onNavigate('detail', { ticketId: task.id })}
+                      className="p-3 rounded-xl border border-slate-100 hover:border-slate-300 hover:bg-slate-50/70 transition-all cursor-pointer flex items-center justify-between gap-3 group"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-1 flex-wrap">
+                          <span className="font-mono text-xs font-bold text-slate-700 bg-slate-100 px-1.5 py-0.5 rounded">
+                            {task.code || 'TSK'}
+                          </span>
                           <span
-                            className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold border ${
-                              isOverdue
-                                ? 'bg-rose-50 text-rose-700 border-rose-200'
-                                : isUrgentDue
+                            className={cn(
+                              'text-[10px] font-bold px-2 py-0.5 rounded-full border',
+                              normStatus === 'in_progress'
                                 ? 'bg-amber-50 text-amber-700 border-amber-200'
-                                : 'bg-slate-50 text-slate-700 border-slate-200'
-                            }`}
+                                : normStatus === 'awaiting_approval'
+                                  ? 'bg-purple-50 text-purple-700 border-purple-200'
+                                  : 'bg-blue-50 text-blue-700 border-blue-200'
+                            )}
                           >
-                            <Calendar className="w-3 h-3" />
-                            <span>
-                              {isOverdue ? 'Изтекъл: ' : 'Срок: '}
-                              {due.toLocaleDateString('bg-BG')}
+                            {STATUS_LABELS[normStatus]?.label || normStatus}
+                          </span>
+
+                          {isOverdue && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-rose-50 text-rose-700 border border-rose-200">
+                              Просрочена
                             </span>
-                          </span>
-                        );
-                      })()}
-                      {((t.attachments?.length || t.attachments_count || 0) > 0) && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200">
-                          <Paperclip className="w-3 h-3" />
-                          <span>
-                            {(t.attachments?.length || t.attachments_count)} {(t.attachments?.length || t.attachments_count) === 1 ? 'файл' : 'файла'}
-                          </span>
-                        </span>
-                      )}
-                      {t.assigned_role_target && (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-semibold bg-purple-50 text-purple-700 border border-purple-200">
-                          <Users className="w-3 h-3" />
-                          <span>
-                            {t.assigned_role_target === 'all_teachers'
-                              ? 'Всички учители'
-                              : t.assigned_role_target === 'all_administration'
-                              ? 'Всички администратори'
-                              : t.assigned_role_target === 'all_staff'
-                              ? 'Целият персонал'
-                              : t.assigned_role_target}
-                          </span>
-                        </span>
-                      )}
-                    </div>
+                          )}
 
-                    <h4 className="text-sm sm:text-base font-heading font-bold text-navy-900 truncate">
-                      {t.title}
-                    </h4>
+                          {task.return_reason && (
+                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-800">
+                              Върната за корекция
+                            </span>
+                          )}
+                        </div>
 
-                    <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
-                      <span>{t.department_name}</span>
-                      <span>•</span>
-                      <span>{new Date(t.created_at).toLocaleDateString('bg-BG')}</span>
-                      <span>•</span>
-                      <span>От: {t.creator_name}</span>
-                      <span>•</span>
-                      <span>За: {t.assignee_name}</span>
-                      {t.messages_count ? (
-                        <>
+                        <p className="text-xs sm:text-sm font-semibold text-navy-900 group-hover:text-blue-600 transition-colors truncate mb-1">
+                          {task.title}
+                        </p>
+
+                        <div className="flex items-center gap-3 text-[11px] text-slate-400">
+                          <span>{task.department_name}</span>
                           <span>•</span>
-                          <span className="text-blue-600 font-medium">
-                            💬 {t.messages_count} съобщения
-                          </span>
-                        </>
-                      ) : null}
+                          <span>Отговорник: {task.assignee_name}</span>
+                          {task.due_date && (
+                            <>
+                              <span>•</span>
+                              <span
+                                className={cn(
+                                  'flex items-center gap-0.5',
+                                  isOverdue ? 'text-rose-600 font-semibold' : 'text-slate-500'
+                                )}
+                              >
+                                <Clock className="w-3 h-3" />
+                                <span>{new Date(task.due_date).toLocaleDateString('bg-BG')}</span>
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+
+                      <ArrowRight className="w-4 h-4 text-slate-300 group-hover:text-blue-600 transition-colors shrink-0" />
                     </div>
-                  </div>
+                  );
+                })}
 
-                  <div className="flex items-center gap-2 self-end sm:self-center shrink-0 text-slate-400 group-hover:text-blue-600">
-                    <ArrowRight className="w-4 h-4" />
-                  </div>
+              {(dashboardMode === 'employee' ? myActiveTasks : tickets.filter((t) => normalizeTaskStatus(t.status) !== 'completed')).length === 0 && (
+                <div className="p-8 text-center text-slate-400">
+                  <CheckCircle2 className="w-8 h-8 mx-auto mb-2 opacity-30 text-emerald-600" />
+                  <p className="text-xs font-semibold mb-0">Няма текущи активни задачи!</p>
                 </div>
-              );
-            })}
-
-            {recentTickets.length === 0 && (
-              <div className="py-12 text-center text-slate-400 text-sm">
-                Няма въведени задачи.
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
-        {/* Sidebar: Quick Actions & Department Breakdown (4 cols) */}
-        <div className="lg:col-span-4 space-y-5">
-          {/* Action Card */}
+        {/* Right Col: Department Workload & Recent Activity */}
+        <div className="space-y-6">
+          {/* Upcoming Deadlines Widget */}
           <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-            <h3 className="text-sm font-heading font-bold text-navy-900 mb-1">
-              Бързи действия
-            </h3>
-
-            {canCreateTicket && (
-              <button
-                type="button"
-                onClick={() => onNavigate('create')}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-blue-600 hover:bg-blue-700 text-white text-xs sm:text-sm font-semibold transition-colors shadow-2xs cursor-pointer"
-              >
-                <Plus className="w-4 h-4" />
-                <span>+ Възложи нова задача</span>
-              </button>
-            )}
-
-            <button
-              type="button"
-              onClick={() => onNavigate('documents_history')}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-navy-900 text-xs sm:text-sm font-medium transition-colors cursor-pointer"
-            >
+            <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <FileText className="w-4 h-4 text-blue-600" />
-                <span>История на документите (1 г.)</span>
+                <Calendar className="w-4 h-4 text-blue-600" />
+                <h3 className="text-xs sm:text-sm font-bold text-navy-900 mb-0">
+                  Предстоящи крайни срокове
+                </h3>
               </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-
-            <button
-              type="button"
-              onClick={() => onNavigate('channels')}
-              className="w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-navy-900 text-xs sm:text-sm font-medium transition-colors cursor-pointer"
-            >
-              <div className="flex items-center gap-2">
-                <Megaphone className="w-4 h-4 text-emerald-600" />
-                <span>Комуникационни канали</span>
-              </div>
-              <ArrowRight className="w-3.5 h-3.5 text-slate-400" />
-            </button>
-          </div>
-
-          {/* Department Breakdown */}
-          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
-            <h3 className="text-sm font-heading font-bold text-navy-900 mb-1">
-              Задачи по направления
-            </h3>
+            </div>
 
             <div className="space-y-2">
-              {departments.map((dept) => {
-                const count = tickets.filter((t) => t.department_id === dept.id).length;
-                return (
+              {upcomingDeadlines.length === 0 ? (
+                <p className="text-xs text-slate-400 italic mb-0">Няма предстоящи срокове</p>
+              ) : (
+                upcomingDeadlines.map((t) => (
                   <div
-                    key={dept.id}
-                    className="flex items-center justify-between gap-2 p-2.5 rounded-xl bg-slate-50 border border-slate-200/80 text-xs"
+                    key={t.id}
+                    onClick={() => onNavigate('detail', { ticketId: t.id })}
+                    className="p-2.5 rounded-xl bg-slate-50 hover:bg-slate-100 transition-colors cursor-pointer flex items-center justify-between gap-2"
                   >
-                    <div className="min-w-0 font-medium text-navy-900 truncate">
-                      {dept.name}
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold text-slate-800 truncate mb-0.5">
+                        {t.title}
+                      </p>
+                      <p className="text-[10px] text-blue-600 font-medium mb-0">
+                        {new Date(t.due_date!).toLocaleDateString('bg-BG')} (
+                        {t.assignee_name})
+                      </p>
                     </div>
-                    <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-700 font-bold shrink-0">
-                      {count}
-                    </span>
+                    <ArrowRight className="w-3.5 h-3.5 text-slate-400 shrink-0" />
                   </div>
-                );
-              })}
+                ))
+              )}
+            </div>
+          </div>
 
-              {departments.length === 0 && (
-                <p className="text-xs text-slate-400 py-3 text-center mb-0">
-                  Няма регистрирани направления.
-                </p>
+          {/* Department Workload Breakdown */}
+          {dashboardMode === 'management' && (
+            <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Building2 className="w-4 h-4 text-blue-600" />
+                  <h3 className="text-xs sm:text-sm font-bold text-navy-900 mb-0">
+                    Задачи по направления
+                  </h3>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {deptBreakdown.map((dept) => (
+                  <div key={dept.id} className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="font-semibold text-slate-700 truncate max-w-[170px]">
+                        {dept.name}
+                      </span>
+                      <span className="text-slate-400 text-[11px]">
+                        {dept.active} акт. / {dept.done} прикл.
+                      </span>
+                    </div>
+                    {/* Progress bar */}
+                    <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                      <div
+                        className="h-full rounded-full bg-blue-600 transition-all duration-500"
+                        style={{ width: `${dept.rate}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Recent Activity Log */}
+          <div className="bg-white rounded-2xl border border-slate-200 p-5 shadow-xs space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-blue-600" />
+                <h3 className="text-xs sm:text-sm font-bold text-navy-900 mb-0">
+                  Последна активност
+                </h3>
+              </div>
+            </div>
+
+            <div className="space-y-2.5">
+              {recentActivity.length === 0 ? (
+                <p className="text-xs text-slate-400 italic mb-0">Няма регистрирана активност</p>
+              ) : (
+                recentActivity.map((log) => (
+                  <div key={log.id} className="text-xs border-l-2 border-blue-500 pl-3 py-1">
+                    <p className="font-semibold text-slate-800 mb-0.5 leading-snug">
+                      {typeof log.details === 'string'
+                        ? log.details
+                        : log.details
+                          ? JSON.stringify(log.details)
+                          : log.action}
+                    </p>
+                    <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                      <span>{log.actor_name || 'Служител'}</span>
+                      <span>•</span>
+                      <span>{new Date(log.created_at).toLocaleTimeString('bg-BG', { hour: '2-digit', minute: '2-digit' })}</span>
+                    </div>
+                  </div>
+                ))
               )}
             </div>
           </div>
